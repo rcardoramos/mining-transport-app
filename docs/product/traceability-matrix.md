@@ -1,0 +1,15 @@
+# Matriz de Trazabilidad de Requerimientos y Reglas de Negocio
+
+Esta matriz mapea los Requerimientos Funcionales (RF), las Reglas de Negocio (RN) y los Criterios de Aceptación (CA) para asegurar la cobertura completa del sistema "APP Buses" de Miski Mayo.
+
+| Requerimiento Funcional (RF) | Regla de Negocio (RN) | Criterios de Aceptación (CA) | Módulo / Componente |
+| :--- | :--- | :--- | :--- |
+| **RF-AUTH-01** (Login Online) <br> **RF-AUTH-02** (Caché de Credenciales) <br> **RF-AUTH-03** (PIN/Huella) | N/A | **CA-01** (Login exitoso online/offline y bloqueo por credenciales erróneas) | Módulo de Autenticación (`auth`) |
+| **RF-TRIP-01** (Apertura de Viaje) | **RN-TRIP-05-01** (Campos obligatorios al abrir viaje) | **CA-01-Escenario 1** (Apertura de viaje local con km inicial) | Módulo de Gestión de Viaje (`trip`) |
+| **RF-TRIP-03** (Cierre de Viaje) | **RN-TRIP-05-02** (Kilometraje final > inicial)<br>**RN-TRIP-05-03** (Inmutabilidad al cierre) | **CA-05-Escenario 1** (Cierre de viaje e inmutabilidad de abordajes) | Módulo de Gestión de Viaje (`trip`) |
+| **RF-PSG-01** (Escaneo de DNI)<br>**RF-PSG-02** (Escaneo de Fotocheck)<br>**RF-PSG-03** (Ingreso Manual) | **RN-VAL-01-01** (Padrón activo)<br>**RN-EMB-03-02** (Registros históricos inmutables) | **CA-02-Escenario 1** (Lectura y decodificación de código de barras DNI/Fotocheck) | Módulo de Pasajeros (`passenger`) |
+| **RF-VAL-01** (Consulta local de datos)<br>**RF-VAL-02** (Visualización e indicadores) | **RN-VAL-01-01** (Estado Activo)<br>**RN-VAL-01-02** (Examen Médico EMO)<br>**RN-VAL-01-03** (Inducción de Seguridad)<br>**RN-VAL-01-04** (Bloqueos de Seguridad) | **CA-02-Escenario 1** (Trabajador Activo Aprobado - Verde)<br>**CA-02-Escenario 2** (Trabajador EMO vencido Bloqueado - Rojo) | Módulo de Validación Laboral (`validation`) |
+| **RF-OCC-01** (Progreso de aforo)<br>**RF-OCC-02** (Prevención de sobreaforo) | **RN-AFO-02-01** (Límites de aforo del bus)<br>**RN-AFO-02-02** (Rechazo al sobrepasar aforo) | **CA-03-Escenario 1** (Bloqueo de abordajes al 100% de capacidad) | Módulo de Control de Aforo (`occupancy`) |
+| **RF-GEO-01** (Selección de Paradero)<br>**RF-GEO-02** (Sugerencia por GPS)<br>**RF-GEO-03** (Auditoría GPS) | **RN-GEO-04-01** (Validación de distancia a paradero)<br>**RN-GEO-04-02** (Precisión mínima GPS) | **CA-02-Escenario 1** (Abordaje con guardado de coordenadas GPS y validación de geofencing) | Módulo de Geolocalización (`geolocation`) |
+| **RF-MAN-01** (Generación de Manifiesto)<br>**RF-MAN-02** (Previsualización)<br>**RF-MAN-03** (Impresión Directa) | **RN-TRIP-05-04** (Disponibilidad de manifiesto) | **CA-05-Escenario 1** (Generación de manifiesto PDF e impresión bluetooth) | Módulo de Manifiesto PDF (`manifest`) |
+| **RF-SYNC-01** (Operación Offline)<br>**RF-SYNC-02** (Cola persistente FIFO)<br>**RF-SYNC-03** (Monitoreo de red)<br>**RF-SYNC-04** (SyncWorker)<br>**RF-SYNC-05** (Reintentos) | **RN-EMB-03-02** (Registros históricos inmutables) | **CA-04-Escenario 1** (Registro sin red y sincronización en cola al recuperar red) | Módulo de Sincronización (`sync`) |
