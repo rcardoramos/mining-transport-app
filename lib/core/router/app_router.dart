@@ -1,9 +1,43 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mining_transport_app/features/auth/presentation/pages/login_view.dart';
+import 'package:mining_transport_app/features/auth/presentation/pages/splash_view.dart';
+import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 
-class AppRouter {
-  static final GoRouter router = GoRouter(
+/// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
+final routerProvider = Provider<GoRouter>((ref) {
+  // Escuchar el notifier para obtener el stream, el notifier en sí no cambia
+  final notifier = ref.watch(loginViewModelProvider.notifier);
+
+  return GoRouter(
     initialLocation: '/',
+    refreshListenable: GoRouterRefreshStream(notifier.stream),
+    redirect: (context, state) {
+      // Leer el estado actual de forma de datos sin provocar la reconstrucción de GoRouter
+      final authState = ref.read(loginViewModelProvider);
+      
+      final isLoggingIn = state.matchedLocation == '/login';
+      final isSplash = state.matchedLocation == '/';
+
+      // 1. Si aún no se ha comprobado la sesión, forzar la permanencia en el Splash
+      if (!authState.isSessionChecked) {
+        return isSplash ? null : '/';
+      }
+
+      // 2. Una vez comprobada la sesión, si no está autenticado, redirigir a Login
+      if (!authState.isAuthenticated) {
+        return isLoggingIn ? null : '/login';
+      }
+
+      // 3. Si está autenticado, evitar las pantallas de Login o Splash redirigiendo al Dashboard
+      if (isLoggingIn || isSplash) {
+        return '/dashboard';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',
@@ -19,46 +53,25 @@ class AppRouter {
       ),
     ],
   );
-}
+});
 
-// Stubs temporales para compilación limpia
-class SplashView extends StatelessWidget {
-  const SplashView({super.key});
+/// Adaptador para convertir un [Stream] en un [Listenable] compatible con GoRouter.
+class GoRouterRefreshStream extends ChangeNotifier {
+  late final StreamSubscription<dynamic> _subscription;
+
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.directions_bus, size: 64, color: Colors.blue),
-            SizedBox(height: 16),
-            Text(
-              'APP Buses - Miski Mayo',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            CircularProgressIndicator(),
-          ],
-        ),
-      ),
-    );
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 }
 
-class LoginView extends StatelessWidget {
-  const LoginView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar Sesión')),
-      body: const Center(child: Text('Login View Placeholder')),
-    );
-  }
-}
-
+// Stub temporal para compilación limpia de la siguiente feature
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key});
 
@@ -70,3 +83,4 @@ class DashboardView extends StatelessWidget {
     );
   }
 }
+

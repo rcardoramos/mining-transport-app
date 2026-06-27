@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:mining_transport_app/core/constants/env_config.dart';
+import 'package:mining_transport_app/core/di/injection_container.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
+import 'package:mining_transport_app/core/utils/session_status_service.dart';
 
 class DioClient {
   final Dio _dio;
@@ -45,6 +47,21 @@ class _AuthInterceptor extends Interceptor {
       options.headers['Authorization'] = 'Bearer $token';
     }
     handler.next(options);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
+      // Borrar credenciales de almacenamiento local al desautorizarse
+      await _secureStorage.deleteToken();
+      await _secureStorage.deleteRefreshToken();
+      
+      // Notificar al sistema que la sesión expiró
+      if (locator.isRegistered<SessionStatusService>()) {
+        locator<SessionStatusService>().notifySessionExpired();
+      }
+    }
+    handler.next(err);
   }
 }
 

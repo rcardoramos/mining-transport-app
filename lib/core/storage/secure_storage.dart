@@ -10,8 +10,10 @@ class SecureStorage {
         );
 
   static const String _keyToken = 'jwt_token';
+  static const String _keyRefreshToken = 'refresh_token';
   static const String _keyPin = 'user_pin';
   static const String _keyUsername = 'cached_username';
+  static const String _keyPasswordHash = 'password_hash';
 
   Future<void> saveToken(String token) async {
     await _storage.write(key: _keyToken, value: token);
@@ -23,6 +25,18 @@ class SecureStorage {
 
   Future<void> deleteToken() async {
     await _storage.delete(key: _keyToken);
+  }
+
+  Future<void> saveRefreshToken(String token) async {
+    await _storage.write(key: _keyRefreshToken, value: token);
+  }
+
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: _keyRefreshToken);
+  }
+
+  Future<void> deleteRefreshToken() async {
+    await _storage.delete(key: _keyRefreshToken);
   }
 
   Future<void> savePIN(String pin) async {
@@ -44,6 +58,19 @@ class SecureStorage {
   Future<String?> getUsername() async {
     return await _storage.read(key: _keyUsername);
   }
+
+  Future<void> savePasswordHash(String hash) async {
+    await _storage.write(key: _keyPasswordHash, value: hash);
+  }
+
+  Future<String?> getPasswordHash() async {
+    return await _storage.read(key: _keyPasswordHash);
+  }
+
+  Future<void> deletePasswordHash() async {
+    await _storage.delete(key: _keyPasswordHash);
+  }
+
 
   Future<void> clearAll() async {
     await _storage.deleteAll();

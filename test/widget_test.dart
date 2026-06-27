@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mining_transport_app/core/router/app_router.dart';
+import 'package:mining_transport_app/core/constants/env_config.dart';
+import 'package:mining_transport_app/core/di/injection_container.dart';
+import 'package:mining_transport_app/features/auth/presentation/pages/splash_view.dart';
 
 void main() {
+  setUpAll(() async {
+    // Inicializar configuración de entorno para pruebas
+    EnvConfig.initialize(AppEnvironment.dev);
+    // Inicializar GetIt para resolver los casos de uso inyectados en el ViewModel
+    await setupLocator();
+  });
+
   testWidgets('SplashView smoke test - displays title and bus icon',
       (WidgetTester tester) async {
     // Build our widget and trigger a frame.
-    await tester.pumpWidget(const MaterialApp(
-      home: SplashView(),
+    await tester.pumpWidget(const ProviderScope(
+      child: MaterialApp(
+        home: SplashView(),
+      ),
     ));
 
     // Verify that the title is displayed.
