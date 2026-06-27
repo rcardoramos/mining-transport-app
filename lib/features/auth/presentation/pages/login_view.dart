@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mining_transport_app/features/auth/presentation/widgets/login_form.dart';
+import 'package:mining_transport_app/shared/design_system/design_system.dart';
 
 /// Vista de Login que orquesta la UI del formulario de autenticación de forma elegante.
 class LoginView extends StatelessWidget {
@@ -8,51 +9,58 @@ class LoginView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.directions_bus_filled_rounded,
-                  size: 80,
-                  color: Color(0xFF0F4C5C),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Miski Mayo',
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    color: const Color(0xFF0F4C5C),
-                    fontWeight: FontWeight.bold,
+            padding: DesignSpacing.allL,
+            child: FadeInAnimation(
+              duration: const Duration(milliseconds: 500),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: DesignSpacing.allM,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? DesignColors.primaryDark.withOpacity(0.1)
+                          : DesignColors.primaryLight.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.directions_bus_filled_rounded,
+                      size: 80,
+                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Control de Transporte de Buses',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                  DesignSpacing.spacerV20,
+                  Text(
+                    'Miski Mayo',
+                    style: DesignTypography.display.copyWith(
+                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                  DesignSpacing.spacerV8,
+                  Text(
+                    'Control de Transporte de Buses',
+                    style: DesignTypography.bodyLarge.copyWith(
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: LoginForm(),
+                  DesignSpacing.spacerV32,
+                  DesignCard.elevated(
+                    padding: DesignSpacing.allL,
+                    child: const LoginForm(),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

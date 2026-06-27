@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mining_transport_app/features/auth/presentation/pages/login_view.dart';
 import 'package:mining_transport_app/features/auth/presentation/pages/splash_view.dart';
+import 'package:mining_transport_app/features/auth/presentation/pages/design_system_preview.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 
 /// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
@@ -15,6 +16,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: GoRouterRefreshStream(notifier.stream),
     redirect: (context, state) {
+      // Permitir acceso irrestricto al catálogo del Design System en desarrollo
+      final isDesignSystem = state.matchedLocation == '/design-system-preview';
+      if (isDesignSystem) return null;
+
       // Leer el estado actual de forma de datos sin provocar la reconstrucción de GoRouter
       final authState = ref.read(loginViewModelProvider);
       
@@ -50,6 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardView(),
+      ),
+      GoRoute(
+        path: '/design-system-preview',
+        builder: (context, state) => const DesignSystemPreview(),
       ),
     ],
   );
