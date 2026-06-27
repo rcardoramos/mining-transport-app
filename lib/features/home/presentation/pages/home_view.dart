@@ -7,8 +7,10 @@ import '../widgets/greeting_header.dart';
 import '../widgets/driver_profile_card.dart';
 import '../widgets/trip_item_card.dart';
 import '../widgets/dashboard_stats_section.dart';
+import '../../domain/entities/home_dashboard_data.dart';
+import '../../domain/entities/driver_entity.dart';
 
-/// Vista principal de Dashboard (Home) del conductor.
+/// Vista principal de Dashboard (Home) del conductor con barra de navegación inferior.
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
 
@@ -18,6 +20,7 @@ class HomeView extends ConsumerStatefulWidget {
 
 class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int _currentNavigationIndex = 0;
 
   @override
   void initState() {
@@ -31,31 +34,47 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
     super.dispose();
   }
 
+  String _getAppBarTitle() {
+    switch (_currentNavigationIndex) {
+      case 0:
+        return 'APP Buses - Miski Mayo';
+      case 1:
+        return 'Mis Viajes';
+      case 2:
+        return 'Manifiestos';
+      case 3:
+        return 'Mi Perfil';
+      default:
+        return 'APP Buses';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeDashboardViewModelProvider);
 
     return Scaffold(
       appBar: DesignAppBar(
-        title: 'APP Buses - Miski Mayo',
+        title: _getAppBarTitle(),
         centerTitle: false,
         actions: [
-          DesignIconButton(
-            icon: Icons.logout_rounded,
-            tooltip: 'Cerrar Sesión',
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => DesignDialog(
-                  title: 'Cerrar Sesión',
-                  content: '¿Estás seguro de que deseas salir de la aplicación?',
-                  confirmLabel: 'Cerrar Sesión',
-                  cancelLabel: 'Cancelar',
-                  onConfirm: () => ref.read(loginViewModelProvider.notifier).logout(),
-                ),
-              );
-            },
-          ),
+          if (_currentNavigationIndex == 3) // Mostrar botón salir solo en perfil
+            DesignIconButton(
+              icon: Icons.logout_rounded,
+              tooltip: 'Cerrar Sesión',
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => DesignDialog(
+                    title: 'Cerrar Sesión',
+                    content: '¿Estás seguro de que deseas salir de la aplicación?',
+                    confirmLabel: 'Cerrar Sesión',
+                    cancelLabel: 'Cancelar',
+                    onConfirm: () => ref.read(loginViewModelProvider.notifier).logout(),
+                  ),
+                );
+              },
+            ),
         ],
       ),
       body: RefreshIndicator(
@@ -83,43 +102,261 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
               );
             }
 
-            return NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverPadding(
-                    padding: DesignSpacing.allM,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        GreetingHeader(driverName: data.driver.name),
-                        DesignSpacing.spacerV16,
-                        DriverProfileCard(driver: data.driver),
-                        DesignSpacing.spacerV24,
-                        DashboardStatsSection(summary: data.summary),
-                        DesignSpacing.spacerV24,
-                        TabBar(
-                          controller: _tabController,
-                          labelStyle: DesignTypography.labelLarge.copyWith(fontWeight: FontWeight.bold),
-                          unselectedLabelStyle: DesignTypography.labelMedium,
-                          tabs: const [
-                            Tab(text: 'Viajes de Hoy'),
-                            Tab(text: 'Viajes Pendientes'),
-                          ],
-                        ),
-                      ]),
-                    ),
-                  ),
-                ];
-              },
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy'),
-                  _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados'),
-                ],
+            return _buildActiveTab(data);
+          },
+        ),
+      ),
+      bottomNavigationBar: DesignBottomNavigation(
+        currentIndex: _currentNavigationIndex,
+        onTap: (index) {
+          setState(() {
+            _currentNavigationIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Inicio',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.directions_bus_rounded),
+            label: 'Viajes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_rounded),
+            label: 'Manifiestos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Perfil',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveTab(HomeDashboardData data) {
+    switch (_currentNavigationIndex) {
+      case 0:
+        return _buildInicioTab(data);
+      case 1:
+        return _buildViajesTab(data);
+      case 2:
+        return _buildManifiestosTab(data);
+      case 3:
+        return _buildPerfilTab(data);
+      default:
+        return _buildInicioTab(data);
+    }
+  }
+
+  Widget _buildInicioTab(HomeDashboardData data) {
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
+          SliverPadding(
+            padding: DesignSpacing.allM,
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                GreetingHeader(driverName: data.driver.name),
+                DesignSpacing.spacerV16,
+                DriverProfileCard(driver: data.driver),
+                DesignSpacing.spacerV24,
+                DashboardStatsSection(summary: data.summary),
+                DesignSpacing.spacerV24,
+                TabBar(
+                  controller: _tabController,
+                  labelStyle: DesignTypography.labelLarge.copyWith(fontWeight: FontWeight.bold),
+                  unselectedLabelStyle: DesignTypography.labelMedium,
+                  tabs: const [
+                    Tab(text: 'Viajes de Hoy'),
+                    Tab(text: 'Viajes Pendientes'),
+                  ],
+                ),
+              ]),
+            ),
+          ),
+        ];
+      },
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy'),
+          _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViajesTab(HomeDashboardData data) {
+    final allTrips = [...data.todayTrips, ...data.pendingTrips];
+    return ListView.separated(
+      padding: DesignSpacing.allM,
+      itemCount: allTrips.length,
+      separatorBuilder: (context, index) => DesignSpacing.spacerV16,
+      itemBuilder: (context, index) {
+        final trip = allTrips[index];
+        return TripItemCard(
+          trip: trip,
+          onStatusChanged: (newStatus) {
+            ref.read(homeDashboardViewModelProvider.notifier).updateTripStatus(trip.id, newStatus);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildManifiestosTab(HomeDashboardData data) {
+    return ListView(
+      padding: DesignSpacing.allM,
+      children: [
+        const DesignSectionHeader(title: 'Manifiestos de Pasajeros'),
+        DesignSpacing.spacerV12,
+        _buildManifestCard('MAN-00921', 'Mina Miski Mayo - Campamento', '42 Pasajeros registrados', 'Completado', true),
+        DesignSpacing.spacerV16,
+        _buildManifestCard('MAN-00922', 'Campamento - Puerto Bayóvar', '15 Pasajeros registrados', 'Pendiente firma', false),
+      ],
+    );
+  }
+
+  Widget _buildManifestCard(String code, String route, String passengers, String status, bool completed) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).extension<DesignThemeExtension>()!;
+
+    return DesignCard.basic(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                code,
+                style: DesignTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
+              ),
+              DesignSpacing.spacerV4,
+              Text(
+                route,
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
+              ),
+              DesignSpacing.spacerV4,
+              Text(
+                passengers,
+                style: DesignTypography.caption.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+          DesignBadge(
+            label: status,
+            color: completed ? colors.success : colors.warning,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerfilTab(HomeDashboardData data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ListView(
+      padding: DesignSpacing.allM,
+      children: [
+        Center(
+          child: Column(
+            children: [
+              DesignAvatar(name: data.driver.name, size: 80),
+              DesignSpacing.spacerV16,
+              Text(
+                data.driver.name,
+                style: DesignTypography.titleLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
+              ),
+              DesignSpacing.spacerV4,
+              Text(
+                data.driver.code,
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+        DesignSpacing.spacerV24,
+        const DesignSectionHeader(title: 'Información del Turno'),
+        DesignSpacing.spacerV8,
+        DesignCard.basic(
+          child: Column(
+            children: [
+              _buildProfileRow(
+                'Estado del Conductor',
+                data.driver.status == DriverStatus.active ? 'Activo (En Turno)' : 'Inactivo',
+                isDark,
+              ),
+              const DesignDivider(),
+              _buildProfileRow(
+                'Viajes completados hoy',
+                '${data.summary.completedTrips} viajes',
+                isDark,
+              ),
+              const DesignDivider(),
+              _buildProfileRow(
+                'Pasajeros transportados',
+                '${data.summary.passengersTransported} pasajeros',
+                isDark,
+              ),
+            ],
+          ),
+        ),
+        DesignSpacing.spacerV32,
+        DesignButton.secondary(
+          text: 'Cerrar Sesión',
+          icon: Icons.logout_rounded,
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => DesignDialog(
+                title: 'Cerrar Sesión',
+                content: '¿Estás seguro de que deseas salir de la aplicación?',
+                confirmLabel: 'Cerrar Sesión',
+                cancelLabel: 'Cancelar',
+                onConfirm: () => ref.read(loginViewModelProvider.notifier).logout(),
               ),
             );
           },
         ),
+      ],
+    );
+  }
+
+  Widget _buildProfileRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: DesignTypography.bodyMedium.copyWith(
+              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+            ),
+          ),
+          Text(
+            value,
+            style: DesignTypography.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+            ),
+          ),
+        ],
       ),
     );
   }
