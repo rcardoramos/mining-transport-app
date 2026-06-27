@@ -22,6 +22,8 @@ import 'package:mining_transport_app/features/home/domain/usecases/get_pending_t
 import 'package:mining_transport_app/features/home/domain/usecases/get_dashboard_summary_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/update_trip_status_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/register_passenger_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/check_collaborator_usecase.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -79,6 +81,8 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<GetDashboardSummaryUseCase>(() => GetDashboardSummaryUseCase(locator<HomeDashboardRepository>()));
   locator.registerLazySingleton<UpdateTripStatusUseCase>(() => UpdateTripStatusUseCase(locator<HomeDashboardRepository>()));
   locator.registerLazySingleton<RegisterPassengerUseCase>(() => RegisterPassengerUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<GetPassengersOnBoardUseCase>(() => GetPassengersOnBoardUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<CheckCollaboratorUseCase>(() => CheckCollaboratorUseCase(locator<HomeDashboardRepository>()));
 
   locator<AppLogger>().i('Dependency Injection Container initialized successfully.');
 }

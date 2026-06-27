@@ -1,0 +1,31 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'collaborator_entity.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$CollaboratorEntityImpl _$$CollaboratorEntityImplFromJson(
+  Map<String, dynamic> json,
+) => _$CollaboratorEntityImpl(
+  dni: json['dni'] as String,
+  fullName: json['fullName'] as String,
+  status: $enumDecode(_$CollaboratorStatusEnumMap, json['status']),
+);
+
+Map<String, dynamic> _$$CollaboratorEntityImplToJson(
+  _$CollaboratorEntityImpl instance,
+) => <String, dynamic>{
+  'dni': instance.dni,
+  'fullName': instance.fullName,
+  'status': _$CollaboratorStatusEnumMap[instance.status]!,
+};
+
+const _$CollaboratorStatusEnumMap = {
+  CollaboratorStatus.ok: 'ok',
+  CollaboratorStatus.vacation: 'vacation',
+  CollaboratorStatus.medicalLeave: 'medicalLeave',
+  CollaboratorStatus.license: 'license',
+  CollaboratorStatus.terminated: 'terminated',
+};

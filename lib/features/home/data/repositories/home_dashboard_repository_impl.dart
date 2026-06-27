@@ -2,8 +2,12 @@ import 'package:mining_transport_app/core/utils/result.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/dashboard_summary_entity.dart';
+import '../../domain/entities/passenger_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/repositories/home_dashboard_repository.dart';
 import '../datasources/home_dashboard_remote_data_source.dart';
+import '../models/passenger_model.dart';
+import '../models/collaborator_model.dart';
 
 /// Implementación concreta del Repositorio de Home Dashboard.
 class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
@@ -64,9 +68,30 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   }
 
   @override
-  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni) async {
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status]) async {
     try {
-      final model = await _remoteDataSource.registerPassenger(id, dni);
+      final model = await _remoteDataSource.registerPassenger(id, dni, status?.name);
+      return Success(model.toEntity());
+    } catch (e) {
+      return FailureResult(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<List<PassengerEntity>, Failure>> getPassengersOnBoard(String tripId) async {
+    try {
+      final models = await _remoteDataSource.getPassengersOnBoard(tripId);
+      final entities = models.map((m) => m.toEntity()).toList();
+      return Success(entities);
+    } catch (e) {
+      return FailureResult(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<CollaboratorEntity, Failure>> checkCollaborator(String dni) async {
+    try {
+      final model = await _remoteDataSource.checkCollaborator(dni);
       return Success(model.toEntity());
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));

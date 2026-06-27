@@ -1,6 +1,8 @@
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
 import '../models/dashboard_summary_model.dart';
+import '../models/passenger_model.dart';
+import '../models/collaborator_model.dart';
 
 /// Interfaz abstracta del Data Source remoto de Home Dashboard.
 abstract class HomeDashboardRemoteDataSource {
@@ -9,5 +11,9 @@ abstract class HomeDashboardRemoteDataSource {
   Future<List<TripModel>> getPendingTrips();
   Future<DashboardSummaryModel> getDashboardSummary();
   Future<TripModel> updateTripStatus(String id, String status);
-  Future<TripModel> registerPassenger(String id, String dni);
+  Future<TripModel> registerPassenger(String id, String dni, [String? status]);
+  /// Retorna la lista de [PassengerModel] registrados en el viaje [tripId].
+  Future<List<PassengerModel>> getPassengersOnBoard(String tripId);
+  /// Obtiene los detalles de un colaborador por su DNI.
+  Future<CollaboratorModel> checkCollaborator(String dni);
 }

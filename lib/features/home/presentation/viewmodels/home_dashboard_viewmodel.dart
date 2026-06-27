@@ -10,6 +10,7 @@ import '../../domain/usecases/get_pending_trips_usecase.dart';
 import '../../domain/usecases/get_dashboard_summary_usecase.dart';
 import '../../domain/usecases/update_trip_status_usecase.dart';
 import '../../domain/usecases/register_passenger_usecase.dart';
+import '../../domain/entities/collaborator_entity.dart';
 import '../states/home_dashboard_state.dart';
 
 /// ViewModel que gestiona el estado y eventos de la pantalla principal (Home).
@@ -115,10 +116,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
   }
 
-  Future<bool> registerPassenger(String tripId, String dni) async {
+  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
-    final result = await _registerPassengerUseCase.execute(tripId, dni);
+    final result = await _registerPassengerUseCase.execute(tripId, dni, status);
     
     if (result.isFailure) {
       state = state.copyWith(

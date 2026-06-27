@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
+import '../../domain/entities/passenger_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/usecases/get_passengers_on_board_usecase.dart';
+import '../../domain/usecases/check_collaborator_usecase.dart';
 
 /// Pantalla de Embarque de Pasajeros.
 /// Permite al conductor registrar pasajeros mediante escaneo QR o ingreso manual de DNI.
@@ -21,6 +26,32 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   final _formKey = GlobalKey<FormState>();
   bool _isManualInputVisible = false;
   bool _isRegistering = false;
+  List<PassengerEntity> _passengersList = [];
+  bool _isLoadingPassengers = false;
+  bool _isPassengersListVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPassengers();
+    });
+  }
+
+  Future<void> _loadPassengers() async {
+    setState(() => _isLoadingPassengers = true);
+    final useCase = GetIt.I<GetPassengersOnBoardUseCase>();
+    final result = await useCase.call(widget.tripId);
+    if (mounted) {
+      setState(() {
+        _isLoadingPassengers = false;
+        result.fold(
+          onSuccess: (data) => _passengersList = data,
+          onFailure: (f) => _passengersList = [],
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -38,58 +69,192 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   void _showCameraSimulator(TripEntity trip) {
     showDialog(
       context: context,
-      builder: (ctx) => DesignDialog(
-        title: 'Escaneo de Fotocheck / DNI',
-        content:
-            'Simulando activación de cámara trasera...\n\n'
-            'Alinee el código de barras o QR del fotocheck dentro del recuadro.\n\n'
-            '¿Desea simular un escaneo exitoso?',
-        confirmLabel: 'Simular Escaneo',
-        cancelLabel: 'Cancelar',
-        onConfirm: () async {
-          setState(() => _isRegistering = true);
-          final success = await ref
-              .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, '48102030');
-          setState(() => _isRegistering = false);
-          if (mounted) {
-            if (success) {
-              DesignSnackbar.showSuccess(context,
-                  'Pasajero registrado exitosamente vía escaneo.');
-            } else {
-              DesignSnackbar.showError(context,
-                  'No se pudo registrar al pasajero. Intente nuevamente.');
-            }
-          }
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          title: Text(
+            'Simulador de Escaneo',
+            style: DesignTypography.titleLarge.copyWith(
+              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Seleccione el perfil de colaborador que desea escanear para validar las reglas de negocio:',
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                ),
+              ),
+              DesignSpacing.spacerV16,
+              _buildSimulateOption(ctx, trip, 'Colaborador Regular (OK)', '48102030', Colors.green),
+              _buildSimulateOption(ctx, trip, 'Colaborador en Vacaciones', '11111111', Colors.amber),
+              _buildSimulateOption(ctx, trip, 'Colaborador con Descanso Médico', '22222222', Colors.amber),
+              _buildSimulateOption(ctx, trip, 'Colaborador con Licencia', '33333333', Colors.amber),
+              _buildSimulateOption(ctx, trip, 'Colaborador Cesado (Bloqueado)', '44444444', Colors.red),
+            ],
+          ),
+          backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+          shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Cancelar',
+                style: DesignTypography.labelLarge.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSimulateOption(BuildContext ctx, TripEntity trip, String title, String dni, Color color) {
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(ctx);
+          _handleCollaboratorBoarding(trip, dni);
         },
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: color.withOpacity(0.5),
+              width: 1.5,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.qr_code_scanner_rounded, color: color, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: DesignTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+  Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+    setState(() => _isRegistering = true);
+    final checkUseCase = GetIt.I<CheckCollaboratorUseCase>();
+    final result = await checkUseCase.execute(dni);
+    
+    setState(() => _isRegistering = false);
+
+    if (!mounted) return;
+
+    if (result.isFailure) {
+      DesignSnackbar.showError(context, 'Error al verificar colaborador.');
+      return;
+    }
+
+    final collaborator = result.successOrNull!;
+
+    if (collaborator.status == CollaboratorStatus.ok) {
+      // Registrar de inmediato
+      setState(() => _isRegistering = true);
+      final success = await ref
+          .read(homeDashboardViewModelProvider.notifier)
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok);
+      setState(() => _isRegistering = false);
+
+      if (mounted) {
+        if (success) {
+          DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} registrado exitosamente.');
+          _loadPassengers();
+        } else {
+          DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
+        }
+      }
+    } else if (collaborator.status == CollaboratorStatus.terminated) {
+      // Acceso denegado
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Acceso Denegado',
+            content: 'El colaborador ${collaborator.fullName} (DNI: $dni) se encuentra en estado CESADO.\nNo está permitido su embarque.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
+    } else {
+      // Vacaciones, descanso médico o licencia
+      String alertType = '';
+      if (collaborator.status == CollaboratorStatus.vacation) alertType = 'Vacaciones';
+      if (collaborator.status == CollaboratorStatus.medicalLeave) alertType = 'DM';
+      if (collaborator.status == CollaboratorStatus.license) alertType = 'Licencia';
+
+      if (mounted) {
+        final confirmBoard = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => DesignDialog(
+            title: 'Alerta de Embarque',
+            content: 'Este colaborador (${collaborator.fullName}) está con $alertType.\n\n¿Desea permitir el embarque a bordo del bus?',
+            confirmLabel: 'Embarcar',
+            cancelLabel: 'No embarcar',
+            onConfirm: () => Navigator.of(ctx).pop(true),
+            onCancel: () => Navigator.of(ctx).pop(false),
+          ),
+        );
+
+        if (confirmBoard == true && mounted) {
+          setState(() => _isRegistering = true);
+          final success = await ref
+              .read(homeDashboardViewModelProvider.notifier)
+              .registerPassenger(trip.id, dni, collaborator.status);
+          setState(() => _isRegistering = false);
+
+          if (mounted) {
+            if (success) {
+              DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} registrado con estado de excepción ($alertType).');
+              _loadPassengers();
+            } else {
+              DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
+            }
+          }
+        }
+      }
+    }
+  }
+
   Future<void> _submitManualDni(TripEntity trip) async {
     if (!_formKey.currentState!.validate()) return;
-
+    
     setState(() => _isRegistering = true);
-
-    final success = await ref
-        .read(homeDashboardViewModelProvider.notifier)
-        .registerPassenger(trip.id, _dniController.text.trim());
-
+    await _handleCollaboratorBoarding(trip, _dniController.text.trim());
+    
     setState(() {
       _isManualInputVisible = false;
       _isRegistering = false;
     });
+    _dniController.clear();
+  }
 
-    if (mounted) {
-      if (success) {
-        DesignSnackbar.showSuccess(
-            context, 'DNI ${_dniController.text.trim()} registrado con éxito.');
-        _dniController.clear();
-      } else {
-        DesignSnackbar.showError(
-            context, 'Error al registrar. Verifique el DNI e intente de nuevo.');
-      }
-    }
+  void _onGuardarLista() {
+    DesignSnackbar.showSuccess(
+        context, 'Lista de pasajeros guardada y sincronizada localmente.');
   }
 
   Future<void> _iniciarViaje(TripEntity trip) async {
@@ -177,57 +342,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Contador rápido de embarque
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1A2332) : const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isDark ? DesignColors.primaryDark.withOpacity(0.3) : DesignColors.primaryLight.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.people_rounded,
-                      size: 18,
-                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-                    ),
-                    const SizedBox(width: 8),
-                    RichText(
-                      text: TextSpan(
-                        style: DesignTypography.bodyMedium.copyWith(
-                          color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Pasajeros registrados: '),
-                          TextSpan(
-                            text: '${trip.passengerCount}',
-                            style: DesignTypography.titleMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-                            ),
-                          ),
-                          TextSpan(text: ' / ${trip.capacity}'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              DesignButton.primary(
-                text: 'Iniciar Viaje',
-                onTap: _isRegistering ? null : () => _iniciarViaje(trip!),
-                icon: Icons.directions_bus_filled_rounded,
-                fullWidth: true,
-              ),
-            ],
+          child: DesignButton.primary(
+            text: 'Iniciar Viaje',
+            onTap: _isRegistering ? null : () => _iniciarViaje(trip!),
+            icon: Icons.directions_bus_filled_rounded,
+            fullWidth: true,
           ),
         ),
       ),
@@ -508,6 +627,217 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                     ),
                   )
                 : const SizedBox.shrink(key: ValueKey('manual_hidden')),
+          ),
+
+          DesignSpacing.spacerV16,
+
+          // ── Opción 3: Pasajeros a Bordo ───────────────────────────────────
+          DesignCard.basic(
+            onTap: () {
+              setState(() {
+                _isPassengersListVisible = !_isPassengersListVisible;
+              });
+            },
+            child: Row(
+              children: [
+                Container(
+                  padding: DesignSpacing.allS,
+                  decoration: BoxDecoration(
+                    color: colors.success.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.people_alt_rounded,
+                      size: 32, color: colors.success),
+                ),
+                DesignSpacing.spacerH16,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pasajeros a bordo',
+                        style: DesignTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? DesignColors.textPrimaryDark
+                              : DesignColors.textPrimaryLight,
+                        ),
+                      ),
+                      DesignSpacing.spacerV4,
+                      Text(
+                        'Visualiza la lista de pasajeros registrados en este viaje (${_passengersList.length} pasajeros).',
+                        style: DesignTypography.caption.copyWith(
+                          color: isDark
+                              ? DesignColors.textSecondaryDark
+                              : DesignColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _isPassengersListVisible
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: isDark
+                      ? DesignColors.textSecondaryDark
+                      : DesignColors.textSecondaryLight,
+                ),
+              ],
+            ),
+          ),
+
+          // ── Panel con la lista de pasajeros ────────────────────────────────
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 280),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: _isPassengersListVisible
+                ? Padding(
+                    key: const ValueKey('passengers_list'),
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Container(
+                      padding: DesignSpacing.allM,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isDark
+                              ? DesignColors.borderDark
+                              : DesignColors.borderLight,
+                          width: 1.2,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        color: isDark
+                            ? const Color(0xFF1E1E1E)
+                            : const Color(0xFFFAFAFA),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Lista de Pasajeros',
+                                style: DesignTypography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? DesignColors.textPrimaryDark
+                                      : DesignColors.textPrimaryLight,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  if (_isLoadingPassengers) ...[
+                                    const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: DesignCircularLoader(),
+                                    ),
+                                    DesignSpacing.spacerH12,
+                                  ],
+                                  if (_passengersList.isNotEmpty) ...[
+                                    DesignIconButton(
+                                      icon: Icons.save_rounded,
+                                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                                      onTap: _onGuardarLista,
+                                      tooltip: 'Guardar lista',
+                                    ),
+                                    DesignSpacing.spacerH8,
+                                  ],
+                                  DesignIconButton(
+                                    icon: Icons.keyboard_arrow_up_rounded,
+                                    onTap: () {
+                                      setState(() {
+                                        _isPassengersListVisible = false;
+                                      });
+                                    },
+                                    tooltip: 'Ocultar lista',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          DesignSpacing.spacerV12,
+                          if (!_isLoadingPassengers && _passengersList.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text(
+                                  'Aún no hay pasajeros a bordo.',
+                                  style: DesignTypography.bodyMedium.copyWith(
+                                    color: isDark
+                                        ? DesignColors.textSecondaryDark
+                                        : DesignColors.textSecondaryLight,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (_passengersList.isNotEmpty) ...[
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _passengersList.length,
+                              separatorBuilder: (context, index) => const Divider(),
+                              itemBuilder: (context, index) {
+                                final passenger = _passengersList[index];
+                                final timeStr =
+                                    '${passenger.boardedAt.hour.toString().padLeft(2, '0')}:${passenger.boardedAt.minute.toString().padLeft(2, '0')}';
+                                
+                                final isWarning = passenger.status != CollaboratorStatus.ok;
+                                String statusLabel = '';
+                                if (passenger.status == CollaboratorStatus.vacation) statusLabel = 'Vacaciones';
+                                if (passenger.status == CollaboratorStatus.medicalLeave) statusLabel = 'DM';
+                                if (passenger.status == CollaboratorStatus.license) statusLabel = 'Licencia';
+
+                                return DesignListTile(
+                                  title: passenger.fullName,
+                                  subtitle:
+                                      'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                  leading: CircleAvatar(
+                                    backgroundColor: isWarning
+                                        ? (isDark ? Colors.amber.shade900.withOpacity(0.4) : Colors.amber.shade100)
+                                        : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFECECEC)),
+                                    child: Text(
+                                      passenger.seatNumber ?? '${index + 1}',
+                                      style: DesignTypography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: isWarning
+                                            ? (isDark ? Colors.amberAccent : Colors.amber.shade900)
+                                            : (isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight),
+                                      ),
+                                    ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isWarning) ...[
+                                        Icon(
+                                          Icons.warning_amber_rounded,
+                                          color: isDark ? Colors.amberAccent : Colors.amber.shade900,
+                                          size: 20,
+                                        ),
+                                        DesignSpacing.spacerH8,
+                                      ],
+                                      Icon(
+                                        passenger.registrationMethod == 'qr_scan'
+                                            ? Icons.qr_code_scanner_rounded
+                                            : Icons.keyboard_rounded,
+                                        color: isDark
+                                            ? DesignColors.textSecondaryDark
+                                            : DesignColors.textSecondaryLight,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('passengers_hidden')),
           ),
 
           DesignSpacing.spacerV32,

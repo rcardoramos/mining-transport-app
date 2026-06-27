@@ -3,6 +3,8 @@ import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
 import '../models/dashboard_summary_model.dart';
+import '../models/passenger_model.dart';
+import '../models/collaborator_model.dart';
 
 /// Implementación Mock de alta fidelidad del Data Source remoto.
 /// Mantiene estados en memoria para simular transiciones interactivas.
@@ -18,6 +20,30 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
 
   late List<TripModel> _todayTrips;
   late List<TripModel> _pendingTrips;
+
+  /// Mapa que almacena la lista de pasajeros por tripId en memoria.
+  final Map<String, List<PassengerModel>> _passengers = {};
+
+  /// Nombres mock para simular resolución de DNI contra BD offline.
+  static const List<String> _mockNames = [
+    'Carlos Mendoza Rojas',
+    'Ana Flores Pineda',
+    'Jorge Torres Vega',
+    'Luz Huamán Ríos',
+    'Pedro Salinas Cruz',
+    'María Cárdenas López',
+    'José Quispe Mamani',
+    'Rosa Vargas Espinoza',
+    'Luis Pacheco Neira',
+    'Carmen Díaz Alcántara',
+    'Miguel Ángel Soto Reyes',
+    'Elena Castillo Herrera',
+    'Raúl Medina Fuentes',
+    'Patricia Núñez Campos',
+    'Francisco Lara Tello',
+  ];
+
+  int _nameIndex = 0;
 
   MockHomeDashboardRemoteDataSource() {
     final now = DateTime.now();
@@ -76,6 +102,19 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         status: 'scheduled',
       ),
     ];
+
+    // Semilla de pasajeros iniciales para TRIP-101 (ya tiene 15 registrados en mock)
+    final seedTime = now.subtract(const Duration(minutes: 30));
+    _passengers['TRIP-101'] = List.generate(15, (i) {
+      return PassengerModel(
+        dni: '${48000000 + i + 1}',
+        fullName: _mockNames[i % _mockNames.length],
+        boardedAt: seedTime.add(Duration(minutes: i * 2)).toIso8601String(),
+        registrationMethod: i % 3 == 0 ? 'manual' : 'qr_scan',
+        status: 'ok',
+        seatNumber: '${i + 1}',
+      );
+    });
   }
 
   @override
@@ -157,13 +196,32 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> registerPassenger(String id, String dni) async {
+  Future<TripModel> registerPassenger(String id, String dni, [String? status]) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
+    // Determinar el nombre (simulación de resolución contra BD offline)
+    final name = _mockNames[_nameIndex % _mockNames.length];
+    _nameIndex++;
+
+    final finalStatus = status ?? _determineStatus(dni);
+
+    final newPassenger = PassengerModel(
+      dni: dni,
+      fullName: name,
+      boardedAt: DateTime.now().toIso8601String(),
+      registrationMethod: 'manual',
+      status: finalStatus,
+      seatNumber: '${(_passengers[id]?.length ?? 0) + 1}',
+    );
+
+    // Guardar en el mapa de pasajeros
+    _passengers.putIfAbsent(id, () => []);
+
     // Buscar en hoy y aumentar el conteo de pasajeros
     for (int i = 0; i < _todayTrips.length; i++) {
       if (_todayTrips[i].id == id) {
         if (_todayTrips[i].passengerCount < _todayTrips[i].capacity) {
+          _passengers[id]!.add(newPassenger);
           _todayTrips[i] = _todayTrips[i].copyWith(
             passengerCount: _todayTrips[i].passengerCount + 1,
           );
@@ -171,11 +229,12 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         return _todayTrips[i];
       }
     }
-    
+
     // Buscar en pendientes
     for (int i = 0; i < _pendingTrips.length; i++) {
       if (_pendingTrips[i].id == id) {
         if (_pendingTrips[i].passengerCount < _pendingTrips[i].capacity) {
+          _passengers[id]!.add(newPassenger);
           _pendingTrips[i] = _pendingTrips[i].copyWith(
             passengerCount: _pendingTrips[i].passengerCount + 1,
           );
@@ -183,7 +242,33 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         return _pendingTrips[i];
       }
     }
-    
+
     throw Exception('Viaje no encontrado');
+  }
+
+  @override
+  Future<List<PassengerModel>> getPassengersOnBoard(String tripId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return List.unmodifiable(_passengers[tripId] ?? []);
+  }
+
+  @override
+  Future<CollaboratorModel> checkCollaborator(String dni) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final name = _mockNames[dni.hashCode % _mockNames.length];
+    final statusStr = _determineStatus(dni);
+    return CollaboratorModel(
+      dni: dni,
+      fullName: name,
+      status: statusStr,
+    );
+  }
+
+  String _determineStatus(String dni) {
+    if (dni == '11111111' || dni.endsWith('1')) return 'vacation';
+    if (dni == '22222222' || dni.endsWith('2')) return 'medicalLeave';
+    if (dni == '33333333' || dni.endsWith('3')) return 'license';
+    if (dni == '44444444' || dni.endsWith('4')) return 'terminated';
+    return 'ok';
   }
 }
