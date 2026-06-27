@@ -8,6 +8,8 @@ import 'package:mining_transport_app/features/auth/data/datasources/auth_remote_
 import 'package:mining_transport_app/features/auth/data/models/login_request.dart';
 import 'package:mining_transport_app/features/auth/domain/entities/user_entity.dart';
 import 'package:mining_transport_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:mining_transport_app/core/constants/env_config.dart';
+import 'package:mining_transport_app/features/auth/data/models/user_model.dart';
 
 /// Implementación del repositorio [AuthRepository] encargado de coordinar
 /// la lógica de autenticación online y offline.
@@ -23,6 +25,30 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<UserEntity, Failure>> login(String username, String password) async {
+    // Si estamos en DEV, hacer bypass completo del login para desarrollo rápido y local
+    bool isDev = false;
+    try {
+      isDev = EnvConfig.instance.environment == AppEnvironment.dev;
+    } catch (_) {}
+
+    if (isDev) {
+      await Future.delayed(const Duration(milliseconds: 400));
+      final user = UserEntity(
+        id: 'DRV-998',
+        username: username,
+        fullName: 'Ricardo Ramos',
+        role: 'DRIVER',
+        token: 'mock_jwt_token',
+      );
+      final userModel = UserModel.fromEntity(user);
+      await _localDataSource.saveToken('mock_jwt_token');
+      await _localDataSource.saveUser(userModel);
+      await _localDataSource.saveUsername(username);
+      await _localDataSource.savePasswordHash(_hashPassword(password));
+      
+      return Success(user);
+    }
+
     try {
       // Intentar login remoto con el servidor ERP
       final response = await _remoteDataSource.login(

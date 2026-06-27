@@ -12,6 +12,15 @@ import 'package:mining_transport_app/features/auth/domain/usecases/check_session
 import 'package:mining_transport_app/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:mining_transport_app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:mining_transport_app/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
+import 'package:mining_transport_app/features/home/data/datasources/mock_home_dashboard_remote_data_source.dart';
+import 'package:mining_transport_app/features/home/data/repositories/home_dashboard_repository_impl.dart';
+import 'package:mining_transport_app/features/home/domain/repositories/home_dashboard_repository.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_driver_info_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_today_trips_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_pending_trips_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_dashboard_summary_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/update_trip_status_usecase.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -42,6 +51,9 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(locator<SecureStorage>(), locator<AppDatabase>()),
   );
+  locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+    () => MockHomeDashboardRemoteDataSource(),
+  );
 
   // 7. Repositories
   locator.registerLazySingleton<AuthRepository>(
@@ -50,12 +62,21 @@ Future<void> setupLocator() async {
       localDataSource: locator<AuthLocalDataSource>(),
     ),
   );
+  locator.registerLazySingleton<HomeDashboardRepository>(
+    () => HomeDashboardRepositoryImpl(locator<HomeDashboardRemoteDataSource>()),
+  );
 
   // 8. UseCases
   locator.registerLazySingleton<LoginUseCase>(() => LoginUseCase(locator<AuthRepository>()));
   locator.registerLazySingleton<LogoutUseCase>(() => LogoutUseCase(locator<AuthRepository>()));
   locator.registerLazySingleton<GetCurrentUserUseCase>(() => GetCurrentUserUseCase(locator<AuthRepository>()));
   locator.registerLazySingleton<CheckSessionUseCase>(() => CheckSessionUseCase(locator<AuthRepository>()));
+
+  locator.registerLazySingleton<GetDriverInfoUseCase>(() => GetDriverInfoUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<GetTodayTripsUseCase>(() => GetTodayTripsUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<GetPendingTripsUseCase>(() => GetPendingTripsUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<GetDashboardSummaryUseCase>(() => GetDashboardSummaryUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<UpdateTripStatusUseCase>(() => UpdateTripStatusUseCase(locator<HomeDashboardRepository>()));
 
   locator<AppLogger>().i('Dependency Injection Container initialized successfully.');
 }

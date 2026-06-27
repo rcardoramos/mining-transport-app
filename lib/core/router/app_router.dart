@@ -6,6 +6,7 @@ import 'package:mining_transport_app/features/auth/presentation/pages/login_view
 import 'package:mining_transport_app/features/auth/presentation/pages/splash_view.dart';
 import 'package:mining_transport_app/features/auth/presentation/pages/design_system_preview.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
+import 'package:mining_transport_app/features/home/presentation/pages/home_view.dart';
 
 /// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -54,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/dashboard',
-        builder: (context, state) => const DashboardView(),
+        builder: (context, state) => const HomeView(),
       ),
       GoRoute(
         path: '/design-system-preview',
@@ -80,16 +81,4 @@ class GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// Stub temporal para compilación limpia de la siguiente feature
-class DashboardView extends StatelessWidget {
-  const DashboardView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
-      body: const Center(child: Text('Dashboard View Placeholder')),
-    );
-  }
-}
 

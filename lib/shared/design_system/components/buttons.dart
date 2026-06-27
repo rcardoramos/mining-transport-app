@@ -136,7 +136,10 @@ class DesignButton extends StatelessWidget {
 
     return ButtonPressAnimation(
       onTap: (onTap == null || isLoading) ? null : onTap,
-      child: button,
+      child: IgnorePointer(
+        ignoring: onTap != null && !isLoading,
+        child: button,
+      ),
     );
   }
 }
@@ -166,11 +169,14 @@ class DesignIconButton extends StatelessWidget {
 
     return ButtonPressAnimation(
       onTap: onTap,
-      child: IconButton(
-        tooltip: tooltip,
-        icon: Icon(icon, size: size),
-        color: color ?? defaultColor,
-        onPressed: onTap != null ? () {} : null,
+      child: IgnorePointer(
+        ignoring: onTap != null,
+        child: IconButton(
+          tooltip: tooltip,
+          icon: Icon(icon, size: size),
+          color: color ?? defaultColor,
+          onPressed: onTap != null ? () {} : null,
+        ),
       ),
     );
   }
