@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
@@ -8,6 +9,7 @@ import '../widgets/driver_profile_card.dart';
 import '../widgets/trip_item_card.dart';
 import '../widgets/dashboard_stats_section.dart';
 import '../../domain/entities/home_dashboard_data.dart';
+import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/driver_entity.dart';
 
 /// Vista principal de Dashboard (Home) del conductor con barra de navegación inferior.
@@ -49,6 +51,13 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
     }
   }
 
+  String _formatTime(DateTime? dateTime) {
+    if (dateTime == null) return '--:--';
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeDashboardViewModelProvider);
@@ -58,7 +67,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
         title: _getAppBarTitle(),
         centerTitle: false,
         actions: [
-          if (_currentNavigationIndex == 3) // Mostrar botón salir solo en perfil
+          if (_currentNavigationIndex == 3)
             DesignIconButton(
               icon: Icons.logout_rounded,
               tooltip: 'Cerrar Sesión',
@@ -151,6 +160,10 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
   }
 
   Widget _buildInicioTab(HomeDashboardData data) {
+    // Regla de Negocio: Verificar si hay algún viaje en curso para deshabilitar aperturas adicionales
+    final hasActiveTrip = data.todayTrips.any((t) => t.status == TripStatus.inProgress) ||
+        data.pendingTrips.any((t) => t.status == TripStatus.inProgress);
+
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
         return [
@@ -181,8 +194,8 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy'),
-          _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados'),
+          _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy', hasActiveTrip),
+          _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados', hasActiveTrip),
         ],
       ),
     );
@@ -190,6 +203,8 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
 
   Widget _buildViajesTab(HomeDashboardData data) {
     final allTrips = [...data.todayTrips, ...data.pendingTrips];
+    final hasActiveTrip = allTrips.any((t) => t.status == TripStatus.inProgress);
+
     return ListView.separated(
       padding: DesignSpacing.allM,
       itemCount: allTrips.length,
@@ -198,9 +213,12 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
         final trip = allTrips[index];
         return TripItemCard(
           trip: trip,
+          isAperturarDisabled: hasActiveTrip && trip.status != TripStatus.inProgress,
           onStatusChanged: (newStatus) {
             ref.read(homeDashboardViewModelProvider.notifier).updateTripStatus(trip.id, newStatus);
           },
+          onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
+          onVerResumen: () => _showResumenDialog(trip),
         );
       },
     );
@@ -361,7 +379,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTripList(List<dynamic> trips, String emptyText) {
+  Widget _buildTripList(List<dynamic> trips, String emptyText, bool hasActiveTrip) {
     if (trips.isEmpty) {
       return DesignEmptyState(
         title: 'Lista Vacía',
@@ -378,11 +396,30 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
         final trip = trips[index];
         return TripItemCard(
           trip: trip,
+          isAperturarDisabled: hasActiveTrip && trip.status != TripStatus.inProgress,
           onStatusChanged: (newStatus) {
             ref.read(homeDashboardViewModelProvider.notifier).updateTripStatus(trip.id, newStatus);
           },
+          onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
+          onVerResumen: () => _showResumenDialog(trip),
         );
       },
+    );
+  }
+
+  void _showEmbarqueSimulator(TripEntity trip) {
+    context.push('/dashboard/boarding/${trip.id}');
+  }
+
+  void _showResumenDialog(TripEntity trip) {
+    showDialog(
+      context: context,
+      builder: (context) => DesignDialog(
+        title: 'Resumen del Viaje',
+        content: 'Detalles del Servicio Finalizado:\n\n• Ruta: ${trip.route}\n• Hora Prog: ${_formatTime(trip.scheduledTime)}\n• Hora Inicio: ${_formatTime(trip.startedAt)}\n• Pasajeros Transportados: ${trip.passengerCount} / ${trip.capacity}\n• Bus Asignado: ${trip.unitCode}\n\nLos datos se encuentran sincronizados y guardados en almacenamiento local.',
+        confirmLabel: 'Aceptar',
+        onConfirm: () {},
+      ),
     );
   }
 

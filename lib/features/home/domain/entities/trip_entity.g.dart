@@ -16,6 +16,9 @@ _$TripEntityImpl _$$TripEntityImplFromJson(Map<String, dynamic> json) =>
       capacity: (json['capacity'] as num).toInt(),
       passengerCount: (json['passengerCount'] as num).toInt(),
       status: $enumDecode(_$TripStatusEnumMap, json['status']),
+      startedAt: json['startedAt'] == null
+          ? null
+          : DateTime.parse(json['startedAt'] as String),
     );
 
 Map<String, dynamic> _$$TripEntityImplToJson(_$TripEntityImpl instance) =>
@@ -28,11 +31,14 @@ Map<String, dynamic> _$$TripEntityImplToJson(_$TripEntityImpl instance) =>
       'capacity': instance.capacity,
       'passengerCount': instance.passengerCount,
       'status': _$TripStatusEnumMap[instance.status]!,
+      'startedAt': instance.startedAt?.toIso8601String(),
     };
 
 const _$TripStatusEnumMap = {
-  TripStatus.pending: 'pending',
-  TripStatus.active: 'active',
-  TripStatus.paused: 'paused',
+  TripStatus.scheduled: 'scheduled',
+  TripStatus.readyToStart: 'readyToStart',
+  TripStatus.inProgress: 'inProgress',
+  TripStatus.travelling: 'travelling',
   TripStatus.completed: 'completed',
+  TripStatus.cancelled: 'cancelled',
 };

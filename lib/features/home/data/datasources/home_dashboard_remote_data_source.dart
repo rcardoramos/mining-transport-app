@@ -9,4 +9,5 @@ abstract class HomeDashboardRemoteDataSource {
   Future<List<TripModel>> getPendingTrips();
   Future<DashboardSummaryModel> getDashboardSummary();
   Future<TripModel> updateTripStatus(String id, String status);
+  Future<TripModel> registerPassenger(String id, String dni);
 }

@@ -29,6 +29,7 @@ mixin _$TripModel {
   int get capacity => throw _privateConstructorUsedError;
   int get passengerCount => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
+  String? get startedAt => throw _privateConstructorUsedError;
 
   /// Serializes this TripModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,6 +55,7 @@ abstract class $TripModelCopyWith<$Res> {
     int capacity,
     int passengerCount,
     String status,
+    String? startedAt,
   });
 }
 
@@ -80,6 +82,7 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
     Object? capacity = null,
     Object? passengerCount = null,
     Object? status = null,
+    Object? startedAt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -115,6 +118,10 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
                       as String,
+            startedAt: freezed == startedAt
+                ? _value.startedAt
+                : startedAt // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -139,6 +146,7 @@ abstract class _$$TripModelImplCopyWith<$Res>
     int capacity,
     int passengerCount,
     String status,
+    String? startedAt,
   });
 }
 
@@ -164,6 +172,7 @@ class __$$TripModelImplCopyWithImpl<$Res>
     Object? capacity = null,
     Object? passengerCount = null,
     Object? status = null,
+    Object? startedAt = freezed,
   }) {
     return _then(
       _$TripModelImpl(
@@ -199,6 +208,10 @@ class __$$TripModelImplCopyWithImpl<$Res>
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
                   as String,
+        startedAt: freezed == startedAt
+            ? _value.startedAt
+            : startedAt // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -216,6 +229,7 @@ class _$TripModelImpl extends _TripModel {
     required this.capacity,
     required this.passengerCount,
     required this.status,
+    this.startedAt,
   }) : super._();
 
   factory _$TripModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -237,10 +251,12 @@ class _$TripModelImpl extends _TripModel {
   final int passengerCount;
   @override
   final String status;
+  @override
+  final String? startedAt;
 
   @override
   String toString() {
-    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status)';
+    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt)';
   }
 
   @override
@@ -259,7 +275,9 @@ class _$TripModelImpl extends _TripModel {
                 other.capacity == capacity) &&
             (identical(other.passengerCount, passengerCount) ||
                 other.passengerCount == passengerCount) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.startedAt, startedAt) ||
+                other.startedAt == startedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -274,6 +292,7 @@ class _$TripModelImpl extends _TripModel {
     capacity,
     passengerCount,
     status,
+    startedAt,
   );
 
   /// Create a copy of TripModel
@@ -300,6 +319,7 @@ abstract class _TripModel extends TripModel {
     required final int capacity,
     required final int passengerCount,
     required final String status,
+    final String? startedAt,
   }) = _$TripModelImpl;
   const _TripModel._() : super._();
 
@@ -322,6 +342,8 @@ abstract class _TripModel extends TripModel {
   int get passengerCount;
   @override
   String get status;
+  @override
+  String? get startedAt;
 
   /// Create a copy of TripModel
   /// with the given fields replaced by the non-null parameter values.

@@ -28,9 +28,9 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         scheduledTime: DateTime(now.year, now.month, now.day, 8, 0).toIso8601String(),
         shift: 'Día',
         unitCode: 'BUS-01',
-        capacity: 45,
-        passengerCount: 42,
-        status: 'active',
+        capacity: 40,
+        passengerCount: 15,
+        status: 'readyToStart',
       ),
       TripModel(
         id: 'TRIP-102',
@@ -40,7 +40,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         unitCode: 'BUS-01',
         capacity: 45,
         passengerCount: 15,
-        status: 'pending',
+        status: 'scheduled',
       ),
       TripModel(
         id: 'TRIP-103',
@@ -50,7 +50,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         unitCode: 'BUS-01',
         capacity: 45,
         passengerCount: 0,
-        status: 'pending',
+        status: 'scheduled',
       ),
     ];
 
@@ -63,7 +63,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         unitCode: 'BUS-03',
         capacity: 50,
         passengerCount: 0,
-        status: 'pending',
+        status: 'scheduled',
       ),
       TripModel(
         id: 'TRIP-202',
@@ -73,7 +73,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         unitCode: 'BUS-03',
         capacity: 50,
         passengerCount: 0,
-        status: 'pending',
+        status: 'scheduled',
       ),
     ];
   }
@@ -119,7 +119,15 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     // Buscar en hoy
     for (int i = 0; i < _todayTrips.length; i++) {
       if (_todayTrips[i].id == id) {
-        _todayTrips[i] = _todayTrips[i].copyWith(status: status);
+        // Al pasar a 'inProgress' seteamos el timestamp de inicio actual
+        if (status == 'inProgress') {
+          _todayTrips[i] = _todayTrips[i].copyWith(
+            status: status,
+            startedAt: DateTime.now().toIso8601String(),
+          );
+        } else {
+          _todayTrips[i] = _todayTrips[i].copyWith(status: status);
+        }
         
         // Si el viaje se completó, incrementamos los viajes del día del conductor
         if (status == 'completed') {
@@ -133,7 +141,45 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     // Buscar en pendientes
     for (int i = 0; i < _pendingTrips.length; i++) {
       if (_pendingTrips[i].id == id) {
-        _pendingTrips[i] = _pendingTrips[i].copyWith(status: status);
+        if (status == 'inProgress') {
+          _pendingTrips[i] = _pendingTrips[i].copyWith(
+            status: status,
+            startedAt: DateTime.now().toIso8601String(),
+          );
+        } else {
+          _pendingTrips[i] = _pendingTrips[i].copyWith(status: status);
+        }
+        return _pendingTrips[i];
+      }
+    }
+    
+    throw Exception('Viaje no encontrado');
+  }
+
+  @override
+  Future<TripModel> registerPassenger(String id, String dni) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    
+    // Buscar en hoy y aumentar el conteo de pasajeros
+    for (int i = 0; i < _todayTrips.length; i++) {
+      if (_todayTrips[i].id == id) {
+        if (_todayTrips[i].passengerCount < _todayTrips[i].capacity) {
+          _todayTrips[i] = _todayTrips[i].copyWith(
+            passengerCount: _todayTrips[i].passengerCount + 1,
+          );
+        }
+        return _todayTrips[i];
+      }
+    }
+    
+    // Buscar en pendientes
+    for (int i = 0; i < _pendingTrips.length; i++) {
+      if (_pendingTrips[i].id == id) {
+        if (_pendingTrips[i].passengerCount < _pendingTrips[i].capacity) {
+          _pendingTrips[i] = _pendingTrips[i].copyWith(
+            passengerCount: _pendingTrips[i].passengerCount + 1,
+          );
+        }
         return _pendingTrips[i];
       }
     }

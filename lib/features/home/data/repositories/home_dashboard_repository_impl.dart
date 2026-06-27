@@ -62,4 +62,14 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       return FailureResult(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni) async {
+    try {
+      final model = await _remoteDataSource.registerPassenger(id, dni);
+      return Success(model.toEntity());
+    } catch (e) {
+      return FailureResult(UnknownFailure(e.toString()));
+    }
+  }
 }

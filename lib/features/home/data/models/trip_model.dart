@@ -15,6 +15,7 @@ class TripModel with _$TripModel {
     required int capacity,
     required int passengerCount,
     required String status,
+    String? startedAt,
   }) = _TripModel;
 
   const TripModel._();
@@ -32,8 +33,9 @@ class TripModel with _$TripModel {
       passengerCount: passengerCount,
       status: TripStatus.values.firstWhere(
         (e) => e.name == status,
-        orElse: () => TripStatus.pending,
+        orElse: () => TripStatus.scheduled,
       ),
+      startedAt: startedAt != null ? DateTime.parse(startedAt!) : null,
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../domain/usecases/get_today_trips_usecase.dart';
 import '../../domain/usecases/get_pending_trips_usecase.dart';
 import '../../domain/usecases/get_dashboard_summary_usecase.dart';
 import '../../domain/usecases/update_trip_status_usecase.dart';
+import '../../domain/usecases/register_passenger_usecase.dart';
 import '../states/home_dashboard_state.dart';
 
 /// ViewModel que gestiona el estado y eventos de la pantalla principal (Home).
@@ -18,6 +19,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   final GetPendingTripsUseCase _getPendingTripsUseCase;
   final GetDashboardSummaryUseCase _getDashboardSummaryUseCase;
   final UpdateTripStatusUseCase _updateTripStatusUseCase;
+  final RegisterPassengerUseCase _registerPassengerUseCase;
 
   HomeDashboardViewModel({
     required GetDriverInfoUseCase getDriverInfoUseCase,
@@ -25,11 +27,13 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     required GetPendingTripsUseCase getPendingTripsUseCase,
     required GetDashboardSummaryUseCase getDashboardSummaryUseCase,
     required UpdateTripStatusUseCase updateTripStatusUseCase,
+    required RegisterPassengerUseCase registerPassengerUseCase,
   })  : _getDriverInfoUseCase = getDriverInfoUseCase,
         _getTodayTripsUseCase = getTodayTripsUseCase,
         _getPendingTripsUseCase = getPendingTripsUseCase,
         _getDashboardSummaryUseCase = getDashboardSummaryUseCase,
         _updateTripStatusUseCase = updateTripStatusUseCase,
+        _registerPassengerUseCase = registerPassengerUseCase,
         super(const HomeDashboardState()) {
     loadDashboard();
   }
@@ -110,6 +114,23 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     
     await _fetchData();
   }
+
+  Future<bool> registerPassenger(String tripId, String dni) async {
+    state = state.copyWith(isRefreshing: true, errorMessage: null);
+    
+    final result = await _registerPassengerUseCase.execute(tripId, dni);
+    
+    if (result.isFailure) {
+      state = state.copyWith(
+        isRefreshing: false,
+        errorMessage: result.failureOrNull?.message ?? 'Fallo al registrar pasajero',
+      );
+      return false;
+    }
+    
+    await _fetchData();
+    return true;
+  }
 }
 
 /// Proveedor global expuesto para la UI de Home.
@@ -121,5 +142,6 @@ final homeDashboardViewModelProvider =
     getPendingTripsUseCase: GetIt.I<GetPendingTripsUseCase>(),
     getDashboardSummaryUseCase: GetIt.I<GetDashboardSummaryUseCase>(),
     updateTripStatusUseCase: GetIt.I<UpdateTripStatusUseCase>(),
+    registerPassengerUseCase: GetIt.I<RegisterPassengerUseCase>(),
   );
 });

@@ -31,7 +31,7 @@ void main() {
   });
 
   setUpAll(() {
-    registerFallbackValue(TripStatus.pending);
+    registerFallbackValue(TripStatus.scheduled);
   });
 
   final tDriver = DriverEntity(
@@ -51,7 +51,7 @@ void main() {
       unitCode: 'BUS-01',
       capacity: 45,
       passengerCount: 40,
-      status: TripStatus.active,
+      status: TripStatus.inProgress,
     ),
   ];
 

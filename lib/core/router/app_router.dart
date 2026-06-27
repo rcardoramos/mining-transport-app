@@ -7,6 +7,7 @@ import 'package:mining_transport_app/features/auth/presentation/pages/splash_vie
 import 'package:mining_transport_app/features/auth/presentation/pages/design_system_preview.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/features/home/presentation/pages/home_view.dart';
+import 'package:mining_transport_app/features/home/presentation/pages/boarding_view.dart';
 
 /// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -37,11 +38,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isLoggingIn ? null : '/login';
       }
 
-      // 3. Si está autenticado, evitar las pantallas de Login o Splash redirigiendo al Dashboard
+      // 3. Si está autenticado y trata de ir a Login o Splash, redirigir al Dashboard
       if (isLoggingIn || isSplash) {
         return '/dashboard';
       }
 
+      // 4. Cualquier otra ruta autenticada (dashboard, boarding, etc.) se permite pasar
       return null;
     },
     routes: [
@@ -56,6 +58,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const HomeView(),
+        routes: [
+          GoRoute(
+            path: 'boarding/:tripId',
+            builder: (context, state) {
+              final tripId = state.pathParameters['tripId'] ?? '';
+              return BoardingView(tripId: tripId);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/design-system-preview',

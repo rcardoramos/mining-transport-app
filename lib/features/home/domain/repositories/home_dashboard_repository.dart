@@ -10,4 +10,5 @@ abstract class HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getPendingTrips();
   Future<Result<DashboardSummaryEntity, Failure>> getDashboardSummary();
   Future<Result<TripEntity, Failure>> updateTripStatus(String id, TripStatus status);
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni);
 }
