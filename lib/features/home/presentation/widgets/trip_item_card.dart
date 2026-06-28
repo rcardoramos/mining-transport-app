@@ -121,48 +121,54 @@ class TripItemCard extends StatelessWidget {
 
             if (trip.status != TripStatus.cancelled) ...[
               DesignSpacing.spacerV16,
-              Row(
-                children: [
-                  if (trip.status == TripStatus.scheduled || trip.status == TripStatus.readyToStart)
-                    Expanded(
-                      child: DesignButton.primary(
-                        text: 'Aperturar Viaje',
-                        onTap: isAperturarDisabled ? null : () => onStatusChanged(TripStatus.inProgress),
-                        icon: Icons.play_arrow_rounded,
-                        fullWidth: true,
+              if (trip.status == TripStatus.travelling) ...[
+                DesignButton.primary(
+                  text: 'Continuar Embarque',
+                  onTap: onContinuarEmbarque,
+                  icon: Icons.qr_code_scanner_rounded,
+                  fullWidth: true,
+                ),
+                DesignSpacing.spacerV8,
+                DesignButton.outlined(
+                  text: 'Ver Resumen',
+                  onTap: onVerResumen,
+                  icon: Icons.directions_bus_filled_rounded,
+                  fullWidth: true,
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    if (trip.status == TripStatus.scheduled || trip.status == TripStatus.readyToStart)
+                      Expanded(
+                        child: DesignButton.primary(
+                          text: 'Aperturar Viaje',
+                          onTap: isAperturarDisabled ? null : () => onStatusChanged(TripStatus.inProgress),
+                          icon: Icons.play_arrow_rounded,
+                          fullWidth: true,
+                        ),
                       ),
-                    ),
-                  if (trip.status == TripStatus.inProgress) ...[
-                    Expanded(
-                      child: DesignButton.primary(
-                        text: 'Continuar Embarque',
-                        onTap: onContinuarEmbarque,
-                        icon: Icons.qr_code_scanner_rounded,
-                        fullWidth: true,
+                    if (trip.status == TripStatus.inProgress) ...[
+                      Expanded(
+                        child: DesignButton.primary(
+                          text: 'Continuar Embarque',
+                          onTap: onContinuarEmbarque,
+                          icon: Icons.qr_code_scanner_rounded,
+                          fullWidth: true,
+                        ),
                       ),
-                    ),
+                    ],
+                    if (trip.status == TripStatus.completed)
+                      Expanded(
+                        child: DesignButton.outlined(
+                          text: 'Ver Resumen',
+                          onTap: onVerResumen,
+                          icon: Icons.assignment_turned_in_rounded,
+                          fullWidth: true,
+                        ),
+                      ),
                   ],
-                  if (trip.status == TripStatus.travelling) ...[
-                    Expanded(
-                      child: DesignButton.outlined(
-                        text: 'Ver Resumen',
-                        onTap: onVerResumen,
-                        icon: Icons.directions_bus_filled_rounded,
-                        fullWidth: true,
-                      ),
-                    ),
-                  ],
-                  if (trip.status == TripStatus.completed)
-                    Expanded(
-                      child: DesignButton.outlined(
-                        text: 'Ver Resumen',
-                        onTap: onVerResumen,
-                        icon: Icons.assignment_turned_in_rounded,
-                        fullWidth: true,
-                      ),
-                    ),
-                ],
-              ),
+                ),
+              ],
             ],
           ],
         ),

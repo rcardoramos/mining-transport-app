@@ -204,11 +204,19 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
 
     final finalStatus = status ?? _determineStatus(dni);
 
+    // Determinar si el viaje está en tránsito (travelling)
+    final isTravelling = _todayTrips.any((t) => t.id == id && t.status == 'travelling') ||
+                         _pendingTrips.any((t) => t.id == id && t.status == 'travelling');
+    
+    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(dni);
+    final prefix = isScan ? 'qr_scan' : 'manual';
+    final method = isTravelling ? '${prefix}_transit' : prefix;
+
     final newPassenger = PassengerModel(
       dni: dni,
       fullName: name,
       boardedAt: DateTime.now().toIso8601String(),
-      registrationMethod: 'manual',
+      registrationMethod: method,
       status: finalStatus,
       seatNumber: '${(_passengers[id]?.length ?? 0) + 1}',
     );

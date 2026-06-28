@@ -298,9 +298,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       builder: (ctx) => DesignDialog(
         title: '¿Iniciar el viaje?',
         content:
-            'Se cerrará el registro de embarque y el bus comenzará el recorrido.\n\n'
+            'Se iniciará el recorrido del viaje.\n\n'
             'Pasajeros registrados: ${trip.passengerCount} / ${trip.capacity}\n\n'
-            'Esta acción no se puede deshacer.',
+            'Podrás continuar el embarque de pasajeros en las siguientes paradas durante el tránsito.',
         confirmLabel: 'Iniciar Viaje',
         cancelLabel: 'Cancelar',
         onConfirm: () {},
@@ -317,7 +317,38 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     if (mounted) {
       DesignSnackbar.showSuccess(
-          context, '¡Viaje iniciado! El bus está en camino.');
+          context, '¡Viaje iniciado! El bus está en tránsito.');
+    }
+  }
+
+  Future<void> _finalizarViaje(TripEntity trip) async {
+    // Confirmar la acción con el conductor
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => DesignDialog(
+        title: '¿Finalizar el viaje?',
+        content:
+            'Se cerrará el registro de embarque de forma definitiva.\n\n'
+            'Pasajeros registrados: ${trip.passengerCount} / ${trip.capacity}\n\n'
+            'Esta acción no se puede deshacer.',
+        confirmLabel: 'Finalizar Viaje',
+        cancelLabel: 'Cancelar',
+        onConfirm: () {},
+        onCancel: () {},
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Cambiar estado a "finalizado"
+    await ref
+        .read(homeDashboardViewModelProvider.notifier)
+        .updateTripStatus(trip.id, TripStatus.completed);
+
+    if (mounted) {
+      DesignSnackbar.showSuccess(
+          context, '¡Viaje finalizado con éxito!');
       // Regresar al Dashboard
       context.pop();
     }
@@ -371,14 +402,22 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           onPressed: () => context.pop(),
         ),
       ),
-      // ── Botón fijo "Iniciar Viaje" ──────────────────────────────────────────
+      // ── Botón fijo de control de viaje ─────────────────────────────────────
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: DesignButton.primary(
-            text: 'Iniciar Viaje',
-            onTap: _isRegistering ? null : () => _iniciarViaje(trip!),
-            icon: Icons.directions_bus_filled_rounded,
+            text: trip!.status == TripStatus.travelling ? 'Finalizar Viaje' : 'Iniciar Viaje',
+            onTap: _isRegistering ? null : () {
+              if (trip!.status == TripStatus.travelling) {
+                _finalizarViaje(trip);
+              } else {
+                _iniciarViaje(trip);
+              }
+            },
+            icon: trip.status == TripStatus.travelling
+                ? Icons.check_circle_rounded
+                : Icons.directions_bus_filled_rounded,
             fullWidth: true,
           ),
         ),
@@ -407,7 +446,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                         ),
                       ),
                     ),
-                    DesignBadge(label: 'En curso', color: colors.info),
+                    DesignBadge(
+                      label: trip.status == TripStatus.travelling ? 'En tránsito' : 'En curso',
+                      color: trip.status == TripStatus.travelling ? colors.success : colors.info,
+                    ),
                   ],
                 ),
                 DesignSpacing.spacerV12,
@@ -843,6 +885,23 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      if (passenger.registrationMethod.endsWith('_transit')) ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'P2',
+                                            style: DesignTypography.caption.copyWith(
+                                              color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        DesignSpacing.spacerH8,
+                                      ],
                                       if (isWarning) ...[
                                         Icon(
                                           Icons.warning_amber_rounded,
@@ -852,7 +911,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                         DesignSpacing.spacerH8,
                                       ],
                                       Icon(
-                                        passenger.registrationMethod == 'qr_scan'
+                                        passenger.registrationMethod.startsWith('qr_scan')
                                             ? Icons.qr_code_scanner_rounded
                                             : Icons.keyboard_rounded,
                                         color: isDark
