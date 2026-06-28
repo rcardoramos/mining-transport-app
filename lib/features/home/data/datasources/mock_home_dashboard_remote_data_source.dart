@@ -200,8 +200,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     await Future.delayed(const Duration(milliseconds: 300));
 
     // Determinar el nombre (simulación de resolución contra BD offline)
-    final name = _mockNames[_nameIndex % _mockNames.length];
-    _nameIndex++;
+    final name = _mockNames[dni.hashCode % _mockNames.length];
 
     final finalStatus = status ?? _determineStatus(dni);
 
@@ -217,6 +216,12 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     // Guardar en el mapa de pasajeros
     _passengers.putIfAbsent(id, () => []);
 
+    // Verificar duplicidad en memoria
+    final isDuplicate = _passengers[id]!.any((p) => p.dni.trim() == dni.trim());
+    if (isDuplicate) {
+      throw Exception('Colaborador ya registrado en este viaje');
+    }
+
     // Buscar en hoy y aumentar el conteo de pasajeros
     for (int i = 0; i < _todayTrips.length; i++) {
       if (_todayTrips[i].id == id) {
@@ -225,6 +230,8 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
           _todayTrips[i] = _todayTrips[i].copyWith(
             passengerCount: _todayTrips[i].passengerCount + 1,
           );
+        } else {
+          throw Exception('Se ha superado la capacidad máxima del bus');
         }
         return _todayTrips[i];
       }
@@ -238,6 +245,8 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
           _pendingTrips[i] = _pendingTrips[i].copyWith(
             passengerCount: _pendingTrips[i].passengerCount + 1,
           );
+        } else {
+          throw Exception('Se ha superado la capacidad máxima del bus');
         }
         return _pendingTrips[i];
       }

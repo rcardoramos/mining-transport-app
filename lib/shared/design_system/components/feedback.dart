@@ -178,7 +178,7 @@ class DesignDialog extends StatelessWidget {
         if (cancelLabel != null)
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context, false);
               if (onCancel != null) onCancel!();
             },
             child: Text(
@@ -190,7 +190,7 @@ class DesignDialog extends StatelessWidget {
           ),
         ElevatedButton(
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, true);
             onConfirm();
           },
           style: ElevatedButton.styleFrom(

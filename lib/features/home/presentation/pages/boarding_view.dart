@@ -154,6 +154,39 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+    // 1. Verificar duplicidad de pasajero
+    final isDuplicate = _passengersList.any((p) => p.dni.trim() == dni.trim());
+    if (isDuplicate) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Alerta de Duplicidad',
+            content: 'El colaborador con DNI $dni ya se encuentra registrado a bordo en este viaje.\n\nNo se permite el doble embarque.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
+      return;
+    }
+
+    // 2. Verificar aforo excedido
+    if (trip.passengerCount >= trip.capacity) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Aforo Excedido',
+            content: 'Se ha alcanzado la capacidad máxima del bus (${trip.capacity}/${trip.capacity}).\n\nNo se permite el embarque de más pasajeros.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isRegistering = true);
     final checkUseCase = GetIt.I<CheckCollaboratorUseCase>();
     final result = await checkUseCase.execute(dni);
@@ -214,8 +247,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             content: 'Este colaborador (${collaborator.fullName}) está con $alertType.\n\n¿Desea permitir el embarque a bordo del bus?',
             confirmLabel: 'Embarcar',
             cancelLabel: 'No embarcar',
-            onConfirm: () => Navigator.of(ctx).pop(true),
-            onCancel: () => Navigator.of(ctx).pop(false),
+            onConfirm: () {},
+            onCancel: () {},
           ),
         );
 
@@ -270,8 +303,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             'Esta acción no se puede deshacer.',
         confirmLabel: 'Iniciar Viaje',
         cancelLabel: 'Cancelar',
-        onConfirm: () => Navigator.of(ctx).pop(true),
-        onCancel: () => Navigator.of(ctx).pop(false),
+        onConfirm: () {},
+        onCancel: () {},
       ),
     );
 
