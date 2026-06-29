@@ -12,7 +12,7 @@ import '../widgets/trip_item_card.dart';
 import '../widgets/dashboard_stats_section.dart';
 import '../../domain/entities/home_dashboard_data.dart';
 import '../../domain/entities/trip_entity.dart';
-import '../../domain/entities/driver_entity.dart';
+
 
 /// Vista principal de Dashboard (Home) del conductor con barra de navegación inferior.
 class HomeView extends ConsumerStatefulWidget {
@@ -25,11 +25,15 @@ class HomeView extends ConsumerStatefulWidget {
 class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _currentNavigationIndex = 0;
+  DateTime? _selectedCalendarDate;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    final nowUtc = DateTime.now().toUtc();
+    final nowPeru = nowUtc.subtract(const Duration(hours: 5));
+    _selectedCalendarDate = DateTime(nowPeru.year, nowPeru.month, nowPeru.day);
   }
 
   @override
@@ -336,40 +340,54 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
               ),
               DesignSpacing.spacerV4,
               Text(
-                data.driver.code,
+                'Misky Mayo • Conductor',
                 style: DesignTypography.bodyMedium.copyWith(
-                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ],
           ),
         ),
         DesignSpacing.spacerV24,
-        const DesignSectionHeader(title: 'Información del Turno'),
+        
+        // Datos Personales
+        const DesignSectionHeader(title: 'Datos del Conductor'),
         DesignSpacing.spacerV8,
         DesignCard.basic(
           child: Column(
             children: [
               _buildProfileRow(
-                'Estado del Conductor',
-                data.driver.status == DriverStatus.active ? 'Activo (En Turno)' : 'Inactivo',
+                'Código de Trabajador',
+                data.driver.code,
                 isDark,
               ),
               const DesignDivider(),
               _buildProfileRow(
-                'Viajes completados hoy',
-                '${data.summary.completedTrips} viajes',
+                'Empresa Empleadora',
+                'COMPAÑÍA MINERA MISKI MAYO',
                 isDark,
               ),
               const DesignDivider(),
               _buildProfileRow(
-                'Pasajeros transportados',
-                '${data.summary.passengersTransported} pasajeros',
+                'Correo Electrónico',
+                '${data.driver.name.toLowerCase().replaceAll(' ', '.')}@miskimayo.com',
+                isDark,
+              ),
+              const DesignDivider(),
+              _buildProfileRow(
+                'Número de Celular',
+                '+51 987 654 321',
                 isDark,
               ),
             ],
           ),
         ),
+        DesignSpacing.spacerV24,
+        
+        // Historial de Turnos con Calendario
+        _buildCalendarSection(data, isDark),
+        
         DesignSpacing.spacerV32,
         DesignButton.secondary(
           text: 'Cerrar Sesión',
@@ -388,6 +406,189 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildCalendarSection(HomeDashboardData data, bool isDark) {
+    final nowUtc = DateTime.now().toUtc();
+    final nowPeru = nowUtc.subtract(const Duration(hours: 5));
+    final today = DateTime(nowPeru.year, nowPeru.month, nowPeru.day);
+
+    // Generar la semana actual de Lunes a Domingo
+    final weekDates = List.generate(7, (index) {
+      return today.subtract(Duration(days: 6 - index));
+    });
+
+    final weekDaysLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const DesignSectionHeader(title: 'Historial de Turnos'),
+        DesignSpacing.spacerV8,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(7, (index) {
+            final date = weekDates[index];
+            final isSelected = _selectedCalendarDate != null &&
+                _selectedCalendarDate!.year == date.year &&
+                _selectedCalendarDate!.month == date.month &&
+                _selectedCalendarDate!.day == date.day;
+
+            final dayLabel = weekDaysLabels[index];
+            final dayNumber = date.day.toString();
+
+            final selectedBg = Theme.of(context).primaryColor;
+            final unselectedBg = isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5);
+            final borderColor = isSelected 
+                ? selectedBg 
+                : (isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE5E5E5));
+
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedCalendarDate = date;
+                  });
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: isSelected ? selectedBg.withOpacity(0.12) : unselectedBg,
+                    border: Border.all(
+                      color: isSelected ? selectedBg : borderColor,
+                      width: 1.5,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        dayLabel,
+                        style: DesignTypography.caption.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected 
+                              ? selectedBg 
+                              : (isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight),
+                        ),
+                      ),
+                      DesignSpacing.spacerV4,
+                      Text(
+                        dayNumber,
+                        style: DesignTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isSelected 
+                              ? selectedBg 
+                              : (isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        DesignSpacing.spacerV16,
+        _buildShiftDetailsCard(data, isDark),
+      ],
+    );
+  }
+
+  Widget _buildShiftDetailsCard(HomeDashboardData data, bool isDark) {
+    if (_selectedCalendarDate == null) return const SizedBox.shrink();
+
+    final date = _selectedCalendarDate!;
+    String checkIn = '05:30 AM';
+    String checkOut = '06:00 PM';
+    String completedTrips = '3 viajes';
+    String totalPassengers = '110 pasajeros';
+
+    final nowUtc = DateTime.now().toUtc();
+    final nowPeru = nowUtc.subtract(const Duration(hours: 5));
+    final today = DateTime(nowPeru.year, nowPeru.month, nowPeru.day);
+    
+    final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+
+    if (isToday) {
+      checkIn = '05:31 AM';
+      checkOut = 'En curso';
+      completedTrips = '${data.summary.completedTrips} viajes';
+      totalPassengers = '${data.summary.passengersTransported} pasajeros';
+    } else {
+      switch (date.weekday) {
+        case DateTime.monday:
+          checkIn = '05:30 AM';
+          checkOut = '06:10 PM';
+          completedTrips = '3 viajes';
+          totalPassengers = '105 pasajeros';
+          break;
+        case DateTime.tuesday:
+          checkIn = '05:29 AM';
+          checkOut = '06:00 PM';
+          completedTrips = '3 viajes';
+          totalPassengers = '98 pasajeros';
+          break;
+        case DateTime.wednesday:
+          checkIn = '05:30 AM';
+          checkOut = '05:58 PM';
+          completedTrips = '4 viajes';
+          totalPassengers = '142 pasajeros';
+          break;
+        case DateTime.thursday:
+          checkIn = '05:32 AM';
+          checkOut = '06:02 PM';
+          completedTrips = '2 viajes';
+          totalPassengers = '80 pasajeros';
+          break;
+        case DateTime.friday:
+          checkIn = '05:28 AM';
+          checkOut = '06:12 PM';
+          completedTrips = '3 viajes';
+          totalPassengers = '112 pasajeros';
+          break;
+        case DateTime.saturday:
+          checkIn = '05:30 AM';
+          checkOut = '06:05 PM';
+          completedTrips = '4 viajes';
+          totalPassengers = '135 pasajeros';
+          break;
+      }
+    }
+
+    final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+    return DesignCard.basic(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Detalle del Turno: $dateStr',
+                style: DesignTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
+              ),
+              if (isToday)
+                const DesignBadge(label: 'Activo', color: Colors.blue),
+            ],
+          ),
+          DesignSpacing.spacerV12,
+          const DesignDivider(),
+          DesignSpacing.spacerV12,
+          _buildProfileRow('Hora de Ingreso (Apertura)', checkIn, isDark),
+          const DesignDivider(),
+          _buildProfileRow('Hora de Salida (Cierre)', checkOut, isDark),
+          const DesignDivider(),
+          _buildProfileRow('Viajes Completados', completedTrips, isDark),
+          const DesignDivider(),
+          _buildProfileRow('Pasajeros Transportados', totalPassengers, isDark),
+        ],
+      ),
     );
   }
 
