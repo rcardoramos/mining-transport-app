@@ -77,3 +77,7 @@ class UnknownFailure extends Failure {
   const UnknownFailure(super.message, [super.originalError]);
 }
 
+class CollaboratorNotFoundFailure extends Failure {
+  const CollaboratorNotFoundFailure(super.message, [super.originalError]);
+}
+

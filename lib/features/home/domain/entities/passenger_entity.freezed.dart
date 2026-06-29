@@ -38,6 +38,7 @@ mixin _$PassengerEntity {
 
   /// Número de asiento asignado (null hasta que se asigne)
   String? get seatNumber => throw _privateConstructorUsedError;
+  String get category => throw _privateConstructorUsedError;
 
   /// Serializes this PassengerEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -63,6 +64,7 @@ abstract class $PassengerEntityCopyWith<$Res> {
     String registrationMethod,
     CollaboratorStatus status,
     String? seatNumber,
+    String category,
   });
 }
 
@@ -87,6 +89,7 @@ class _$PassengerEntityCopyWithImpl<$Res, $Val extends PassengerEntity>
     Object? registrationMethod = null,
     Object? status = null,
     Object? seatNumber = freezed,
+    Object? category = null,
   }) {
     return _then(
       _value.copyWith(
@@ -114,6 +117,10 @@ class _$PassengerEntityCopyWithImpl<$Res, $Val extends PassengerEntity>
                 ? _value.seatNumber
                 : seatNumber // ignore: cast_nullable_to_non_nullable
                       as String?,
+            category: null == category
+                ? _value.category
+                : category // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -136,6 +143,7 @@ abstract class _$$PassengerEntityImplCopyWith<$Res>
     String registrationMethod,
     CollaboratorStatus status,
     String? seatNumber,
+    String category,
   });
 }
 
@@ -159,6 +167,7 @@ class __$$PassengerEntityImplCopyWithImpl<$Res>
     Object? registrationMethod = null,
     Object? status = null,
     Object? seatNumber = freezed,
+    Object? category = null,
   }) {
     return _then(
       _$PassengerEntityImpl(
@@ -186,6 +195,10 @@ class __$$PassengerEntityImplCopyWithImpl<$Res>
             ? _value.seatNumber
             : seatNumber // ignore: cast_nullable_to_non_nullable
                   as String?,
+        category: null == category
+            ? _value.category
+            : category // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -201,6 +214,7 @@ class _$PassengerEntityImpl implements _PassengerEntity {
     required this.registrationMethod,
     required this.status,
     this.seatNumber,
+    this.category = 'Miski Mayo',
   });
 
   factory _$PassengerEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -229,10 +243,13 @@ class _$PassengerEntityImpl implements _PassengerEntity {
   /// Número de asiento asignado (null hasta que se asigne)
   @override
   final String? seatNumber;
+  @override
+  @JsonKey()
+  final String category;
 
   @override
   String toString() {
-    return 'PassengerEntity(dni: $dni, fullName: $fullName, boardedAt: $boardedAt, registrationMethod: $registrationMethod, status: $status, seatNumber: $seatNumber)';
+    return 'PassengerEntity(dni: $dni, fullName: $fullName, boardedAt: $boardedAt, registrationMethod: $registrationMethod, status: $status, seatNumber: $seatNumber, category: $category)';
   }
 
   @override
@@ -249,7 +266,9 @@ class _$PassengerEntityImpl implements _PassengerEntity {
                 other.registrationMethod == registrationMethod) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.seatNumber, seatNumber) ||
-                other.seatNumber == seatNumber));
+                other.seatNumber == seatNumber) &&
+            (identical(other.category, category) ||
+                other.category == category));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -262,6 +281,7 @@ class _$PassengerEntityImpl implements _PassengerEntity {
     registrationMethod,
     status,
     seatNumber,
+    category,
   );
 
   /// Create a copy of PassengerEntity
@@ -289,6 +309,7 @@ abstract class _PassengerEntity implements PassengerEntity {
     required final String registrationMethod,
     required final CollaboratorStatus status,
     final String? seatNumber,
+    final String category,
   }) = _$PassengerEntityImpl;
 
   factory _PassengerEntity.fromJson(Map<String, dynamic> json) =
@@ -317,6 +338,8 @@ abstract class _PassengerEntity implements PassengerEntity {
   /// Número de asiento asignado (null hasta que se asigne)
   @override
   String? get seatNumber;
+  @override
+  String get category;
 
   /// Create a copy of PassengerEntity
   /// with the given fields replaced by the non-null parameter values.

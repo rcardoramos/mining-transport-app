@@ -21,6 +21,7 @@ class PassengerEntity with _$PassengerEntity {
     required CollaboratorStatus status,
     /// Número de asiento asignado (null hasta que se asigne)
     String? seatNumber,
+    @Default('Miski Mayo') String category,
   }) = _PassengerEntity;
 
   factory PassengerEntity.fromJson(Map<String, dynamic> json) =>

@@ -40,5 +40,37 @@ void main() {
         throwsException,
       );
     });
+    test('checkCollaborator should throw Exception when DNI starts with 9', () async {
+      expect(
+        () => dataSource.checkCollaborator('90001234'),
+        throwsException,
+      );
+    });
+
+    test('checkCollaborator should resolve categories correctly based on DNI suffixes', () async {
+      // Ends with 7 -> Contratista
+      final c7 = await dataSource.checkCollaborator('12345677');
+      expect(c7.category, 'Contratista');
+
+      // Ends with 8 -> Terceros
+      final c8 = await dataSource.checkCollaborator('12345678');
+      expect(c8.category, 'Terceros');
+
+      // Ends with 9 -> Visita
+      final c9 = await dataSource.checkCollaborator('12345679');
+      expect(c9.category, 'Visita');
+
+      // Ends with other (e.g. 0) -> Miski Mayo
+      final c0 = await dataSource.checkCollaborator('12345670');
+      expect(c0.category, 'Miski Mayo');
+    });
+
+    test('registerPassenger with custom category should use that category and set name gen', () async {
+      final trip = await dataSource.registerPassenger('TRIP-101', '90001234', 'ok', 'Visita');
+      final passengers = await dataSource.getPassengersOnBoard('TRIP-101');
+      final registered = passengers.firstWhere((p) => p.dni == '90001234');
+      expect(registered.category, 'Visita');
+      expect(registered.fullName, 'Externo (Visita)');
+    });
   });
 }

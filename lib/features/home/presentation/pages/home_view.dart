@@ -225,23 +225,55 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
   }
 
   Widget _buildManifiestosTab(HomeDashboardData data) {
+    final completedTrips = [...data.todayTrips, ...data.pendingTrips]
+        .where((t) => t.status == TripStatus.completed)
+        .toList();
+
     return ListView(
       padding: DesignSpacing.allM,
       children: [
         const DesignSectionHeader(title: 'Manifiestos de Pasajeros'),
         DesignSpacing.spacerV12,
-        _buildManifestCard('MAN-00921', 'Mina Miski Mayo - Campamento', '42 Pasajeros registrados', 'Completado', true),
-        DesignSpacing.spacerV16,
-        _buildManifestCard('MAN-00922', 'Campamento - Puerto Bayóvar', '15 Pasajeros registrados', 'Pendiente firma', false),
+        if (completedTrips.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40.0),
+            child: DesignEmptyState(
+              title: 'Sin Manifiestos',
+              description: 'Aún no has completado ningún viaje para generar manifiestos.',
+              icon: Icons.assignment_outlined,
+            ),
+          )
+        else
+          ...completedTrips.map((trip) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildManifestCard(
+                'MAN-${trip.id.replaceAll("TRIP-", "")}',
+                trip.route,
+                '${trip.passengerCount} Pasajeros registrados',
+                'Completado',
+                true,
+                onTap: () => context.push('/dashboard/manifest/${trip.id}'),
+              ),
+            );
+          }),
       ],
     );
   }
 
-  Widget _buildManifestCard(String code, String route, String passengers, String status, bool completed) {
+  Widget _buildManifestCard(
+    String code,
+    String route,
+    String passengers,
+    String status,
+    bool completed, {
+    VoidCallback? onTap,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colors = Theme.of(context).extension<DesignThemeExtension>()!;
 
     return DesignCard.basic(
+      onTap: onTap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -412,13 +444,61 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
   }
 
   void _showResumenDialog(TripEntity trip) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
-      builder: (context) => DesignDialog(
-        title: 'Resumen del Viaje',
-        content: 'Detalles del Servicio Finalizado:\n\n• Ruta: ${trip.route}\n• Hora Prog: ${_formatTime(trip.scheduledTime)}\n• Hora Inicio: ${_formatTime(trip.startedAt)}\n• Pasajeros Transportados: ${trip.passengerCount} / ${trip.capacity}\n• Bus Asignado: ${trip.unitCode}\n\nLos datos se encuentran sincronizados y guardados en almacenamiento local.',
-        confirmLabel: 'Aceptar',
-        onConfirm: () {},
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Resumen del Viaje',
+          style: DesignTypography.titleLarge.copyWith(
+            color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+          ),
+        ),
+        content: Text(
+          'Detalles del Servicio Finalizado:\n\n'
+          '• Ruta: ${trip.route}\n'
+          '• Hora Prog: ${_formatTime(trip.scheduledTime)}\n'
+          '• Hora Inicio: ${_formatTime(trip.startedAt)}\n'
+          '• Pasajeros Transportados: ${trip.passengerCount} / ${trip.capacity}\n'
+          '• Bus Asignado: ${trip.unitCode}\n\n'
+          'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
+          style: DesignTypography.bodyMedium.copyWith(
+            color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+          ),
+        ),
+        backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+        shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
+        actionsPadding: const EdgeInsets.all(16),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/dashboard/manifest/${trip.id}');
+            },
+            child: Text(
+              'Ver Manifiesto',
+              style: DesignTypography.labelLarge.copyWith(
+                color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allMedium),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: Text(
+              'Aceptar',
+              style: DesignTypography.labelLarge.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

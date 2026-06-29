@@ -12,6 +12,7 @@ _$CollaboratorModelImpl _$$CollaboratorModelImplFromJson(
   dni: json['dni'] as String,
   fullName: json['fullName'] as String,
   status: json['status'] as String,
+  category: json['category'] as String? ?? 'Miski Mayo',
 );
 
 Map<String, dynamic> _$$CollaboratorModelImplToJson(
@@ -20,4 +21,5 @@ Map<String, dynamic> _$$CollaboratorModelImplToJson(
   'dni': instance.dni,
   'fullName': instance.fullName,
   'status': instance.status,
+  'category': instance.category,
 };

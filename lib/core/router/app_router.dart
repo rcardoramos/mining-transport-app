@@ -8,6 +8,7 @@ import 'package:mining_transport_app/features/auth/presentation/pages/design_sys
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/features/home/presentation/pages/home_view.dart';
 import 'package:mining_transport_app/features/home/presentation/pages/boarding_view.dart';
+import 'package:mining_transport_app/features/home/presentation/pages/manifest_detail_view.dart';
 
 /// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -64,6 +65,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final tripId = state.pathParameters['tripId'] ?? '';
               return BoardingView(tripId: tripId);
+            },
+          ),
+          GoRoute(
+            path: 'manifest/:tripId',
+            builder: (context, state) {
+              final tripId = state.pathParameters['tripId'] ?? '';
+              return ManifestDetailView(tripId: tripId);
             },
           ),
         ],

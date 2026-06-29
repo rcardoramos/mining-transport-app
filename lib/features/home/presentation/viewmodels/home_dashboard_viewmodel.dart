@@ -116,10 +116,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
   }
 
-  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status]) async {
+  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
-    final result = await _registerPassengerUseCase.execute(tripId, dni, status);
+    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category);
     
     if (result.isFailure) {
       state = state.copyWith(

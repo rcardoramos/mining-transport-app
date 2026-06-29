@@ -15,6 +15,7 @@ class PassengerModel with _$PassengerModel {
     required String registrationMethod,
     required String status,
     String? seatNumber,
+    @Default('Miski Mayo') String category,
   }) = _PassengerModel;
 
   factory PassengerModel.fromJson(Map<String, dynamic> json) =>
@@ -35,6 +36,7 @@ extension PassengerModelMapper on PassengerModel {
       registrationMethod: registrationMethod,
       status: statusEnum,
       seatNumber: seatNumber,
+      category: category,
     );
   }
 }

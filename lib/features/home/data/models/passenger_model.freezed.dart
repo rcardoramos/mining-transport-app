@@ -27,6 +27,7 @@ mixin _$PassengerModel {
   String get registrationMethod => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
   String? get seatNumber => throw _privateConstructorUsedError;
+  String get category => throw _privateConstructorUsedError;
 
   /// Serializes this PassengerModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -52,6 +53,7 @@ abstract class $PassengerModelCopyWith<$Res> {
     String registrationMethod,
     String status,
     String? seatNumber,
+    String category,
   });
 }
 
@@ -76,6 +78,7 @@ class _$PassengerModelCopyWithImpl<$Res, $Val extends PassengerModel>
     Object? registrationMethod = null,
     Object? status = null,
     Object? seatNumber = freezed,
+    Object? category = null,
   }) {
     return _then(
       _value.copyWith(
@@ -103,6 +106,10 @@ class _$PassengerModelCopyWithImpl<$Res, $Val extends PassengerModel>
                 ? _value.seatNumber
                 : seatNumber // ignore: cast_nullable_to_non_nullable
                       as String?,
+            category: null == category
+                ? _value.category
+                : category // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -125,6 +132,7 @@ abstract class _$$PassengerModelImplCopyWith<$Res>
     String registrationMethod,
     String status,
     String? seatNumber,
+    String category,
   });
 }
 
@@ -148,6 +156,7 @@ class __$$PassengerModelImplCopyWithImpl<$Res>
     Object? registrationMethod = null,
     Object? status = null,
     Object? seatNumber = freezed,
+    Object? category = null,
   }) {
     return _then(
       _$PassengerModelImpl(
@@ -175,6 +184,10 @@ class __$$PassengerModelImplCopyWithImpl<$Res>
             ? _value.seatNumber
             : seatNumber // ignore: cast_nullable_to_non_nullable
                   as String?,
+        category: null == category
+            ? _value.category
+            : category // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -190,6 +203,7 @@ class _$PassengerModelImpl implements _PassengerModel {
     required this.registrationMethod,
     required this.status,
     this.seatNumber,
+    this.category = 'Miski Mayo',
   });
 
   factory _$PassengerModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -207,10 +221,13 @@ class _$PassengerModelImpl implements _PassengerModel {
   final String status;
   @override
   final String? seatNumber;
+  @override
+  @JsonKey()
+  final String category;
 
   @override
   String toString() {
-    return 'PassengerModel(dni: $dni, fullName: $fullName, boardedAt: $boardedAt, registrationMethod: $registrationMethod, status: $status, seatNumber: $seatNumber)';
+    return 'PassengerModel(dni: $dni, fullName: $fullName, boardedAt: $boardedAt, registrationMethod: $registrationMethod, status: $status, seatNumber: $seatNumber, category: $category)';
   }
 
   @override
@@ -227,7 +244,9 @@ class _$PassengerModelImpl implements _PassengerModel {
                 other.registrationMethod == registrationMethod) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.seatNumber, seatNumber) ||
-                other.seatNumber == seatNumber));
+                other.seatNumber == seatNumber) &&
+            (identical(other.category, category) ||
+                other.category == category));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -240,6 +259,7 @@ class _$PassengerModelImpl implements _PassengerModel {
     registrationMethod,
     status,
     seatNumber,
+    category,
   );
 
   /// Create a copy of PassengerModel
@@ -267,6 +287,7 @@ abstract class _PassengerModel implements PassengerModel {
     required final String registrationMethod,
     required final String status,
     final String? seatNumber,
+    final String category,
   }) = _$PassengerModelImpl;
 
   factory _PassengerModel.fromJson(Map<String, dynamic> json) =
@@ -284,6 +305,8 @@ abstract class _PassengerModel implements PassengerModel {
   String get status;
   @override
   String? get seatNumber;
+  @override
+  String get category;
 
   /// Create a copy of PassengerModel
   /// with the given fields replaced by the non-null parameter values.

@@ -15,6 +15,7 @@ _$PassengerEntityImpl _$$PassengerEntityImplFromJson(
   registrationMethod: json['registrationMethod'] as String,
   status: $enumDecode(_$CollaboratorStatusEnumMap, json['status']),
   seatNumber: json['seatNumber'] as String?,
+  category: json['category'] as String? ?? 'Miski Mayo',
 );
 
 Map<String, dynamic> _$$PassengerEntityImplToJson(
@@ -26,6 +27,7 @@ Map<String, dynamic> _$$PassengerEntityImplToJson(
   'registrationMethod': instance.registrationMethod,
   'status': _$CollaboratorStatusEnumMap[instance.status]!,
   'seatNumber': instance.seatNumber,
+  'category': instance.category,
 };
 
 const _$CollaboratorStatusEnumMap = {

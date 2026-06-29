@@ -14,6 +14,7 @@ _$PassengerModelImpl _$$PassengerModelImplFromJson(Map<String, dynamic> json) =>
       registrationMethod: json['registrationMethod'] as String,
       status: json['status'] as String,
       seatNumber: json['seatNumber'] as String?,
+      category: json['category'] as String? ?? 'Miski Mayo',
     );
 
 Map<String, dynamic> _$$PassengerModelImplToJson(
@@ -25,4 +26,5 @@ Map<String, dynamic> _$$PassengerModelImplToJson(
   'registrationMethod': instance.registrationMethod,
   'status': instance.status,
   'seatNumber': instance.seatNumber,
+  'category': instance.category,
 };

@@ -10,6 +10,7 @@ class CollaboratorModel with _$CollaboratorModel {
     required String dni,
     required String fullName,
     required String status,
+    @Default('Miski Mayo') String category,
   }) = _CollaboratorModel;
 
   factory CollaboratorModel.fromJson(Map<String, dynamic> json) =>
@@ -26,6 +27,7 @@ extension CollaboratorModelMapper on CollaboratorModel {
       dni: dni,
       fullName: fullName,
       status: statusEnum,
+      category: category,
     );
   }
 }

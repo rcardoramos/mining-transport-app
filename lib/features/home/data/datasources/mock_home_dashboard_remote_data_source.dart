@@ -196,11 +196,28 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> registerPassenger(String id, String dni, [String? status]) async {
+  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category]) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
-    // Determinar el nombre (simulación de resolución contra BD offline)
-    final name = _mockNames[dni.hashCode % _mockNames.length];
+    // Determinar la categoría (si es proporcionada, la usamos; si no, la deducimos del DNI)
+    String finalCategory = category ?? 'Miski Mayo';
+    if (category == null) {
+      if (dni.endsWith('7')) {
+        finalCategory = 'Contratista';
+      } else if (dni.endsWith('8')) {
+        finalCategory = 'Terceros';
+      } else if (dni.endsWith('9')) {
+        finalCategory = 'Visita';
+      }
+    }
+
+    // Determinar el nombre
+    String finalName;
+    if (finalCategory == 'Contratista' || finalCategory == 'Terceros' || finalCategory == 'Visita') {
+      finalName = 'Externo ($finalCategory)';
+    } else {
+      finalName = _mockNames[dni.hashCode % _mockNames.length];
+    }
 
     final finalStatus = status ?? _determineStatus(dni);
 
@@ -214,11 +231,12 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
 
     final newPassenger = PassengerModel(
       dni: dni,
-      fullName: name,
+      fullName: finalName,
       boardedAt: DateTime.now().toIso8601String(),
       registrationMethod: method,
       status: finalStatus,
       seatNumber: '${(_passengers[id]?.length ?? 0) + 1}',
+      category: finalCategory,
     );
 
     // Guardar en el mapa de pasajeros
@@ -272,12 +290,30 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   @override
   Future<CollaboratorModel> checkCollaborator(String dni) async {
     await Future.delayed(const Duration(milliseconds: 200));
+
+    // Si el DNI empieza con 9, simulamos que no está en la base de datos
+    if (dni.startsWith('9')) {
+      throw Exception('not_found: El colaborador no existe en el padrón local');
+    }
+
     final name = _mockNames[dni.hashCode % _mockNames.length];
     final statusStr = _determineStatus(dni);
+
+    // Determinar categoría por defecto según el DNI
+    String category = 'Miski Mayo';
+    if (dni.endsWith('7')) {
+      category = 'Contratista';
+    } else if (dni.endsWith('8')) {
+      category = 'Terceros';
+    } else if (dni.endsWith('9')) {
+      category = 'Visita';
+    }
+
     return CollaboratorModel(
       dni: dni,
       fullName: name,
       status: statusStr,
+      category: category,
     );
   }
 

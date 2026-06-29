@@ -24,6 +24,7 @@ mixin _$CollaboratorModel {
   String get dni => throw _privateConstructorUsedError;
   String get fullName => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
+  String get category => throw _privateConstructorUsedError;
 
   /// Serializes this CollaboratorModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -42,7 +43,7 @@ abstract class $CollaboratorModelCopyWith<$Res> {
     $Res Function(CollaboratorModel) then,
   ) = _$CollaboratorModelCopyWithImpl<$Res, CollaboratorModel>;
   @useResult
-  $Res call({String dni, String fullName, String status});
+  $Res call({String dni, String fullName, String status, String category});
 }
 
 /// @nodoc
@@ -63,6 +64,7 @@ class _$CollaboratorModelCopyWithImpl<$Res, $Val extends CollaboratorModel>
     Object? dni = null,
     Object? fullName = null,
     Object? status = null,
+    Object? category = null,
   }) {
     return _then(
       _value.copyWith(
@@ -77,6 +79,10 @@ class _$CollaboratorModelCopyWithImpl<$Res, $Val extends CollaboratorModel>
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            category: null == category
+                ? _value.category
+                : category // ignore: cast_nullable_to_non_nullable
                       as String,
           )
           as $Val,
@@ -93,7 +99,7 @@ abstract class _$$CollaboratorModelImplCopyWith<$Res>
   ) = __$$CollaboratorModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String dni, String fullName, String status});
+  $Res call({String dni, String fullName, String status, String category});
 }
 
 /// @nodoc
@@ -113,6 +119,7 @@ class __$$CollaboratorModelImplCopyWithImpl<$Res>
     Object? dni = null,
     Object? fullName = null,
     Object? status = null,
+    Object? category = null,
   }) {
     return _then(
       _$CollaboratorModelImpl(
@@ -128,6 +135,10 @@ class __$$CollaboratorModelImplCopyWithImpl<$Res>
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
                   as String,
+        category: null == category
+            ? _value.category
+            : category // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -140,6 +151,7 @@ class _$CollaboratorModelImpl implements _CollaboratorModel {
     required this.dni,
     required this.fullName,
     required this.status,
+    this.category = 'Miski Mayo',
   });
 
   factory _$CollaboratorModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -151,10 +163,13 @@ class _$CollaboratorModelImpl implements _CollaboratorModel {
   final String fullName;
   @override
   final String status;
+  @override
+  @JsonKey()
+  final String category;
 
   @override
   String toString() {
-    return 'CollaboratorModel(dni: $dni, fullName: $fullName, status: $status)';
+    return 'CollaboratorModel(dni: $dni, fullName: $fullName, status: $status, category: $category)';
   }
 
   @override
@@ -165,12 +180,14 @@ class _$CollaboratorModelImpl implements _CollaboratorModel {
             (identical(other.dni, dni) || other.dni == dni) &&
             (identical(other.fullName, fullName) ||
                 other.fullName == fullName) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.category, category) ||
+                other.category == category));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, dni, fullName, status);
+  int get hashCode => Object.hash(runtimeType, dni, fullName, status, category);
 
   /// Create a copy of CollaboratorModel
   /// with the given fields replaced by the non-null parameter values.
@@ -194,6 +211,7 @@ abstract class _CollaboratorModel implements CollaboratorModel {
     required final String dni,
     required final String fullName,
     required final String status,
+    final String category,
   }) = _$CollaboratorModelImpl;
 
   factory _CollaboratorModel.fromJson(Map<String, dynamic> json) =
@@ -205,6 +223,8 @@ abstract class _CollaboratorModel implements CollaboratorModel {
   String get fullName;
   @override
   String get status;
+  @override
+  String get category;
 
   /// Create a copy of CollaboratorModel
   /// with the given fields replaced by the non-null parameter values.
