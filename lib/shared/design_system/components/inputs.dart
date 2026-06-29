@@ -16,6 +16,7 @@ class DesignTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final bool enabled;
+  final BorderRadius? borderRadius;
 
   const DesignTextField({
     super.key,
@@ -29,12 +30,16 @@ class DesignTextField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final activeRadius = borderRadius ?? DesignRadius.allInput;
+    final inputBgColor = isDark ? const Color(0xFF1E1E24) : const Color(0xFFF3F4F6);
+    final subtleBorderColor = isDark ? const Color(0xFF2E2E38) : const Color(0xFFE5E7EB);
 
     return TextFormField(
       controller: controller,
@@ -49,50 +54,58 @@ class DesignTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
-        prefixIcon: prefixIcon,
+        prefixIcon: prefixIcon != null
+            ? IconTheme(
+                data: IconThemeData(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                  size: 20,
+                ),
+                child: prefixIcon!,
+              )
+            : null,
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+        fillColor: inputBgColor,
         labelStyle: DesignTypography.bodyMedium.copyWith(
           color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
         ),
         hintStyle: DesignTypography.bodyMedium.copyWith(
           color: isDark ? Colors.white30 : Colors.black26,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: DesignRadius.allMedium,
+          borderRadius: activeRadius,
           borderSide: BorderSide(
-            color: isDark ? DesignColors.borderDark : DesignColors.borderLight,
-            width: 1.5,
+            color: subtleBorderColor,
+            width: 1.0,
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: DesignRadius.allMedium,
+          borderRadius: activeRadius,
           borderSide: BorderSide(
-            color: isDark ? DesignColors.borderDark : DesignColors.borderLight,
-            width: 1.5,
+            color: subtleBorderColor,
+            width: 1.0,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: DesignRadius.allMedium,
+          borderRadius: activeRadius,
           borderSide: BorderSide(
             color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-            width: 2.0,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: DesignRadius.allMedium,
-          borderSide: BorderSide(
-            color: isDark ? DesignColors.dangerDark : DesignColors.dangerLight,
             width: 1.5,
           ),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: DesignRadius.allMedium,
+        errorBorder: OutlineInputBorder(
+          borderRadius: activeRadius,
           borderSide: BorderSide(
             color: isDark ? DesignColors.dangerDark : DesignColors.dangerLight,
-            width: 2.0,
+            width: 1.0,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: activeRadius,
+          borderSide: BorderSide(
+            color: isDark ? DesignColors.dangerDark : DesignColors.dangerLight,
+            width: 1.5,
           ),
         ),
       ),
@@ -108,6 +121,7 @@ class DesignPasswordField extends StatefulWidget {
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final bool enabled;
+  final BorderRadius? borderRadius;
 
   const DesignPasswordField({
     super.key,
@@ -117,6 +131,7 @@ class DesignPasswordField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.enabled = true,
+    this.borderRadius,
   });
 
   @override
@@ -137,6 +152,7 @@ class _DesignPasswordFieldState extends State<DesignPasswordField> {
       validator: widget.validator,
       onChanged: widget.onChanged,
       enabled: widget.enabled,
+      borderRadius: widget.borderRadius,
       suffixIcon: IconButton(
         icon: Icon(
           _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,

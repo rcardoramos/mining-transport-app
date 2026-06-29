@@ -41,14 +41,6 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
       iconTheme: IconThemeData(
         color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
       ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Divider(
-          height: 1,
-          thickness: 1,
-          color: isDark ? DesignColors.borderDark : DesignColors.borderLight,
-        ),
-      ),
     );
   }
 
@@ -74,26 +66,74 @@ class DesignBottomNavigation extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final activeColor = isDark ? DesignColors.primaryDark : DesignColors.primaryLight;
+    final inactiveColor = isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight;
+    final bgColor = isDark ? const Color(0xFF1E1E24) : Colors.white;
+
     return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      height: 72,
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: isDark ? DesignColors.borderDark : DesignColors.borderLight,
-            width: 1,
+        color: bgColor,
+        borderRadius: DesignRadius.allBottomNav,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.35 : 0.06),
+            blurRadius: 20,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: DesignRadius.allBottomNav,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (index) {
+              final item = items[index];
+              final isSelected = index == currentIndex;
+
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onTap(index),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected 
+                              ? activeColor.withOpacity(0.1) 
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          (item.icon as Icon).icon,
+                          color: isSelected ? activeColor : inactiveColor,
+                          size: 22,
+                        ),
+                      ),
+                      DesignSpacing.spacerV4,
+                      Text(
+                        item.label ?? '',
+                        style: DesignTypography.caption.copyWith(
+                          color: isSelected ? activeColor : inactiveColor,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
         ),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        items: items,
-        onTap: onTap,
-        backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
-        selectedItemColor: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-        unselectedItemColor: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-        selectedLabelStyle: DesignTypography.labelMedium.copyWith(fontWeight: FontWeight.bold),
-        unselectedLabelStyle: DesignTypography.labelMedium,
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
       ),
     );
   }

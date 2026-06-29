@@ -15,6 +15,7 @@ class DesignButton extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   final bool fullWidth;
+  final BorderRadius? borderRadius;
 
   const DesignButton.primary({
     super.key,
@@ -23,6 +24,7 @@ class DesignButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
+    this.borderRadius,
   }) : type = DesignButtonType.primary;
 
   const DesignButton.secondary({
@@ -32,6 +34,7 @@ class DesignButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
+    this.borderRadius,
   }) : type = DesignButtonType.secondary;
 
   const DesignButton.outlined({
@@ -41,6 +44,7 @@ class DesignButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
+    this.borderRadius,
   }) : type = DesignButtonType.outlined;
 
   const DesignButton.text({
@@ -50,6 +54,7 @@ class DesignButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = true,
+    this.borderRadius,
   }) : type = DesignButtonType.text;
 
   @override
@@ -121,18 +126,20 @@ class DesignButton extends StatelessWidget {
         backgroundColor: bg,
         foregroundColor: fg,
         side: borderSide,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
         shape: RoundedRectangleBorder(
-          borderRadius: DesignRadius.allMedium,
+          borderRadius: borderRadius ?? DesignRadius.allButton,
         ),
         elevation: 0,
       ),
       child: content,
     );
 
-    if (fullWidth) {
-      button = SizedBox(width: double.infinity, child: button);
-    }
+    button = SizedBox(
+      width: fullWidth ? double.infinity : null,
+      height: 52,
+      child: button,
+    );
 
     return ButtonPressAnimation(
       onTap: (onTap == null || isLoading) ? null : onTap,

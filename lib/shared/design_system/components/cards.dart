@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../tokens/colors/design_colors.dart';
 import '../tokens/radius/design_radius.dart';
-import '../tokens/spacing/design_spacing.dart';
 import '../tokens/elevation/design_elevation.dart';
 
 enum DesignCardType { basic, elevated, info, status }
@@ -52,52 +51,35 @@ class DesignCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     Color bg = isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight;
-    List<BoxShadow> shadow = DesignElevation.none;
-    Border border = Border.all(
-      color: isDark ? DesignColors.borderDark : DesignColors.borderLight,
-      width: 1.2,
-    );
+    List<BoxShadow> shadow = DesignElevation.level2; // Hacemos que floten por defecto
+    BoxBorder? border;
 
     switch (type) {
       case DesignCardType.basic:
         break;
       case DesignCardType.elevated:
-        shadow = DesignElevation.level2;
-        border = Border.all(
-          color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
-          width: 1,
-        );
+        shadow = DesignElevation.level3; // Más flotante aún
         break;
       case DesignCardType.info:
         bg = isDark
-            ? DesignColors.primaryDark.withOpacity(0.08)
-            : DesignColors.primaryLight.withOpacity(0.05);
-        border = Border.all(
-          color: isDark
-              ? DesignColors.primaryDark.withOpacity(0.25)
-              : DesignColors.primaryLight.withOpacity(0.2),
-          width: 1.2,
-        );
+            ? DesignColors.primaryDark.withOpacity(0.06)
+            : DesignColors.primaryLight.withOpacity(0.04);
         break;
       case DesignCardType.status:
         if (statusColor != null) {
-          border = Border.all(
-            color: statusColor!.withOpacity(0.45),
-            width: 1.5,
-          );
           bg = isDark
-              ? statusColor!.withOpacity(0.07)
+              ? statusColor!.withOpacity(0.05)
               : statusColor!.withOpacity(0.03);
         }
         break;
     }
 
     Widget cardBody = Container(
-      padding: padding ?? DesignSpacing.allM,
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         color: bg,
         border: border,
-        borderRadius: DesignRadius.allLarge,
+        borderRadius: DesignRadius.allCard,
         boxShadow: shadow,
       ),
       child: child,
@@ -109,11 +91,11 @@ class DesignCard extends StatelessWidget {
         elevation: 0,
         color: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: DesignRadius.allLarge,
+          borderRadius: DesignRadius.allCard,
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: DesignRadius.allLarge,
+          borderRadius: DesignRadius.allCard,
           child: cardBody,
         ),
       );

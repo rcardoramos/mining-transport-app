@@ -170,6 +170,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
   }
 
   Widget _buildInicioTab(HomeDashboardData data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Regla de Negocio: Verificar si hay algún viaje en curso para deshabilitar aperturas adicionales
     final hasActiveTrip = data.todayTrips.any((t) => t.status == TripStatus.inProgress) ||
         data.pendingTrips.any((t) => t.status == TripStatus.inProgress);
@@ -187,8 +188,16 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                 DesignSpacing.spacerV24,
                 TabBar(
                   controller: _tabController,
+                  labelColor: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                  unselectedLabelColor: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                   labelStyle: DesignTypography.labelLarge.copyWith(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: DesignTypography.labelMedium,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  indicator: BoxDecoration(
+                    color: (isDark ? DesignColors.primaryDark : DesignColors.primaryLight).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
                   tabs: const [
                     Tab(text: 'Viajes de Hoy'),
                     Tab(text: 'Viajes Pendientes'),
@@ -364,13 +373,13 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
               ),
               const DesignDivider(),
               _buildProfileRow(
-                'Empresa Empleadora',
+                'Empresa',
                 'COMPAÑÍA MINERA MISKI MAYO',
                 isDark,
               ),
               const DesignDivider(),
               _buildProfileRow(
-                'Correo Electrónico',
+                'Correo',
                 '${data.driver.name.toLowerCase().replaceAll(' ', '.')}@miskimayo.com',
                 isDark,
               ),
@@ -604,11 +613,15 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
               color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
             ),
           ),
-          Text(
-            value,
-            style: DesignTypography.bodyMedium.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+          DesignSpacing.spacerH16,
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: DesignTypography.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+              ),
             ),
           ),
         ],

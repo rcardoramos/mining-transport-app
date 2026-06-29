@@ -423,14 +423,11 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                   
                   // simulated export footer
                   Center(
-                    child: SizedBox(
-                      width: 200,
-                      child: DesignButton.outlined(
-                        text: 'Exportar Manifiesto',
-                        icon: Icons.download_rounded,
-                        onTap: _exportManifest,
-                        fullWidth: true,
-                      ),
+                    child: DesignButton.outlined(
+                      text: 'Exportar Manifiesto',
+                      icon: Icons.download_rounded,
+                      onTap: _exportManifest,
+                      fullWidth: false,
                     ),
                   ),
                   DesignSpacing.spacerV16,

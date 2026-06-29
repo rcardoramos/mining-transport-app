@@ -91,7 +91,7 @@ class AppDesignTheme {
         onSurface: DesignColors.textPrimaryLight,
       ),
       dividerColor: DesignColors.dividerLight,
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displayLarge: DesignTypography.display,
         headlineLarge: DesignTypography.headline,
         titleLarge: DesignTypography.titleLarge,
@@ -110,8 +110,20 @@ class AppDesignTheme {
         color: DesignColors.surfaceLight,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: DesignRadius.allLarge,
-          side: const BorderSide(color: DesignColors.borderLight, width: 1.2),
+          borderRadius: DesignRadius.allCard,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: DesignColors.surfaceLight,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: DesignRadius.allCard,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
       extensions: const [
@@ -146,7 +158,7 @@ class AppDesignTheme {
         onSurface: DesignColors.textPrimaryDark,
       ),
       dividerColor: DesignColors.dividerDark,
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displayLarge: DesignTypography.display,
         headlineLarge: DesignTypography.headline,
         titleLarge: DesignTypography.titleLarge,
@@ -165,8 +177,20 @@ class AppDesignTheme {
         color: DesignColors.surfaceDark,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: DesignRadius.allLarge,
-          side: const BorderSide(color: DesignColors.borderDark, width: 1.2),
+          borderRadius: DesignRadius.allCard,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: DesignColors.surfaceDark,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: DesignRadius.allCard,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
       extensions: const [

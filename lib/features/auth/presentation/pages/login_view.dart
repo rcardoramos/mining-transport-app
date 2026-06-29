@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mining_transport_app/features/auth/presentation/widgets/login_form.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 
-/// Vista de Login que orquesta la UI del formulario de autenticación de forma elegante.
+/// Vista de Login con diseño corporativo premium y cabecera orgánica estilizada.
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
 
@@ -10,59 +10,147 @@ class LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final size = MediaQuery.of(context).size;
+
+    // Colores corporativos basados en el tema
+    final topBgColor = isDark ? const Color(0xFF15181F) : DesignColors.primaryLight;
+    final bottomBgColor = isDark ? DesignColors.backgroundDark : Colors.white;
+    final brandColor = isDark ? DesignColors.secondaryDark : DesignColors.secondaryLight;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            padding: DesignSpacing.allL,
-            child: FadeInAnimation(
-              duration: const Duration(milliseconds: 500),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: DesignSpacing.allM,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? DesignColors.primaryDark.withOpacity(0.1)
-                          : DesignColors.primaryLight.withOpacity(0.05),
-                      shape: BoxShape.circle,
+      backgroundColor: topBgColor,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // ── CABECERA ORGÁNICA (Sección Superior) ────────────────────────
+            Container(
+              height: 250,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              alignment: Alignment.bottomLeft,
+              child: SafeArea(
+                bottom: false,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Mensaje de Bienvenida a la izquierda
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            '¡Hola!',
+                            style: DesignTypography.display.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 38,
+                            ),
+                          ),
+                          DesignSpacing.spacerV4,
+                          Text(
+                            'Bienvenido a Buses Miski Mayo',
+                            style: DesignTypography.bodyLarge.copyWith(
+                              color: Colors.white.withOpacity(0.85),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          DesignSpacing.spacerV8,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: brandColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: brandColor.withOpacity(0.5), width: 1),
+                            ),
+                            child: Text(
+                              'Transporte Seguro',
+                              style: DesignTypography.caption.copyWith(
+                                color: brandColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Icon(
-                      Icons.directions_bus_filled_rounded,
-                      size: 80,
-                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                    
+                    // Elemento gráfico (Bus con aura resplandeciente)
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        height: 90,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.directions_bus_filled_rounded,
+                          size: 44,
+                          color: isDark ? const Color(0xFFFBBF24) : Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  DesignSpacing.spacerV20,
-                  Text(
-                    'Miski Mayo',
-                    style: DesignTypography.display.copyWith(
-                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  DesignSpacing.spacerV8,
-                  Text(
-                    'Control de Transporte de Buses',
-                    style: DesignTypography.bodyLarge.copyWith(
-                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  DesignSpacing.spacerV32,
-                  DesignCard.elevated(
-                    padding: DesignSpacing.allL,
-                    child: const LoginForm(),
+                  ],
+                ),
+              ),
+            ),
+            
+            // ── CARD INFERIOR REDONDEADA (Formulario de Login) ──────────────
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                minHeight: size.height - 250,
+              ),
+              decoration: BoxDecoration(
+                color: bottomBgColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.4 : 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Iniciar Sesión',
+                    style: DesignTypography.titleLarge.copyWith(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : DesignColors.primaryLight,
+                    ),
+                  ),
+                  DesignSpacing.spacerV4,
+                  Text(
+                    'Por favor ingresa tus datos para acceder',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    ),
+                  ),
+                  DesignSpacing.spacerV32,
+                  const LoginForm(),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

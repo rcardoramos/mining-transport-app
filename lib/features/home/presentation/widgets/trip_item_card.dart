@@ -95,10 +95,10 @@ class TripItemCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildDetailColumn(Icons.access_time_rounded, 'Hora Prog.', _formatTime(trip.scheduledTime), isDark),
-                _buildDetailColumn(Icons.wb_sunny_rounded, 'Turno', trip.shift, isDark),
-                _buildDetailColumn(Icons.directions_bus_rounded, 'Bus', trip.unitCode, isDark),
-                _buildDetailColumn(Icons.people_alt_rounded, 'Capacidad', '${trip.capacity}', isDark),
+                _buildDetailColumn(Icons.access_time_outlined, 'Hora Prog.', _formatTime(trip.scheduledTime), isDark),
+                _buildDetailColumn(Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
+                _buildDetailColumn(Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),
+                _buildDetailColumn(Icons.people_alt_outlined, 'Capacidad', '${trip.capacity}', isDark),
               ],
             ),
             
@@ -109,8 +109,8 @@ class TripItemCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDetailColumn(Icons.play_circle_fill_rounded, 'Hora Inicio', _formatTime(trip.startedAt), isDark),
-                  _buildDetailColumn(Icons.people_rounded, 'Pasajeros', '${trip.passengerCount} / ${trip.capacity}', isDark),
+                  _buildDetailColumn(Icons.play_circle_outline_rounded, 'Hora Inicio', _formatTime(trip.startedAt), isDark),
+                  _buildDetailColumn(Icons.people_outline_rounded, 'Pasajeros', '${trip.passengerCount} / ${trip.capacity}', isDark),
                 ],
               ),
               DesignSpacing.spacerV16,
@@ -120,7 +120,7 @@ class TripItemCard extends StatelessWidget {
             if (trip.status != TripStatus.cancelled) ...[
               DesignSpacing.spacerV16,
               if (trip.status == TripStatus.travelling) ...[
-                DesignButton.primary(
+                 DesignButton.primary(
                   text: 'Continuar Embarque',
                   onTap: onContinuarEmbarque,
                   icon: Icons.qr_code_scanner_rounded,
@@ -130,7 +130,7 @@ class TripItemCard extends StatelessWidget {
                 DesignButton.outlined(
                   text: 'Ver Resumen',
                   onTap: onVerResumen,
-                  icon: Icons.directions_bus_filled_rounded,
+                  icon: Icons.directions_bus_outlined,
                   fullWidth: true,
                 ),
               ] else ...[
@@ -150,7 +150,7 @@ class TripItemCard extends StatelessWidget {
                         child: DesignButton.primary(
                           text: 'Continuar Embarque',
                           onTap: onContinuarEmbarque,
-                          icon: Icons.qr_code_scanner_rounded,
+                          icon: Icons.qr_code_scanner_outlined,
                           fullWidth: true,
                         ),
                       ),
@@ -160,7 +160,7 @@ class TripItemCard extends StatelessWidget {
                         child: DesignButton.outlined(
                           text: 'Ver Resumen',
                           onTap: onVerResumen,
-                          icon: Icons.assignment_turned_in_rounded,
+                          icon: Icons.assignment_turned_in_outlined,
                           fullWidth: true,
                         ),
                       ),
@@ -176,7 +176,7 @@ class TripItemCard extends StatelessWidget {
     if (isTripActive) {
       return Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: DesignRadius.allCard,
           boxShadow: [
             BoxShadow(
               color: (isDark ? DesignColors.primaryDark : DesignColors.primaryLight).withOpacity(0.08),

@@ -49,6 +49,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             controller: _usernameController,
             enabled: !state.isLoading,
             prefixIcon: const Icon(Icons.person_outline_rounded),
+            borderRadius: DesignRadius.allCircular,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'El usuario es requerido';
@@ -62,6 +63,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             hintText: 'Ingresa tu contraseña',
             controller: _passwordController,
             enabled: !state.isLoading,
+            borderRadius: DesignRadius.allCircular,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'La contraseña es requerida';
@@ -72,8 +74,32 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               return null;
             },
           ),
+          DesignSpacing.spacerV8,
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => DesignDialog(
+                    title: 'Restablecer Contraseña',
+                    content: 'Por favor, ponte en contacto con el área de soporte de TI de Compañía Minera Miski Mayo para restablecer tu credencial de red.',
+                    confirmLabel: 'Entendido',
+                    onConfirm: () {},
+                  ),
+                );
+              },
+              child: Text(
+                '¿Olvidaste tu contraseña?',
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
           if (state.errorMessage != null) ...[
-            DesignSpacing.spacerV16,
+            DesignSpacing.spacerV8,
             DesignCard.status(
               statusColor: isDark ? DesignColors.dangerDark : DesignColors.dangerLight,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -98,11 +124,12 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               ),
             ),
           ],
-          DesignSpacing.spacerV24,
+          DesignSpacing.spacerV16,
           DesignButton.primary(
             text: 'Iniciar Sesión',
             onTap: _submit,
             isLoading: state.isLoading,
+            borderRadius: DesignRadius.allCircular,
           ),
         ],
       ),

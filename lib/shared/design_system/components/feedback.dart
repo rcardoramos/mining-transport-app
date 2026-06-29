@@ -163,6 +163,7 @@ class DesignDialog extends StatelessWidget {
         title,
         style: DesignTypography.titleLarge.copyWith(
           color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+          fontWeight: FontWeight.bold,
         ),
       ),
       content: Text(
@@ -172,8 +173,8 @@ class DesignDialog extends StatelessWidget {
         ),
       ),
       backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
-      shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
-      actionsPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: DesignRadius.allCard),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       actions: [
         if (cancelLabel != null)
           TextButton(
@@ -181,6 +182,10 @@ class DesignDialog extends StatelessWidget {
               Navigator.pop(context, false);
               if (onCancel != null) onCancel!();
             },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allButton),
+            ),
             child: Text(
               cancelLabel!,
               style: DesignTypography.labelLarge.copyWith(
@@ -196,10 +201,17 @@ class DesignDialog extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: DesignRadius.allMedium),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: DesignRadius.allButton),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            elevation: 0,
           ),
-          child: Text(confirmLabel),
+          child: Text(
+            confirmLabel,
+            style: DesignTypography.labelLarge.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -260,7 +272,11 @@ class DesignBottomSheet extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: isDark ? const Color(0xFF2E2E38) : const Color(0xFFE5E7EB),
+          ),
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
