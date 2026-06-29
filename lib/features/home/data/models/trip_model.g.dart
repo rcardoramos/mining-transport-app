@@ -17,6 +17,7 @@ _$TripModelImpl _$$TripModelImplFromJson(Map<String, dynamic> json) =>
       passengerCount: (json['passengerCount'] as num).toInt(),
       status: json['status'] as String,
       startedAt: json['startedAt'] as String?,
+      completedAt: json['completedAt'] as String?,
     );
 
 Map<String, dynamic> _$$TripModelImplToJson(_$TripModelImpl instance) =>
@@ -30,4 +31,5 @@ Map<String, dynamic> _$$TripModelImplToJson(_$TripModelImpl instance) =>
       'passengerCount': instance.passengerCount,
       'status': instance.status,
       'startedAt': instance.startedAt,
+      'completedAt': instance.completedAt,
     };

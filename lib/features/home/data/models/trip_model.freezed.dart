@@ -30,6 +30,7 @@ mixin _$TripModel {
   int get passengerCount => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
   String? get startedAt => throw _privateConstructorUsedError;
+  String? get completedAt => throw _privateConstructorUsedError;
 
   /// Serializes this TripModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -56,6 +57,7 @@ abstract class $TripModelCopyWith<$Res> {
     int passengerCount,
     String status,
     String? startedAt,
+    String? completedAt,
   });
 }
 
@@ -83,6 +85,7 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
     Object? passengerCount = null,
     Object? status = null,
     Object? startedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -122,6 +125,10 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
                 ? _value.startedAt
                 : startedAt // ignore: cast_nullable_to_non_nullable
                       as String?,
+            completedAt: freezed == completedAt
+                ? _value.completedAt
+                : completedAt // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -147,6 +154,7 @@ abstract class _$$TripModelImplCopyWith<$Res>
     int passengerCount,
     String status,
     String? startedAt,
+    String? completedAt,
   });
 }
 
@@ -173,6 +181,7 @@ class __$$TripModelImplCopyWithImpl<$Res>
     Object? passengerCount = null,
     Object? status = null,
     Object? startedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(
       _$TripModelImpl(
@@ -212,6 +221,10 @@ class __$$TripModelImplCopyWithImpl<$Res>
             ? _value.startedAt
             : startedAt // ignore: cast_nullable_to_non_nullable
                   as String?,
+        completedAt: freezed == completedAt
+            ? _value.completedAt
+            : completedAt // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -230,6 +243,7 @@ class _$TripModelImpl extends _TripModel {
     required this.passengerCount,
     required this.status,
     this.startedAt,
+    this.completedAt,
   }) : super._();
 
   factory _$TripModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -253,10 +267,12 @@ class _$TripModelImpl extends _TripModel {
   final String status;
   @override
   final String? startedAt;
+  @override
+  final String? completedAt;
 
   @override
   String toString() {
-    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt)';
+    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt)';
   }
 
   @override
@@ -277,7 +293,9 @@ class _$TripModelImpl extends _TripModel {
                 other.passengerCount == passengerCount) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.startedAt, startedAt) ||
-                other.startedAt == startedAt));
+                other.startedAt == startedAt) &&
+            (identical(other.completedAt, completedAt) ||
+                other.completedAt == completedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -293,6 +311,7 @@ class _$TripModelImpl extends _TripModel {
     passengerCount,
     status,
     startedAt,
+    completedAt,
   );
 
   /// Create a copy of TripModel
@@ -320,6 +339,7 @@ abstract class _TripModel extends TripModel {
     required final int passengerCount,
     required final String status,
     final String? startedAt,
+    final String? completedAt,
   }) = _$TripModelImpl;
   const _TripModel._() : super._();
 
@@ -344,6 +364,8 @@ abstract class _TripModel extends TripModel {
   String get status;
   @override
   String? get startedAt;
+  @override
+  String? get completedAt;
 
   /// Create a copy of TripModel
   /// with the given fields replaced by the non-null parameter values.

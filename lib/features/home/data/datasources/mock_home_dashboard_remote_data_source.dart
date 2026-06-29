@@ -164,6 +164,11 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
             status: status,
             startedAt: DateTime.now().toIso8601String(),
           );
+        } else if (status == 'completed') {
+          _todayTrips[i] = _todayTrips[i].copyWith(
+            status: status,
+            completedAt: DateTime.now().toIso8601String(),
+          );
         } else {
           _todayTrips[i] = _todayTrips[i].copyWith(status: status);
         }
@@ -184,6 +189,11 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
           _pendingTrips[i] = _pendingTrips[i].copyWith(
             status: status,
             startedAt: DateTime.now().toIso8601String(),
+          );
+        } else if (status == 'completed') {
+          _pendingTrips[i] = _pendingTrips[i].copyWith(
+            status: status,
+            completedAt: DateTime.now().toIso8601String(),
           );
         } else {
           _pendingTrips[i] = _pendingTrips[i].copyWith(status: status);

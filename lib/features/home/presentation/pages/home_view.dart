@@ -445,61 +445,107 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
 
   void _showResumenDialog(TripEntity trip) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Resumen del Viaje',
-          style: DesignTypography.titleLarge.copyWith(
-            color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+      backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Resumen del Viaje',
+                      style: DesignTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                DesignSpacing.spacerV12,
+                _buildSummaryRow('Ruta:', trip.route, isDark),
+                const Divider(height: 12),
+                _buildSummaryRow('Hora Prog:', _formatTime(trip.scheduledTime), isDark),
+                const Divider(height: 12),
+                _buildSummaryRow('Hora Inicio:', _formatTime(trip.startedAt), isDark),
+                const Divider(height: 12),
+                _buildSummaryRow('Hora Fin:', _formatTime(trip.completedAt), isDark),
+                const Divider(height: 12),
+                _buildSummaryRow('Pasajeros:', '${trip.passengerCount} de ${trip.capacity} pax', isDark),
+                const Divider(height: 12),
+                _buildSummaryRow('Bus Asignado:', trip.unitCode, isDark),
+                DesignSpacing.spacerV16,
+                Text(
+                  'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
+                  style: DesignTypography.caption.copyWith(
+                    color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                  ),
+                ),
+                DesignSpacing.spacerV20,
+                Row(
+                  children: [
+                    Expanded(
+                      child: DesignButton.outlined(
+                        text: 'Ver Manifiesto',
+                        icon: Icons.assignment_rounded,
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/dashboard/manifest/${trip.id}');
+                        },
+                        fullWidth: true,
+                      ),
+                    ),
+                    DesignSpacing.spacerH12,
+                    Expanded(
+                      child: DesignButton.primary(
+                        text: 'Aceptar',
+                        icon: Icons.check_rounded,
+                        onTap: () => Navigator.pop(context),
+                        fullWidth: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        content: Text(
-          'Detalles del Servicio Finalizado:\n\n'
-          '• Ruta: ${trip.route}\n'
-          '• Hora Prog: ${_formatTime(trip.scheduledTime)}\n'
-          '• Hora Inicio: ${_formatTime(trip.startedAt)}\n'
-          '• Pasajeros Transportados: ${trip.passengerCount} / ${trip.capacity}\n'
-          '• Bus Asignado: ${trip.unitCode}\n\n'
-          'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
+        );
+      },
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
           style: DesignTypography.bodyMedium.copyWith(
             color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+            fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
-        shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
-        actionsPadding: const EdgeInsets.all(16),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.push('/dashboard/manifest/${trip.id}');
-            },
-            child: Text(
-              'Ver Manifiesto',
-              style: DesignTypography.labelLarge.copyWith(
-                color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+        Text(
+          value,
+          style: DesignTypography.bodyMedium.copyWith(
+            color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+            fontWeight: FontWeight.bold,
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allMedium),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            child: Text(
-              'Aceptar',
-              style: DesignTypography.labelLarge.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

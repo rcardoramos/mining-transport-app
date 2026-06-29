@@ -30,6 +30,7 @@ mixin _$TripEntity {
   int get passengerCount => throw _privateConstructorUsedError;
   TripStatus get status => throw _privateConstructorUsedError;
   DateTime? get startedAt => throw _privateConstructorUsedError;
+  DateTime? get completedAt => throw _privateConstructorUsedError;
 
   /// Serializes this TripEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -58,6 +59,7 @@ abstract class $TripEntityCopyWith<$Res> {
     int passengerCount,
     TripStatus status,
     DateTime? startedAt,
+    DateTime? completedAt,
   });
 }
 
@@ -85,6 +87,7 @@ class _$TripEntityCopyWithImpl<$Res, $Val extends TripEntity>
     Object? passengerCount = null,
     Object? status = null,
     Object? startedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -124,6 +127,10 @@ class _$TripEntityCopyWithImpl<$Res, $Val extends TripEntity>
                 ? _value.startedAt
                 : startedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
+            completedAt: freezed == completedAt
+                ? _value.completedAt
+                : completedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
           )
           as $Val,
     );
@@ -149,6 +156,7 @@ abstract class _$$TripEntityImplCopyWith<$Res>
     int passengerCount,
     TripStatus status,
     DateTime? startedAt,
+    DateTime? completedAt,
   });
 }
 
@@ -175,6 +183,7 @@ class __$$TripEntityImplCopyWithImpl<$Res>
     Object? passengerCount = null,
     Object? status = null,
     Object? startedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(
       _$TripEntityImpl(
@@ -214,6 +223,10 @@ class __$$TripEntityImplCopyWithImpl<$Res>
             ? _value.startedAt
             : startedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        completedAt: freezed == completedAt
+            ? _value.completedAt
+            : completedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
       ),
     );
   }
@@ -232,6 +245,7 @@ class _$TripEntityImpl implements _TripEntity {
     required this.passengerCount,
     required this.status,
     this.startedAt,
+    this.completedAt,
   });
 
   factory _$TripEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -255,10 +269,12 @@ class _$TripEntityImpl implements _TripEntity {
   final TripStatus status;
   @override
   final DateTime? startedAt;
+  @override
+  final DateTime? completedAt;
 
   @override
   String toString() {
-    return 'TripEntity(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt)';
+    return 'TripEntity(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt)';
   }
 
   @override
@@ -279,7 +295,9 @@ class _$TripEntityImpl implements _TripEntity {
                 other.passengerCount == passengerCount) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.startedAt, startedAt) ||
-                other.startedAt == startedAt));
+                other.startedAt == startedAt) &&
+            (identical(other.completedAt, completedAt) ||
+                other.completedAt == completedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -295,6 +313,7 @@ class _$TripEntityImpl implements _TripEntity {
     passengerCount,
     status,
     startedAt,
+    completedAt,
   );
 
   /// Create a copy of TripEntity
@@ -322,6 +341,7 @@ abstract class _TripEntity implements TripEntity {
     required final int passengerCount,
     required final TripStatus status,
     final DateTime? startedAt,
+    final DateTime? completedAt,
   }) = _$TripEntityImpl;
 
   factory _TripEntity.fromJson(Map<String, dynamic> json) =
@@ -345,6 +365,8 @@ abstract class _TripEntity implements TripEntity {
   TripStatus get status;
   @override
   DateTime? get startedAt;
+  @override
+  DateTime? get completedAt;
 
   /// Create a copy of TripEntity
   /// with the given fields replaced by the non-null parameter values.

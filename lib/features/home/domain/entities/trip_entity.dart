@@ -25,6 +25,7 @@ class TripEntity with _$TripEntity {
     required int passengerCount,
     required TripStatus status,
     DateTime? startedAt,
+    DateTime? completedAt,
   }) = _TripEntity;
 
   factory TripEntity.fromJson(Map<String, dynamic> json) => _$TripEntityFromJson(json);

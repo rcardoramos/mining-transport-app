@@ -113,7 +113,73 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
   }
 
   void _exportManifest() {
-    DesignSnackbar.showSuccess(context, 'Manifiesto exportado a PDF correctamente.');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Compartir Manifiesto',
+                      style: DesignTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                DesignSpacing.spacerV12,
+                DesignListTile(
+                  title: 'Guardar en el dispositivo',
+                  subtitle: 'Descarga y guarda el documento PDF localmente',
+                  leading: const Icon(Icons.download_rounded, color: Colors.blue),
+                  onTap: () {
+                    Navigator.pop(context);
+                    DesignSnackbar.showSuccess(context, 'Manifiesto guardado en el dispositivo.');
+                  },
+                ),
+                const Divider(),
+                DesignListTile(
+                  title: 'Compartir por WhatsApp',
+                  subtitle: 'Envía el PDF directamente a un chat o grupo',
+                  leading: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.green),
+                  onTap: () {
+                    Navigator.pop(context);
+                    DesignSnackbar.showSuccess(context, 'Manifiesto compartido por WhatsApp exitosamente.');
+                  },
+                ),
+                const Divider(),
+                DesignListTile(
+                  title: 'Enviar por Correo Electrónico',
+                  subtitle: 'Envía el archivo PDF adjunto a un destinatario',
+                  leading: const Icon(Icons.email_outlined, color: Colors.redAccent),
+                  onTap: () {
+                    Navigator.pop(context);
+                    DesignSnackbar.showSuccess(context, 'Manifiesto enviado por correo electrónico.');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -159,14 +225,6 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
-        actions: [
-          DesignIconButton(
-            icon: Icons.picture_as_pdf_rounded,
-            tooltip: 'Exportar a PDF',
-            onTap: _exportManifest,
-          ),
-          DesignSpacing.spacerH8,
-        ],
       ),
       body: _isLoadingPassengers
           ? const Center(child: DesignCircularLoader())
@@ -234,6 +292,7 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             _buildTableRow('Capacidad:', '${trip.passengerCount} de ${trip.capacity} pax', isDark),
                             _buildTableRow('Chofer:', driverName, isDark),
                             _buildTableRow('Apertura:', _formatTime12(trip.startedAt), isDark),
+                            _buildTableRow('Cierre:', _formatTime12(trip.completedAt), isDark),
                           ],
                         ),
                       ],

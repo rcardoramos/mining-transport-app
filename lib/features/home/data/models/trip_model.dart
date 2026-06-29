@@ -16,6 +16,7 @@ class TripModel with _$TripModel {
     required int passengerCount,
     required String status,
     String? startedAt,
+    String? completedAt,
   }) = _TripModel;
 
   const TripModel._();
@@ -36,6 +37,7 @@ class TripModel with _$TripModel {
         orElse: () => TripStatus.scheduled,
       ),
       startedAt: startedAt != null ? DateTime.parse(startedAt!) : null,
+      completedAt: completedAt != null ? DateTime.parse(completedAt!) : null,
     );
   }
 }
