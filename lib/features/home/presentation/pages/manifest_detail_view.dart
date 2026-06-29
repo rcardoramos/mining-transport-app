@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/passenger_entity.dart';
@@ -47,27 +48,15 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
   }
 
   String _formatTime(DateTime? dateTime) {
-    if (dateTime == null) return '--:--';
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return PeruDateFormatter.formatTime(dateTime);
   }
 
   String _formatTime12(DateTime? dateTime) {
-    if (dateTime == null) return '--:--';
-    final hour24 = dateTime.hour;
-    final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
-    final amPm = hour24 >= 12 ? 'PM' : 'AM';
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '${hour12.toString().padLeft(2, '0')}:$minute $amPm';
+    return PeruDateFormatter.formatTime12(dateTime);
   }
 
   String _formatDate(DateTime? dateTime) {
-    if (dateTime == null) return '--/--/----';
-    final day = dateTime.day.toString().padLeft(2, '0');
-    final month = dateTime.month.toString().padLeft(2, '0');
-    final year = dateTime.year.toString();
-    return '$day/$month/$year';
+    return PeruDateFormatter.formatDate(dateTime);
   }
 
   Widget _buildCategoryBadge(String category, bool isDark) {

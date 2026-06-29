@@ -12,9 +12,11 @@ import '../../domain/usecases/update_trip_status_usecase.dart';
 import '../../domain/usecases/register_passenger_usecase.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../states/home_dashboard_state.dart';
+import 'package:mining_transport_app/core/utils/sync_provider.dart';
 
 /// ViewModel que gestiona el estado y eventos de la pantalla principal (Home).
 class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
+  final Ref _ref;
   final GetDriverInfoUseCase _getDriverInfoUseCase;
   final GetTodayTripsUseCase _getTodayTripsUseCase;
   final GetPendingTripsUseCase _getPendingTripsUseCase;
@@ -23,13 +25,15 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   final RegisterPassengerUseCase _registerPassengerUseCase;
 
   HomeDashboardViewModel({
+    required Ref ref,
     required GetDriverInfoUseCase getDriverInfoUseCase,
     required GetTodayTripsUseCase getTodayTripsUseCase,
     required GetPendingTripsUseCase getPendingTripsUseCase,
     required GetDashboardSummaryUseCase getDashboardSummaryUseCase,
     required UpdateTripStatusUseCase updateTripStatusUseCase,
     required RegisterPassengerUseCase registerPassengerUseCase,
-  })  : _getDriverInfoUseCase = getDriverInfoUseCase,
+  })  : _ref = ref,
+        _getDriverInfoUseCase = getDriverInfoUseCase,
         _getTodayTripsUseCase = getTodayTripsUseCase,
         _getPendingTripsUseCase = getPendingTripsUseCase,
         _getDashboardSummaryUseCase = getDashboardSummaryUseCase,
@@ -113,6 +117,12 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return;
     }
     
+    // Si no hay conexión a internet, aumentar los pendientes de sincronización
+    final isOnline = _ref.read(syncProvider).isOnline;
+    if (!isOnline) {
+      _ref.read(syncProvider.notifier).incrementPendingSync();
+    }
+    
     await _fetchData();
   }
 
@@ -129,6 +139,12 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return false;
     }
     
+    // Si no hay conexión a internet, aumentar los pendientes de sincronización
+    final isOnline = _ref.read(syncProvider).isOnline;
+    if (!isOnline) {
+      _ref.read(syncProvider.notifier).incrementPendingSync();
+    }
+    
     await _fetchData();
     return true;
   }
@@ -138,6 +154,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
 final homeDashboardViewModelProvider =
     StateNotifierProvider<HomeDashboardViewModel, HomeDashboardState>((ref) {
   return HomeDashboardViewModel(
+    ref: ref,
     getDriverInfoUseCase: GetIt.I<GetDriverInfoUseCase>(),
     getTodayTripsUseCase: GetIt.I<GetTodayTripsUseCase>(),
     getPendingTripsUseCase: GetIt.I<GetPendingTripsUseCase>(),

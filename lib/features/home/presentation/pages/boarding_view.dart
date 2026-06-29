@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import '../widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/passenger_entity.dart';
@@ -62,10 +64,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   String _formatTime(DateTime? dateTime) {
-    if (dateTime == null) return '--:--';
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return PeruDateFormatter.formatTime(dateTime);
   }
 
   void _showCameraSimulator(TripEntity trip) {
@@ -585,9 +584,13 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         ),
       ),
-      body: ListView(
-        padding: DesignSpacing.allM,
+      body: Column(
         children: [
+          const ConnectivityBar(),
+          Expanded(
+            child: ListView(
+              padding: DesignSpacing.allM,
+              children: [
           // ── Cabecera con datos del viaje activo ──────────────────────────
           DesignCard.status(
             statusColor:
@@ -1098,6 +1101,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
 
           DesignSpacing.spacerV32,
+        ],
+      ),
+          ),
         ],
       ),
     );

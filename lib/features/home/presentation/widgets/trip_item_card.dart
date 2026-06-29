@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import '../../domain/entities/trip_entity.dart';
 
 /// Tarjeta de viaje detallada que muestra rutas, horas, turnos, buses y ocupación
@@ -21,10 +22,7 @@ class TripItemCard extends StatelessWidget {
   });
 
   String _formatTime(DateTime? dateTime) {
-    if (dateTime == null) return '--:--';
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return PeruDateFormatter.formatTime(dateTime);
   }
 
   Color _getStatusColor(TripStatus status, DesignThemeExtension colors) {

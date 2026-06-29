@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 /// Cabecera con saludo dinámico y fecha actual formateada en español.
 class GreetingHeader extends StatelessWidget {
@@ -11,14 +12,15 @@ class GreetingHeader extends StatelessWidget {
   });
 
   String _getGreeting() {
-    final hour = DateTime.now().hour;
+    final nowPeru = PeruDateFormatter.toPeruTime(DateTime.now());
+    final hour = nowPeru.hour;
     if (hour < 12) return 'Buenos días';
     if (hour < 19) return 'Buenas tardes';
     return 'Buenas noches';
   }
 
   String _formatSpanishDate() {
-    final now = DateTime.now();
+    final now = PeruDateFormatter.toPeruTime(DateTime.now());
     final weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     final months = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',

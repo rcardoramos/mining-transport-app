@@ -46,12 +46,13 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   int _nameIndex = 0;
 
   MockHomeDashboardRemoteDataSource() {
-    final now = DateTime.now();
+    final nowUtc = DateTime.now().toUtc();
+    final nowPeru = nowUtc.subtract(const Duration(hours: 5));
     _todayTrips = [
       TripModel(
         id: 'TRIP-101',
         route: 'Mina Miski Mayo - Campamento',
-        scheduledTime: DateTime(now.year, now.month, now.day, 8, 0).toIso8601String(),
+        scheduledTime: DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 8 + 5, 0).toIso8601String(),
         shift: 'Día',
         unitCode: 'BUS-01',
         capacity: 40,
@@ -61,7 +62,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
       TripModel(
         id: 'TRIP-102',
         route: 'Campamento - Puerto Bayóvar',
-        scheduledTime: DateTime(now.year, now.month, now.day, 10, 30).toIso8601String(),
+        scheduledTime: DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 10 + 5, 30).toIso8601String(),
         shift: 'Día',
         unitCode: 'BUS-01',
         capacity: 45,
@@ -71,7 +72,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
       TripModel(
         id: 'TRIP-103',
         route: 'Puerto Bayóvar - Mina Miski Mayo',
-        scheduledTime: DateTime(now.year, now.month, now.day, 14, 0).toIso8601String(),
+        scheduledTime: DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 14 + 5, 0).toIso8601String(),
         shift: 'Día',
         unitCode: 'BUS-01',
         capacity: 45,
@@ -84,7 +85,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
       TripModel(
         id: 'TRIP-201',
         route: 'Mina Miski Mayo - Piura',
-        scheduledTime: DateTime(now.year, now.month, now.day + 1, 6, 0).toIso8601String(),
+        scheduledTime: DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day + 1, 6 + 5, 0).toIso8601String(),
         shift: 'Día',
         unitCode: 'BUS-03',
         capacity: 50,
@@ -94,7 +95,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
       TripModel(
         id: 'TRIP-202',
         route: 'Piura - Mina Miski Mayo',
-        scheduledTime: DateTime(now.year, now.month, now.day + 1, 18, 0).toIso8601String(),
+        scheduledTime: DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day + 1, 18 + 5, 0).toIso8601String(),
         shift: 'Noche',
         unitCode: 'BUS-03',
         capacity: 50,
@@ -104,7 +105,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     ];
 
     // Semilla de pasajeros iniciales para TRIP-101 (ya tiene 15 registrados en mock)
-    final seedTime = now.subtract(const Duration(minutes: 30));
+    final seedTime = nowUtc.subtract(const Duration(minutes: 30));
     _passengers['TRIP-101'] = List.generate(15, (i) {
       return PassengerModel(
         dni: '${48000000 + i + 1}',
@@ -162,12 +163,12 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         if (status == 'inProgress') {
           _todayTrips[i] = _todayTrips[i].copyWith(
             status: status,
-            startedAt: DateTime.now().toIso8601String(),
+            startedAt: DateTime.now().toUtc().toIso8601String(),
           );
         } else if (status == 'completed') {
           _todayTrips[i] = _todayTrips[i].copyWith(
             status: status,
-            completedAt: DateTime.now().toIso8601String(),
+            completedAt: DateTime.now().toUtc().toIso8601String(),
           );
         } else {
           _todayTrips[i] = _todayTrips[i].copyWith(status: status);
@@ -188,12 +189,12 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         if (status == 'inProgress') {
           _pendingTrips[i] = _pendingTrips[i].copyWith(
             status: status,
-            startedAt: DateTime.now().toIso8601String(),
+            startedAt: DateTime.now().toUtc().toIso8601String(),
           );
         } else if (status == 'completed') {
           _pendingTrips[i] = _pendingTrips[i].copyWith(
             status: status,
-            completedAt: DateTime.now().toIso8601String(),
+            completedAt: DateTime.now().toUtc().toIso8601String(),
           );
         } else {
           _pendingTrips[i] = _pendingTrips[i].copyWith(status: status);

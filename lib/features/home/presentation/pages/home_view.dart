@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import '../widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/driver_profile_card.dart';
@@ -52,10 +54,7 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
   }
 
   String _formatTime(DateTime? dateTime) {
-    if (dateTime == null) return '--:--';
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    return PeruDateFormatter.formatTime(dateTime);
   }
 
   @override
@@ -86,34 +85,41 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(homeDashboardViewModelProvider.notifier).refreshDashboard(),
-        child: Builder(
-          builder: (context) {
-            if (state.isLoading) {
-              return _buildSkeletonLoader();
-            }
+      body: Column(
+        children: [
+          const ConnectivityBar(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => ref.read(homeDashboardViewModelProvider.notifier).refreshDashboard(),
+              child: Builder(
+                builder: (context) {
+                  if (state.isLoading) {
+                    return _buildSkeletonLoader();
+                  }
 
-            if (state.errorMessage != null && state.data == null) {
-              return DesignErrorState(
-                title: 'Error de Conexión',
-                description: state.errorMessage!,
-                onRetry: () => ref.read(homeDashboardViewModelProvider.notifier).loadDashboard(),
-              );
-            }
+                  if (state.errorMessage != null && state.data == null) {
+                    return DesignErrorState(
+                      title: 'Error de Conexión',
+                      description: state.errorMessage!,
+                      onRetry: () => ref.read(homeDashboardViewModelProvider.notifier).loadDashboard(),
+                    );
+                  }
 
-            final data = state.data;
-            if (data == null) {
-              return const DesignEmptyState(
-                title: 'Sin Asignación',
-                description: 'No hay datos disponibles para mostrar en tu turno.',
-                icon: Icons.info_outline_rounded,
-              );
-            }
+                  final data = state.data;
+                  if (data == null) {
+                    return const DesignEmptyState(
+                      title: 'Sin Asignación',
+                      description: 'No hay datos disponibles para mostrar en tu turno.',
+                      icon: Icons.info_outline_rounded,
+                    );
+                  }
 
-            return _buildActiveTab(data);
-          },
-        ),
+                  return _buildActiveTab(data);
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: DesignBottomNavigation(
         currentIndex: _currentNavigationIndex,
@@ -175,8 +181,6 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
                 DesignSpacing.spacerV16,
                 DriverProfileCard(driver: data.driver),
                 DesignSpacing.spacerV24,
-                DashboardStatsSection(summary: data.summary),
-                DesignSpacing.spacerV24,
                 TabBar(
                   controller: _tabController,
                   labelStyle: DesignTypography.labelLarge.copyWith(fontWeight: FontWeight.bold),
@@ -194,8 +198,8 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy', hasActiveTrip),
-          _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados', hasActiveTrip),
+          _buildTripList(data.todayTrips, 'No tienes viajes programados para hoy', hasActiveTrip, data.summary),
+          _buildTripList(data.pendingTrips, 'No tienes viajes pendientes programados', hasActiveTrip, data.summary),
         ],
       ),
     );
@@ -411,31 +415,35 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTripList(List<dynamic> trips, String emptyText, bool hasActiveTrip) {
-    if (trips.isEmpty) {
-      return DesignEmptyState(
-        title: 'Lista Vacía',
-        description: emptyText,
-        icon: Icons.calendar_today_rounded,
-      );
-    }
-
-    return ListView.separated(
+  Widget _buildTripList(List<dynamic> trips, String emptyText, bool hasActiveTrip, dynamic summary) {
+    return ListView(
       padding: DesignSpacing.allM,
-      itemCount: trips.length,
-      separatorBuilder: (context, index) => DesignSpacing.spacerV16,
-      itemBuilder: (context, index) {
-        final trip = trips[index];
-        return TripItemCard(
-          trip: trip,
-          isAperturarDisabled: hasActiveTrip && trip.status != TripStatus.inProgress,
-          onStatusChanged: (newStatus) {
-            ref.read(homeDashboardViewModelProvider.notifier).updateTripStatus(trip.id, newStatus);
-          },
-          onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
-          onVerResumen: () => _showResumenDialog(trip),
-        );
-      },
+      children: [
+        if (trips.isEmpty) ...[
+          DesignEmptyState(
+            title: 'Lista Vacía',
+            description: emptyText,
+            icon: Icons.calendar_today_rounded,
+          ),
+        ] else ...[
+          ...trips.map((trip) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TripItemCard(
+                trip: trip,
+                isAperturarDisabled: hasActiveTrip && trip.status != TripStatus.inProgress,
+                onStatusChanged: (newStatus) {
+                  ref.read(homeDashboardViewModelProvider.notifier).updateTripStatus(trip.id, newStatus);
+                },
+                onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
+                onVerResumen: () => _showResumenDialog(trip),
+              ),
+            );
+          }),
+        ],
+        DesignSpacing.spacerV24,
+        DashboardStatsSection(summary: summary),
+      ],
     );
   }
 
