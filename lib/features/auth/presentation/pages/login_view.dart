@@ -76,14 +76,14 @@ class LoginView extends StatelessWidget {
                       ),
                     ),
                     
-                    // Elemento gráfico (Bus con aura resplandeciente)
+                    // Elemento gráfico (Logo de Miski Mayo)
                     Expanded(
                       flex: 2,
                       child: Container(
                         height: 90,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
                           boxShadow: [
@@ -94,10 +94,14 @@ class LoginView extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Icon(
-                          Icons.directions_bus_filled_rounded,
-                          size: 44,
-                          color: isDark ? const Color(0xFFFBBF24) : Colors.white,
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -147,6 +151,30 @@ class LoginView extends StatelessWidget {
                   ),
                   DesignSpacing.spacerV32,
                   const LoginForm(),
+                  DesignSpacing.spacerV32,
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Desarrollado por',
+                          style: DesignTypography.caption.copyWith(
+                            color: isDark
+                                ? DesignColors.textSecondaryDark.withOpacity(0.4)
+                                : DesignColors.textSecondaryLight.withOpacity(0.4),
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        DesignSpacing.spacerV8,
+                        Image.asset(
+                          'assets/images/adryan_logo.png',
+                          height: 20,
+                          fit: BoxFit.contain,
+                          color: isDark ? Colors.white.withOpacity(0.6) : null,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

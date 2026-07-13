@@ -33,13 +33,24 @@ void main() {
       ),
     ));
 
-    // Verify that the title is displayed.
-    expect(find.text('APP Buses - Miski Mayo'), findsOneWidget);
-
     // Verify that the progress indicator is present.
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    // Verify that the bus icon is present.
-    expect(find.byIcon(Icons.directions_bus), findsOneWidget);
+    // Verify that the client branding logo is present.
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName == 'assets/images/logo.png'),
+        findsOneWidget);
+
+    // Verify that the developer watermark logo is present.
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/images/adryan_logo.png'),
+        findsOneWidget);
   });
 }
