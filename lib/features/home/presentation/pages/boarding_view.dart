@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
+import 'package:mining_transport_app/core/audio/audio_service.dart';
 import '../widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
@@ -294,6 +295,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     final customMethod = activeStop != null
         ? '${prefix}_transit:${activeStop.name}'
         : null;
+
+    if (collaborator.status != CollaboratorStatus.ok) {
+      GetIt.I<AudioService>().playAlertSound();
+    }
 
     if (collaborator.status == CollaboratorStatus.ok) {
       // Registrar de inmediato

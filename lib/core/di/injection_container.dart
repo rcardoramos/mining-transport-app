@@ -5,6 +5,7 @@ import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/core/utils/session_status_service.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
+import 'package:mining_transport_app/core/audio/audio_service.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/repositories/auth_repository_impl.dart';
@@ -45,6 +46,9 @@ Future<void> setupLocator() async {
 
   // 5. Registrar Servicio de GPS / Geolocalización
   locator.registerLazySingleton<GpsService>(() => GpsService());
+
+  // Registrar Servicio de Alertas de Audio
+  locator.registerLazySingleton<AudioService>(() => AudioServiceImpl(locator<AppLogger>()));
 
   // 6. Registrar Cliente HTTP (Dio) con inyección de dependencias
   locator.registerLazySingleton<DioClient>(() => DioClient(

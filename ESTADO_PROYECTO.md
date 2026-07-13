@@ -68,6 +68,9 @@ Actualmente, **todas las fases principales han sido implementadas** en su lógic
    * [date_formatter.dart](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/lib/core/utils/date_formatter.dart): Formateador estandarizado de fechas y horas del sistema.
    * [sync_provider.dart](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/lib/core/utils/sync_provider.dart): Proveedor reactivo de sincronización y conteo de cola local.
 
+9. **Servicio de Alertas de Audio**
+   * [audio_service.dart](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/lib/core/audio/audio_service.dart): Abstracción e implementación de la reproducción de alerta sonora (`Alert.mp3`) para eventos de embarque no autorizados.
+
 ### 🎨 Componentes Compartidos (`lib/shared/`)
 
 1. **Sistema de Diseño (`lib/shared/design_system/`)**
@@ -78,6 +81,10 @@ Actualmente, **todas las fases principales han sido implementadas** en su lógic
      - `DesignInputField` (inputs estilizados de texto y password con validaciones visuales).
      - `DesignBottomNavigation` (barra de navegación inferior personalizada con transiciones de color de acento).
      - `DesignFeedback` (banners de error, carga e indicadores de estado).
+
+### 📂 Recursos del Sistema (`assets/`)
+* **[images](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/assets/images/)**: Directorio destinado para almacenar logos y recursos gráficos del aplicativo.
+* **[audio](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/assets/audio/)**: Directorio configurado para archivos de sonido, alertas sonoras y música para las notificaciones de eventos en la app.
 
 ### 🚀 Características de Negocio (`lib/features/`)
 
