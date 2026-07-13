@@ -66,11 +66,31 @@ void main() {
     });
 
     test('registerPassenger with custom category should use that category and set name gen', () async {
-      final trip = await dataSource.registerPassenger('TRIP-101', '90001234', 'ok', 'Visita');
+      await dataSource.registerPassenger('TRIP-101', '90001234', 'ok', 'Visita');
       final passengers = await dataSource.getPassengersOnBoard('TRIP-101');
       final registered = passengers.firstWhere((p) => p.dni == '90001234');
       expect(registered.category, 'Visita');
       expect(registered.fullName, 'Externo (Visita)');
+    });
+
+    test('completeStop should mark paradero as completed', () async {
+      final tripId = 'TRIP-101';
+      final stopId = 'STOP-101-1';
+
+      final trip = await dataSource.completeStop(tripId, stopId);
+      final completedStop = trip.stops!.firstWhere((s) => s.id == stopId);
+      expect(completedStop.completado, true);
+    });
+
+    test('registerPassenger with custom registrationMethod should store it exactly', () async {
+      final tripId = 'TRIP-101';
+      final dni = '90001111';
+      final customMethod = 'manual_transit:Paradero Especial';
+
+      await dataSource.registerPassenger(tripId, dni, 'ok', 'Miski Mayo', customMethod);
+      final passengers = await dataSource.getPassengersOnBoard(tripId);
+      final registered = passengers.firstWhere((p) => p.dni == dni);
+      expect(registered.registrationMethod, customMethod);
     });
   });
 }

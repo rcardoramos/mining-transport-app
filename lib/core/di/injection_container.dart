@@ -4,6 +4,7 @@ import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/core/utils/session_status_service.dart';
+import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/repositories/auth_repository_impl.dart';
@@ -24,6 +25,7 @@ import 'package:mining_transport_app/features/home/domain/usecases/update_trip_s
 import 'package:mining_transport_app/features/home/domain/usecases/register_passenger_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/get_passengers_on_board_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/check_collaborator_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/complete_stop_usecase.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -41,13 +43,16 @@ Future<void> setupLocator() async {
   // 4. Registrar Servicio de Estado de Sesión (para expiraciones globales)
   locator.registerLazySingleton<SessionStatusService>(() => SessionStatusService());
 
-  // 5. Registrar Cliente HTTP (Dio) con inyección de dependencias
+  // 5. Registrar Servicio de GPS / Geolocalización
+  locator.registerLazySingleton<GpsService>(() => GpsService());
+
+  // 6. Registrar Cliente HTTP (Dio) con inyección de dependencias
   locator.registerLazySingleton<DioClient>(() => DioClient(
         secureStorage: locator<SecureStorage>(),
         logger: locator<AppLogger>(),
       ));
 
-  // 6. DataSources
+  // 7. DataSources
   locator.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(locator<DioClient>()),
   );
@@ -58,7 +63,7 @@ Future<void> setupLocator() async {
     () => MockHomeDashboardRemoteDataSource(),
   );
 
-  // 7. Repositories
+  // 8. Repositories
   locator.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
       remoteDataSource: locator<AuthRemoteDataSource>(),
@@ -69,7 +74,7 @@ Future<void> setupLocator() async {
     () => HomeDashboardRepositoryImpl(locator<HomeDashboardRemoteDataSource>()),
   );
 
-  // 8. UseCases
+  // 9. UseCases
   locator.registerLazySingleton<LoginUseCase>(() => LoginUseCase(locator<AuthRepository>()));
   locator.registerLazySingleton<LogoutUseCase>(() => LogoutUseCase(locator<AuthRepository>()));
   locator.registerLazySingleton<GetCurrentUserUseCase>(() => GetCurrentUserUseCase(locator<AuthRepository>()));
@@ -83,6 +88,7 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<RegisterPassengerUseCase>(() => RegisterPassengerUseCase(locator<HomeDashboardRepository>()));
   locator.registerLazySingleton<GetPassengersOnBoardUseCase>(() => GetPassengersOnBoardUseCase(locator<HomeDashboardRepository>()));
   locator.registerLazySingleton<CheckCollaboratorUseCase>(() => CheckCollaboratorUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<CompleteStopUseCase>(() => CompleteStopUseCase(locator<HomeDashboardRepository>()));
 
   locator<AppLogger>().i('Dependency Injection Container initialized successfully.');
 }

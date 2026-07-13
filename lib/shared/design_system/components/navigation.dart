@@ -241,6 +241,7 @@ class DesignSectionHeader extends StatelessWidget {
 class DesignListTile extends StatelessWidget {
   final String title;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
@@ -249,6 +250,7 @@ class DesignListTile extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleWidget,
     this.leading,
     this.trailing,
     this.onTap,
@@ -267,14 +269,14 @@ class DesignListTile extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
-      subtitle: subtitle != null
+      subtitle: subtitleWidget ?? (subtitle != null
           ? Text(
               subtitle!,
               style: DesignTypography.bodyMedium.copyWith(
                 color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
               ),
             )
-          : null,
+          : null),
       leading: leading,
       trailing: trailing,
       onTap: onTap,

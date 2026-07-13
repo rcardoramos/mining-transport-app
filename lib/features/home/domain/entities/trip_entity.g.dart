@@ -22,6 +22,9 @@ _$TripEntityImpl _$$TripEntityImplFromJson(Map<String, dynamic> json) =>
       completedAt: json['completedAt'] == null
           ? null
           : DateTime.parse(json['completedAt'] as String),
+      stops: (json['stops'] as List<dynamic>?)
+          ?.map((e) => StopEntity.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$$TripEntityImplToJson(_$TripEntityImpl instance) =>
@@ -36,6 +39,7 @@ Map<String, dynamic> _$$TripEntityImplToJson(_$TripEntityImpl instance) =>
       'status': _$TripStatusEnumMap[instance.status]!,
       'startedAt': instance.startedAt?.toIso8601String(),
       'completedAt': instance.completedAt?.toIso8601String(),
+      'stops': instance.stops,
     };
 
 const _$TripStatusEnumMap = {

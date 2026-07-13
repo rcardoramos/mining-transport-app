@@ -9,7 +9,7 @@ class RegisterPassengerUseCase {
 
   RegisterPassengerUseCase(this._repository);
 
-  Future<Result<TripEntity, Failure>> execute(String tripId, String dni, [CollaboratorStatus? status, String? category]) {
-    return _repository.registerPassenger(tripId, dni, status, category);
+  Future<Result<TripEntity, Failure>> execute(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod]) {
+    return _repository.registerPassenger(tripId, dni, status, category, registrationMethod);
   }
 }

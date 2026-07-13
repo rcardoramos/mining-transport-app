@@ -2,6 +2,7 @@ import 'dart:async';
 import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
+import '../models/stop_model.dart';
 import '../models/dashboard_summary_model.dart';
 import '../models/passenger_model.dart';
 import '../models/collaborator_model.dart';
@@ -58,6 +59,32 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         capacity: 40,
         passengerCount: 15,
         status: 'readyToStart',
+        stops: [
+          const StopModel(
+            id: 'STOP-101-1',
+            nombre: 'Paradero 1 - Garita Principal',
+            latitud: -12.046374,
+            longitud: -77.042793,
+            radioPermitido: 50.0,
+            orden: 1,
+          ),
+          const StopModel(
+            id: 'STOP-101-2',
+            nombre: 'Paradero 2 - Cruce Bayóvar',
+            latitud: -12.050000,
+            longitud: -77.050000,
+            radioPermitido: 100.0,
+            orden: 2,
+          ),
+          const StopModel(
+            id: 'STOP-101-3',
+            nombre: 'Paradero 3 - Campamento Central',
+            latitud: -12.060000,
+            longitud: -77.060000,
+            radioPermitido: 75.0,
+            orden: 3,
+          ),
+        ],
       ),
       TripModel(
         id: 'TRIP-102',
@@ -207,7 +234,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category]) async {
+  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod]) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
     // Determinar la categoría (si es proporcionada, la usamos; si no, la deducimos del DNI)
@@ -238,7 +265,8 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     
     final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(dni);
     final prefix = isScan ? 'qr_scan' : 'manual';
-    final method = isTravelling ? '${prefix}_transit' : prefix;
+    
+    final method = registrationMethod ?? (isTravelling ? '${prefix}_transit' : prefix);
 
     final newPassenger = PassengerModel(
       dni: dni,
@@ -334,5 +362,42 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     if (dni == '33333333' || dni.endsWith('3')) return 'license';
     if (dni == '44444444' || dni.endsWith('4')) return 'terminated';
     return 'ok';
+  }
+
+  @override
+  Future<TripModel> completeStop(String id, String stopId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // Buscar en hoy
+    for (int i = 0; i < _todayTrips.length; i++) {
+      if (_todayTrips[i].id == id) {
+        final currentStops = _todayTrips[i].stops ?? [];
+        final updatedStops = currentStops.map((stop) {
+          if (stop.id == stopId) {
+            return stop.copyWith(completado: true);
+          }
+          return stop;
+        }).toList();
+        _todayTrips[i] = _todayTrips[i].copyWith(stops: updatedStops);
+        return _todayTrips[i];
+      }
+    }
+
+    // Buscar en pendientes
+    for (int i = 0; i < _pendingTrips.length; i++) {
+      if (_pendingTrips[i].id == id) {
+        final currentStops = _pendingTrips[i].stops ?? [];
+        final updatedStops = currentStops.map((stop) {
+          if (stop.id == stopId) {
+            return stop.copyWith(completado: true);
+          }
+          return stop;
+        }).toList();
+        _pendingTrips[i] = _pendingTrips[i].copyWith(stops: updatedStops);
+        return _pendingTrips[i];
+      }
+    }
+
+    throw Exception('Viaje no encontrado');
   }
 }

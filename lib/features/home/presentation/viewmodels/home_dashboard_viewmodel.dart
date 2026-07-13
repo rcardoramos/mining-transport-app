@@ -10,6 +10,7 @@ import '../../domain/usecases/get_pending_trips_usecase.dart';
 import '../../domain/usecases/get_dashboard_summary_usecase.dart';
 import '../../domain/usecases/update_trip_status_usecase.dart';
 import '../../domain/usecases/register_passenger_usecase.dart';
+import '../../domain/usecases/complete_stop_usecase.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../states/home_dashboard_state.dart';
 import 'package:mining_transport_app/core/utils/sync_provider.dart';
@@ -23,6 +24,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   final GetDashboardSummaryUseCase _getDashboardSummaryUseCase;
   final UpdateTripStatusUseCase _updateTripStatusUseCase;
   final RegisterPassengerUseCase _registerPassengerUseCase;
+  final CompleteStopUseCase _completeStopUseCase;
 
   HomeDashboardViewModel({
     required Ref ref,
@@ -32,6 +34,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     required GetDashboardSummaryUseCase getDashboardSummaryUseCase,
     required UpdateTripStatusUseCase updateTripStatusUseCase,
     required RegisterPassengerUseCase registerPassengerUseCase,
+    required CompleteStopUseCase completeStopUseCase,
   })  : _ref = ref,
         _getDriverInfoUseCase = getDriverInfoUseCase,
         _getTodayTripsUseCase = getTodayTripsUseCase,
@@ -39,6 +42,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         _getDashboardSummaryUseCase = getDashboardSummaryUseCase,
         _updateTripStatusUseCase = updateTripStatusUseCase,
         _registerPassengerUseCase = registerPassengerUseCase,
+        _completeStopUseCase = completeStopUseCase,
         super(const HomeDashboardState()) {
     loadDashboard();
   }
@@ -126,10 +130,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
   }
 
-  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category]) async {
+  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
-    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category);
+    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod);
     
     if (result.isFailure) {
       state = state.copyWith(
@@ -148,6 +152,23 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
     return true;
   }
+
+  Future<bool> completeStop(String tripId, String stopId) async {
+    state = state.copyWith(isRefreshing: true, errorMessage: null);
+    
+    final result = await _completeStopUseCase.execute(tripId, stopId);
+    
+    if (result.isFailure) {
+      state = state.copyWith(
+        isRefreshing: false,
+        errorMessage: result.failureOrNull?.message ?? 'Fallo al completar el paradero',
+      );
+      return false;
+    }
+    
+    await _fetchData();
+    return true;
+  }
 }
 
 /// Proveedor global expuesto para la UI de Home.
@@ -161,5 +182,6 @@ final homeDashboardViewModelProvider =
     getDashboardSummaryUseCase: GetIt.I<GetDashboardSummaryUseCase>(),
     updateTripStatusUseCase: GetIt.I<UpdateTripStatusUseCase>(),
     registerPassengerUseCase: GetIt.I<RegisterPassengerUseCase>(),
+    completeStopUseCase: GetIt.I<CompleteStopUseCase>(),
   );
 });

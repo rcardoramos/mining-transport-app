@@ -31,6 +31,7 @@ mixin _$TripModel {
   String get status => throw _privateConstructorUsedError;
   String? get startedAt => throw _privateConstructorUsedError;
   String? get completedAt => throw _privateConstructorUsedError;
+  List<StopModel>? get stops => throw _privateConstructorUsedError;
 
   /// Serializes this TripModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -58,6 +59,7 @@ abstract class $TripModelCopyWith<$Res> {
     String status,
     String? startedAt,
     String? completedAt,
+    List<StopModel>? stops,
   });
 }
 
@@ -86,6 +88,7 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
     Object? status = null,
     Object? startedAt = freezed,
     Object? completedAt = freezed,
+    Object? stops = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -129,6 +132,10 @@ class _$TripModelCopyWithImpl<$Res, $Val extends TripModel>
                 ? _value.completedAt
                 : completedAt // ignore: cast_nullable_to_non_nullable
                       as String?,
+            stops: freezed == stops
+                ? _value.stops
+                : stops // ignore: cast_nullable_to_non_nullable
+                      as List<StopModel>?,
           )
           as $Val,
     );
@@ -155,6 +162,7 @@ abstract class _$$TripModelImplCopyWith<$Res>
     String status,
     String? startedAt,
     String? completedAt,
+    List<StopModel>? stops,
   });
 }
 
@@ -182,6 +190,7 @@ class __$$TripModelImplCopyWithImpl<$Res>
     Object? status = null,
     Object? startedAt = freezed,
     Object? completedAt = freezed,
+    Object? stops = freezed,
   }) {
     return _then(
       _$TripModelImpl(
@@ -225,6 +234,10 @@ class __$$TripModelImplCopyWithImpl<$Res>
             ? _value.completedAt
             : completedAt // ignore: cast_nullable_to_non_nullable
                   as String?,
+        stops: freezed == stops
+            ? _value._stops
+            : stops // ignore: cast_nullable_to_non_nullable
+                  as List<StopModel>?,
       ),
     );
   }
@@ -244,7 +257,9 @@ class _$TripModelImpl extends _TripModel {
     required this.status,
     this.startedAt,
     this.completedAt,
-  }) : super._();
+    final List<StopModel>? stops,
+  }) : _stops = stops,
+       super._();
 
   factory _$TripModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$TripModelImplFromJson(json);
@@ -269,10 +284,19 @@ class _$TripModelImpl extends _TripModel {
   final String? startedAt;
   @override
   final String? completedAt;
+  final List<StopModel>? _stops;
+  @override
+  List<StopModel>? get stops {
+    final value = _stops;
+    if (value == null) return null;
+    if (_stops is EqualUnmodifiableListView) return _stops;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
 
   @override
   String toString() {
-    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt)';
+    return 'TripModel(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt, stops: $stops)';
   }
 
   @override
@@ -295,7 +319,8 @@ class _$TripModelImpl extends _TripModel {
             (identical(other.startedAt, startedAt) ||
                 other.startedAt == startedAt) &&
             (identical(other.completedAt, completedAt) ||
-                other.completedAt == completedAt));
+                other.completedAt == completedAt) &&
+            const DeepCollectionEquality().equals(other._stops, _stops));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -312,6 +337,7 @@ class _$TripModelImpl extends _TripModel {
     status,
     startedAt,
     completedAt,
+    const DeepCollectionEquality().hash(_stops),
   );
 
   /// Create a copy of TripModel
@@ -340,6 +366,7 @@ abstract class _TripModel extends TripModel {
     required final String status,
     final String? startedAt,
     final String? completedAt,
+    final List<StopModel>? stops,
   }) = _$TripModelImpl;
   const _TripModel._() : super._();
 
@@ -366,6 +393,8 @@ abstract class _TripModel extends TripModel {
   String? get startedAt;
   @override
   String? get completedAt;
+  @override
+  List<StopModel>? get stops;
 
   /// Create a copy of TripModel
   /// with the given fields replaced by the non-null parameter values.

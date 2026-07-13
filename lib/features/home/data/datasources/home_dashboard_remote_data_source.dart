@@ -11,9 +11,11 @@ abstract class HomeDashboardRemoteDataSource {
   Future<List<TripModel>> getPendingTrips();
   Future<DashboardSummaryModel> getDashboardSummary();
   Future<TripModel> updateTripStatus(String id, String status);
-  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category]);
+  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod]);
   /// Retorna la lista de [PassengerModel] registrados en el viaje [tripId].
   Future<List<PassengerModel>> getPassengersOnBoard(String tripId);
   /// Obtiene los detalles de un colaborador por su DNI.
   Future<CollaboratorModel> checkCollaborator(String dni);
+  /// Completa el abordaje de un paradero.
+  Future<TripModel> completeStop(String id, String stopId);
 }

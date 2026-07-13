@@ -12,9 +12,11 @@ abstract class HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getPendingTrips();
   Future<Result<DashboardSummaryEntity, Failure>> getDashboardSummary();
   Future<Result<TripEntity, Failure>> updateTripStatus(String id, TripStatus status);
-  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category]);
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod]);
   /// Devuelve la lista de pasajeros registrados a bordo de un viaje.
   Future<Result<List<PassengerEntity>, Failure>> getPassengersOnBoard(String tripId);
   /// Verifica el estado laboral y de embarque de un colaborador por su DNI.
   Future<Result<CollaboratorEntity, Failure>> checkCollaborator(String dni);
+  /// Completa el abordaje en un paradero específico.
+  Future<Result<TripEntity, Failure>> completeStop(String tripId, String stopId);
 }

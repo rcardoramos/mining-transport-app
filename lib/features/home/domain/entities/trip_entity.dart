@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'stop_entity.dart';
 
 part 'trip_entity.freezed.dart';
 part 'trip_entity.g.dart';
@@ -26,6 +27,7 @@ class TripEntity with _$TripEntity {
     required TripStatus status,
     DateTime? startedAt,
     DateTime? completedAt,
+    List<StopEntity>? stops,
   }) = _TripEntity;
 
   factory TripEntity.fromJson(Map<String, dynamic> json) => _$TripEntityFromJson(json);

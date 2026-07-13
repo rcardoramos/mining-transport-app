@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/trip_entity.dart';
+import 'stop_model.dart';
 
 part 'trip_model.freezed.dart';
 part 'trip_model.g.dart';
@@ -17,6 +18,7 @@ class TripModel with _$TripModel {
     required String status,
     String? startedAt,
     String? completedAt,
+    List<StopModel>? stops,
   }) = _TripModel;
 
   const TripModel._();
@@ -38,6 +40,7 @@ class TripModel with _$TripModel {
       ),
       startedAt: startedAt != null ? DateTime.parse(startedAt!) : null,
       completedAt: completedAt != null ? DateTime.parse(completedAt!) : null,
+      stops: stops?.map((s) => s.toEntity()).toList(),
     );
   }
 }

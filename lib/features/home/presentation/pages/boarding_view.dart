@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/core/gps/gps_service.dart';
 import '../widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/passenger_entity.dart';
 import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/stop_entity.dart';
 import '../../domain/usecases/get_passengers_on_board_usecase.dart';
 import '../../domain/usecases/check_collaborator_usecase.dart';
 
@@ -34,11 +38,23 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   bool _isLoadingPassengers = false;
   bool _isPassengersListVisible = false;
 
+  final _gpsService = GetIt.I<GpsService>();
+  StreamSubscription<Position>? _gpsSubscription;
+  Position? _currentPosition;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPassengers();
+    });
+    _currentPosition = _gpsService.currentPosition;
+    _gpsSubscription = _gpsService.positionStream.listen((Position position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
     });
   }
 
@@ -60,7 +76,37 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   @override
   void dispose() {
     _dniController.dispose();
+    _gpsSubscription?.cancel();
     super.dispose();
+  }
+
+  StopEntity? _getActiveStop(TripEntity trip) {
+    if (trip.stops == null || trip.stops!.isEmpty) return null;
+    final incompleteStops = trip.stops!.where((s) => !s.isCompleted).toList();
+    if (incompleteStops.isEmpty) return null;
+    incompleteStops.sort((a, b) => a.sequenceOrder.compareTo(b.sequenceOrder));
+    return incompleteStops.first;
+  }
+
+  bool _isDriverInRange(StopEntity stop) {
+    if (_currentPosition == null) return false;
+    final distance = _gpsService.calculateDistance(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      stop.latitude,
+      stop.longitude,
+    );
+    return distance <= stop.allowedRadius;
+  }
+
+  double _getDistanceToStop(StopEntity stop) {
+    if (_currentPosition == null) return 0.0;
+    return _gpsService.calculateDistance(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      stop.latitude,
+      stop.longitude,
+    );
   }
 
   String _formatTime(DateTime? dateTime) {
@@ -155,6 +201,30 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+    // 0. Verificar rango del paradero activo si está configurado
+    final activeStop = _getActiveStop(trip);
+    if (activeStop != null) {
+      final inRange = _isDriverInRange(activeStop);
+      if (!inRange) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => DesignDialog(
+              title: 'Fuera de Rango de Paradero',
+              content: 'Te encuentras fuera del radio permitido para este paradero:\n\n'
+                  '• Paradero: ${activeStop.name}\n'
+                  '• Distancia actual: ${_getDistanceToStop(activeStop).toStringAsFixed(1)} metros\n'
+                  '• Radio permitido: ${activeStop.allowedRadius.toStringAsFixed(0)} metros\n\n'
+                  'Por favor, acércate al paradero para registrar el abordaje de pasajeros.',
+              confirmLabel: 'Entendido',
+              onConfirm: () {},
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     // 1. Verificar duplicidad de pasajero
     final isDuplicate = _passengersList.any((p) => p.dni.trim() == dni.trim());
     if (isDuplicate) {
@@ -217,13 +287,20 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     final collaborator = result.successOrNull!;
+    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(dni);
+    final prefix = isScan ? 'qr_scan' : 'manual';
+    
+    // Si hay un paradero activo, incluimos su nombre en el método de registro
+    final customMethod = activeStop != null
+        ? '${prefix}_transit:${activeStop.name}'
+        : null;
 
     if (collaborator.status == CollaboratorStatus.ok) {
       // Registrar de inmediato
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category);
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category, customMethod);
       setState(() => _isRegistering = false);
 
       if (mounted) {
@@ -272,7 +349,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category);
+              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category, customMethod);
           setState(() => _isRegistering = false);
 
           if (mounted) {
@@ -572,199 +649,223 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
 
           DesignSpacing.spacerV24,
-          Text(
-            'Selecciona el método de registro:',
-            style: DesignTypography.bodyMedium.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isDark
-                  ? DesignColors.textSecondaryDark
-                  : DesignColors.textSecondaryLight,
-            ),
-          ),
-          DesignSpacing.spacerV12,
+          _buildParaderosCard(trip!, isDark, colors),
+          _buildGpsSimulatorPanel(trip!, isDark, colors),
 
-          // ── Opción 1: Escaneo QR ─────────────────────────────────────────
-          DesignCard.basic(
-            onTap: _isRegistering ? null : () => _showCameraSimulator(trip!),
-            child: Row(
+          // Determinar si está en rango para habilitar controles
+          (() {
+            final activeStop = _getActiveStop(trip!);
+            final inRange = activeStop == null || _isDriverInRange(activeStop);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: DesignSpacing.allS,
-                  decoration: BoxDecoration(
-                    color: colors.info.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
+                Text(
+                  'Selecciona el método de registro:',
+                  style: DesignTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? DesignColors.textSecondaryDark
+                        : DesignColors.textSecondaryLight,
                   ),
-                  child: Icon(Icons.qr_code_scanner_rounded,
-                      size: 32, color: colors.info),
                 ),
-                DesignSpacing.spacerH16,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Escanear DNI o Fotocheck',
-                        style: DesignTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? DesignColors.textPrimaryDark
-                              : DesignColors.textPrimaryLight,
+                DesignSpacing.spacerV12,
+
+                // ── Opción 1: Escaneo QR ─────────────────────────────────────────
+                DesignCard.basic(
+                  onTap: (_isRegistering || !inRange) ? null : () => _showCameraSimulator(trip!),
+                  child: Opacity(
+                    opacity: inRange ? 1.0 : 0.45,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: DesignSpacing.allS,
+                          decoration: BoxDecoration(
+                            color: colors.info.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.qr_code_scanner_rounded,
+                              size: 32, color: colors.info),
                         ),
-                      ),
-                      DesignSpacing.spacerV4,
-                      Text(
-                        'Usa la cámara para leer el código QR o barras del fotocheck corporativo.',
-                        style: DesignTypography.caption.copyWith(
+                        DesignSpacing.spacerH16,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Escanear DNI o Fotocheck',
+                                style: DesignTypography.titleMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? DesignColors.textPrimaryDark
+                                      : DesignColors.textPrimaryLight,
+                                ),
+                              ),
+                              DesignSpacing.spacerV4,
+                              Text(
+                                'Usa la cámara para leer el código QR o barras del fotocheck corporativo.',
+                                style: DesignTypography.caption.copyWith(
+                                  color: isDark
+                                      ? DesignColors.textSecondaryDark
+                                      : DesignColors.textSecondaryLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
                           color: isDark
                               ? DesignColors.textSecondaryDark
                               : DesignColors.textSecondaryLight,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: isDark
-                      ? DesignColors.textSecondaryDark
-                      : DesignColors.textSecondaryLight,
-                ),
-              ],
-            ),
-          ),
 
-          DesignSpacing.spacerV16,
+                DesignSpacing.spacerV16,
 
-          // ── Opción 2: Embarque Manual ─────────────────────────────────────
-          DesignCard.basic(
-            onTap: _isRegistering
-                ? null
-                : () {
-                    setState(() {
-                      _isManualInputVisible = !_isManualInputVisible;
-                    });
-                  },
-            child: Row(
-              children: [
-                Container(
-                  padding: DesignSpacing.allS,
-                  decoration: BoxDecoration(
-                    color: colors.warning.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.keyboard_rounded,
-                      size: 32, color: colors.warning),
-                ),
-                DesignSpacing.spacerH16,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Embarque Manual',
-                        style: DesignTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? DesignColors.textPrimaryDark
-                              : DesignColors.textPrimaryLight,
+                // ── Opción 2: Embarque Manual ─────────────────────────────────────
+                DesignCard.basic(
+                  onTap: (_isRegistering || !inRange)
+                      ? null
+                      : () {
+                          setState(() {
+                            _isManualInputVisible = !_isManualInputVisible;
+                          });
+                        },
+                  child: Opacity(
+                    opacity: inRange ? 1.0 : 0.45,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: DesignSpacing.allS,
+                          decoration: BoxDecoration(
+                            color: colors.warning.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.keyboard_rounded,
+                              size: 32, color: colors.warning),
                         ),
-                      ),
-                      DesignSpacing.spacerV4,
-                      Text(
-                        'Ingresa el DNI manualmente si el fotocheck no puede ser leído por la cámara.',
-                        style: DesignTypography.caption.copyWith(
+                        DesignSpacing.spacerH16,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Embarque Manual',
+                                style: DesignTypography.titleMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? DesignColors.textPrimaryDark
+                                      : DesignColors.textPrimaryLight,
+                                ),
+                              ),
+                              DesignSpacing.spacerV4,
+                              Text(
+                                'Ingresa el DNI manualmente si el fotocheck no puede ser leído por la cámara.',
+                                style: DesignTypography.caption.copyWith(
+                                  color: isDark
+                                      ? DesignColors.textSecondaryDark
+                                      : DesignColors.textSecondaryLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          _isManualInputVisible
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
                           color: isDark
                               ? DesignColors.textSecondaryDark
                               : DesignColors.textSecondaryLight,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                Icon(
-                  _isManualInputVisible
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: isDark
-                      ? DesignColors.textSecondaryDark
-                      : DesignColors.textSecondaryLight,
-                ),
               ],
-            ),
-          ),
+            );
+          })(),
 
           // ── Panel de ingreso de DNI manual ───────────────────────────────
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 280),
             transitionBuilder: (child, animation) =>
                 FadeTransition(opacity: animation, child: child),
-            child: _isManualInputVisible
-                ? Padding(
-                    key: const ValueKey('manual_form'),
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Container(
-                      padding: DesignSpacing.allM,
-                      decoration: BoxDecoration(
-                        border: Border.all(
+            child: (() {
+              final activeStop = _getActiveStop(trip!);
+              final inRange = activeStop == null || _isDriverInRange(activeStop);
+              return (_isManualInputVisible && inRange)
+                  ? Padding(
+                      key: const ValueKey('manual_form'),
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Container(
+                        padding: DesignSpacing.allM,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isDark
+                                ? DesignColors.borderDark
+                                : DesignColors.borderLight,
+                            width: 1.2,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
                           color: isDark
-                              ? DesignColors.borderDark
-                              : DesignColors.borderLight,
-                          width: 1.2,
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFFAFAFA),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        color: isDark
-                            ? const Color(0xFF1E1E1E)
-                            : const Color(0xFFFAFAFA),
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ingresa el DNI del pasajero',
-                              style: DesignTypography.bodyMedium.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? DesignColors.textPrimaryDark
-                                    : DesignColors.textPrimaryLight,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ingresa el DNI del pasajero',
+                                style: DesignTypography.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? DesignColors.textPrimaryDark
+                                      : DesignColors.textPrimaryLight,
+                                ),
                               ),
-                            ),
-                            DesignSpacing.spacerV12,
-                            DesignTextField(
-                              controller: _dniController,
-                              labelText: 'Número de DNI',
-                              hintText: 'Ingresa los 8 dígitos',
-                              keyboardType: TextInputType.number,
-                              prefixIcon: const Icon(Icons.badge_rounded),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Por favor ingresa el DNI';
-                                }
-                                if (value.trim().length != 8 ||
-                                    int.tryParse(value.trim()) == null) {
-                                  return 'El DNI debe tener exactamente 8 dígitos numéricos';
-                                }
-                                return null;
-                              },
-                            ),
-                            DesignSpacing.spacerV16,
-                            DesignButton.primary(
-                              text: _isRegistering
-                                  ? 'Procesando...'
-                                  : 'Registrar Embarque',
-                              onTap: _isRegistering
-                                  ? null
-                                  : () => _submitManualDni(trip!),
-                              icon: Icons.check_circle_outline_rounded,
-                              fullWidth: true,
-                            ),
-                          ],
+                              DesignSpacing.spacerV12,
+                              DesignTextField(
+                                controller: _dniController,
+                                labelText: 'Número de DNI',
+                                hintText: 'Ingresa los 8 dígitos',
+                                keyboardType: TextInputType.number,
+                                prefixIcon: const Icon(Icons.badge_rounded),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Por favor ingresa el DNI';
+                                  }
+                                  if (value.trim().length != 8 ||
+                                      int.tryParse(value.trim()) == null) {
+                                    return 'El DNI debe tener exactamente 8 dígitos numéricos';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              DesignSpacing.spacerV16,
+                              DesignButton.primary(
+                                text: _isRegistering
+                                    ? 'Procesando...'
+                                    : 'Registrar Embarque',
+                                onTap: _isRegistering
+                                    ? null
+                                    : () => _submitManualDni(trip!),
+                                icon: Icons.check_circle_outline_rounded,
+                                fullWidth: true,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(key: ValueKey('manual_hidden')),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('manual_hidden'));
+            })(),
           ),
 
           DesignSpacing.spacerV16,
@@ -929,8 +1030,54 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
                                 return DesignListTile(
                                   title: passenger.fullName,
-                                  subtitle:
-                                      'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                  subtitleWidget: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                        style: DesignTypography.bodyMedium.copyWith(
+                                          color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                                        ),
+                                      ),
+                                      if (passenger.registrationMethod.contains('_transit')) ...[
+                                        DesignSpacing.spacerV4,
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.place_rounded,
+                                                      size: 12,
+                                                      color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Flexible(
+                                                      child: Text(
+                                                        passenger.registrationMethod.split(':').last,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: DesignTypography.caption.copyWith(
+                                                          color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                   leading: CircleAvatar(
                                     backgroundColor: isWarning
                                         ? (isDark ? Colors.amber.shade900.withOpacity(0.4) : Colors.amber.shade100)
@@ -950,23 +1097,6 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                     children: [
                                       _buildCategoryBadge(passenger.category, isDark),
                                       DesignSpacing.spacerH8,
-                                      if (passenger.registrationMethod.endsWith('_transit')) ...[
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            'P2',
-                                            style: DesignTypography.caption.copyWith(
-                                              color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        DesignSpacing.spacerH8,
-                                      ],
                                       if (isWarning) ...[
                                         Icon(
                                           Icons.warning_amber_rounded,
@@ -1006,8 +1136,285 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     );
   }
 
-  Widget _buildMeta(
-      IconData icon, String label, String value, bool isDark) {
+  Widget _buildParaderosCard(TripEntity trip, bool isDark, DesignThemeExtension colors) {
+    final stops = trip.stops;
+    if (stops == null || stops.isEmpty) return const SizedBox.shrink();
+
+    final activeStop = _getActiveStop(trip);
+
+    if (activeStop == null) {
+      return Card(
+        color: isDark ? const Color(0xFF0F2E22) : const Color(0xFFE8F5E9),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colors.success.withOpacity(0.4), width: 1.5),
+        ),
+        margin: const EdgeInsets.only(bottom: 24),
+        child: Padding(
+          padding: DesignSpacing.allM,
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: colors.success, size: 28),
+              DesignSpacing.spacerH16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '¡Todos los paraderos completados!',
+                      style: DesignTypography.bodyLarge.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                      ),
+                    ),
+                    DesignSpacing.spacerV4,
+                    Text(
+                      'Se ha finalizado el embarque programado de la ruta.',
+                      style: DesignTypography.caption.copyWith(
+                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final distance = _getDistanceToStop(activeStop);
+    final inRange = _isDriverInRange(activeStop);
+
+    return Card(
+      color: isDark ? const Color(0xFF161616) : const Color(0xFFFBFBFB),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: inRange
+              ? colors.success.withOpacity(0.5)
+              : colors.warning.withOpacity(0.5),
+          width: 1.5,
+        ),
+      ),
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Padding(
+        padding: DesignSpacing.allM,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.place_rounded,
+                      color: inRange ? colors.success : colors.warning,
+                      size: 24,
+                    ),
+                    DesignSpacing.spacerH8,
+                    Text(
+                      'Paradero Activo (Orden ${activeStop.sequenceOrder})',
+                      style: DesignTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+                DesignBadge(
+                  label: inRange ? 'En rango' : 'Fuera de rango',
+                  color: inRange ? colors.success : colors.warning,
+                ),
+              ],
+            ),
+            DesignSpacing.spacerV12,
+            Text(
+              activeStop.name,
+              style: DesignTypography.titleLarge.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+              ),
+            ),
+            DesignSpacing.spacerV12,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStopMetric(
+                    Icons.directions_walk_rounded,
+                    'Distancia al paradero',
+                    '${distance.toStringAsFixed(1)} m',
+                    isDark,
+                  ),
+                ),
+                Expanded(
+                  child: _buildStopMetric(
+                    Icons.radar_rounded,
+                    'Radio permitido',
+                    '${activeStop.allowedRadius.toStringAsFixed(0)} m',
+                    isDark,
+                  ),
+                ),
+              ],
+            ),
+            DesignSpacing.spacerV16,
+            const DesignDivider(),
+            DesignSpacing.spacerV16,
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton.primary(
+                    text: 'Completar Paradero',
+                    icon: Icons.check_circle_outline_rounded,
+                    onTap: _isRegistering
+                        ? null
+                        : () async {
+                            setState(() => _isRegistering = true);
+                            final success = await ref
+                                .read(homeDashboardViewModelProvider.notifier)
+                                .completeStop(trip.id, activeStop.id);
+                            setState(() => _isRegistering = false);
+                            if (success && mounted) {
+                              DesignSnackbar.showSuccess(
+                                context,
+                                '¡${activeStop.name} completado! Avanzando al siguiente paradero.',
+                              );
+                              _loadPassengers();
+                            }
+                          },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStopMetric(IconData icon, String label, String value, bool isDark) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+        ),
+        DesignSpacing.spacerH8,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: DesignTypography.caption.copyWith(
+                color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+              ),
+            ),
+            Text(
+              value,
+              style: DesignTypography.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGpsSimulatorPanel(TripEntity trip, bool isDark, DesignThemeExtension colors) {
+    final stops = trip.stops;
+    if (stops == null || stops.isEmpty) return const SizedBox.shrink();
+
+    final activeStop = _getActiveStop(trip);
+    if (activeStop == null) return const SizedBox.shrink();
+
+    return Card(
+      color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? const Color(0xFF333333) : const Color(0xFFE5E7EB),
+          width: 1.0,
+        ),
+      ),
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Padding(
+        padding: DesignSpacing.allM,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.settings_suggest_rounded, color: colors.info, size: 20),
+                DesignSpacing.spacerH8,
+                Text(
+                  'Panel de Simulación de GPS',
+                  style: DesignTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                  ),
+                ),
+              ],
+            ),
+            DesignSpacing.spacerV12,
+            Text(
+              'Simula la ubicación del bus respecto al paradero activo:',
+              style: DesignTypography.caption.copyWith(
+                color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+              ),
+            ),
+            DesignSpacing.spacerV12,
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.gps_fixed_rounded, size: 16),
+                    label: const Text('Dentro de Rango', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      _gpsService.setSimulatedPosition(
+                        activeStop.latitude,
+                        activeStop.longitude,
+                      );
+                    },
+                  ),
+                ),
+                DesignSpacing.spacerH8,
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade800,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.gps_off_rounded, size: 16),
+                    label: const Text('Fuera de Rango', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      _gpsService.setSimulatedPosition(
+                        activeStop.latitude + 0.005,
+                        activeStop.longitude + 0.005,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeta(IconData icon, String label, String value, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

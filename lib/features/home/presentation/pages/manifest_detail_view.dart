@@ -359,7 +359,54 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
 
                         return DesignListTile(
                           title: passenger.fullName,
-                          subtitle: 'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                          subtitleWidget: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                style: DesignTypography.bodyMedium.copyWith(
+                                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                                ),
+                              ),
+                              if (passenger.registrationMethod.contains('_transit')) ...[
+                                DesignSpacing.spacerV4,
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.place_rounded,
+                                              size: 12,
+                                              color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                passenger.registrationMethod.split(':').last,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: DesignTypography.caption.copyWith(
+                                                  color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
                           leading: CircleAvatar(
                             backgroundColor: isWarning
                                 ? (isDark ? Colors.amber.shade900.withOpacity(0.4) : Colors.amber.shade100)
@@ -379,23 +426,6 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             children: [
                               _buildCategoryBadge(passenger.category, isDark),
                               DesignSpacing.spacerH8,
-                              if (passenger.registrationMethod.endsWith('_transit')) ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'P2',
-                                    style: DesignTypography.caption.copyWith(
-                                      color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                DesignSpacing.spacerH8,
-                              ],
                               if (isWarning) ...[
                                 Icon(
                                   Icons.warning_amber_rounded,

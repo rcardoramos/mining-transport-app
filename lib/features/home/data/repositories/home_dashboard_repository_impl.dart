@@ -68,9 +68,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   }
 
   @override
-  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category]) async {
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod]) async {
     try {
-      final model = await _remoteDataSource.registerPassenger(id, dni, status?.name, category);
+      final model = await _remoteDataSource.registerPassenger(id, dni, status?.name, category, registrationMethod);
       return Success(model.toEntity());
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
@@ -97,6 +97,16 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       if (e.toString().contains('not_found')) {
         return FailureResult(CollaboratorNotFoundFailure(e.toString()));
       }
+      return FailureResult(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<TripEntity, Failure>> completeStop(String tripId, String stopId) async {
+    try {
+      final model = await _remoteDataSource.completeStop(tripId, stopId);
+      return Success(model.toEntity());
+    } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }
   }

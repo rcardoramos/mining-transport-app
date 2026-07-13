@@ -31,6 +31,7 @@ mixin _$TripEntity {
   TripStatus get status => throw _privateConstructorUsedError;
   DateTime? get startedAt => throw _privateConstructorUsedError;
   DateTime? get completedAt => throw _privateConstructorUsedError;
+  List<StopEntity>? get stops => throw _privateConstructorUsedError;
 
   /// Serializes this TripEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -60,6 +61,7 @@ abstract class $TripEntityCopyWith<$Res> {
     TripStatus status,
     DateTime? startedAt,
     DateTime? completedAt,
+    List<StopEntity>? stops,
   });
 }
 
@@ -88,6 +90,7 @@ class _$TripEntityCopyWithImpl<$Res, $Val extends TripEntity>
     Object? status = null,
     Object? startedAt = freezed,
     Object? completedAt = freezed,
+    Object? stops = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -131,6 +134,10 @@ class _$TripEntityCopyWithImpl<$Res, $Val extends TripEntity>
                 ? _value.completedAt
                 : completedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
+            stops: freezed == stops
+                ? _value.stops
+                : stops // ignore: cast_nullable_to_non_nullable
+                      as List<StopEntity>?,
           )
           as $Val,
     );
@@ -157,6 +164,7 @@ abstract class _$$TripEntityImplCopyWith<$Res>
     TripStatus status,
     DateTime? startedAt,
     DateTime? completedAt,
+    List<StopEntity>? stops,
   });
 }
 
@@ -184,6 +192,7 @@ class __$$TripEntityImplCopyWithImpl<$Res>
     Object? status = null,
     Object? startedAt = freezed,
     Object? completedAt = freezed,
+    Object? stops = freezed,
   }) {
     return _then(
       _$TripEntityImpl(
@@ -227,6 +236,10 @@ class __$$TripEntityImplCopyWithImpl<$Res>
             ? _value.completedAt
             : completedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        stops: freezed == stops
+            ? _value._stops
+            : stops // ignore: cast_nullable_to_non_nullable
+                  as List<StopEntity>?,
       ),
     );
   }
@@ -246,7 +259,8 @@ class _$TripEntityImpl implements _TripEntity {
     required this.status,
     this.startedAt,
     this.completedAt,
-  });
+    final List<StopEntity>? stops,
+  }) : _stops = stops;
 
   factory _$TripEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$TripEntityImplFromJson(json);
@@ -271,10 +285,19 @@ class _$TripEntityImpl implements _TripEntity {
   final DateTime? startedAt;
   @override
   final DateTime? completedAt;
+  final List<StopEntity>? _stops;
+  @override
+  List<StopEntity>? get stops {
+    final value = _stops;
+    if (value == null) return null;
+    if (_stops is EqualUnmodifiableListView) return _stops;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
 
   @override
   String toString() {
-    return 'TripEntity(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt)';
+    return 'TripEntity(id: $id, route: $route, scheduledTime: $scheduledTime, shift: $shift, unitCode: $unitCode, capacity: $capacity, passengerCount: $passengerCount, status: $status, startedAt: $startedAt, completedAt: $completedAt, stops: $stops)';
   }
 
   @override
@@ -297,7 +320,8 @@ class _$TripEntityImpl implements _TripEntity {
             (identical(other.startedAt, startedAt) ||
                 other.startedAt == startedAt) &&
             (identical(other.completedAt, completedAt) ||
-                other.completedAt == completedAt));
+                other.completedAt == completedAt) &&
+            const DeepCollectionEquality().equals(other._stops, _stops));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -314,6 +338,7 @@ class _$TripEntityImpl implements _TripEntity {
     status,
     startedAt,
     completedAt,
+    const DeepCollectionEquality().hash(_stops),
   );
 
   /// Create a copy of TripEntity
@@ -342,6 +367,7 @@ abstract class _TripEntity implements TripEntity {
     required final TripStatus status,
     final DateTime? startedAt,
     final DateTime? completedAt,
+    final List<StopEntity>? stops,
   }) = _$TripEntityImpl;
 
   factory _TripEntity.fromJson(Map<String, dynamic> json) =
@@ -367,6 +393,8 @@ abstract class _TripEntity implements TripEntity {
   DateTime? get startedAt;
   @override
   DateTime? get completedAt;
+  @override
+  List<StopEntity>? get stops;
 
   /// Create a copy of TripEntity
   /// with the given fields replaced by the non-null parameter values.
