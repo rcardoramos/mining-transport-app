@@ -44,7 +44,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     'Francisco Lara Tello',
   ];
 
-  int _nameIndex = 0;
+
 
   MockHomeDashboardRemoteDataSource() {
     final nowUtc = DateTime.now().toUtc();

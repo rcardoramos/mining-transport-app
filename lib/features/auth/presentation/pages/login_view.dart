@@ -10,12 +10,10 @@ class LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
 
     // Colores corporativos basados en el tema
     final topBgColor = isDark ? const Color(0xFF15181F) : DesignColors.primaryLight;
     final bottomBgColor = isDark ? DesignColors.backgroundDark : Colors.white;
-    final brandColor = isDark ? DesignColors.secondaryDark : DesignColors.secondaryLight;
 
     return Scaffold(
       backgroundColor: topBgColor,

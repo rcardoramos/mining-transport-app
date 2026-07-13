@@ -533,7 +533,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       );
     }
 
-    final safePercentage = (trip.passengerCount / trip.capacity).clamp(0.0, 1.0);
+    final activeTrip = trip;
+    final safePercentage = (activeTrip.passengerCount / activeTrip.capacity).clamp(0.0, 1.0);
 
     return Scaffold(
       appBar: DesignAppBar(
@@ -548,15 +549,15 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: DesignButton.primary(
-            text: trip!.status == TripStatus.travelling ? 'Finalizar Viaje' : 'Iniciar Viaje',
+            text: activeTrip.status == TripStatus.travelling ? 'Finalizar Viaje' : 'Iniciar Viaje',
             onTap: _isRegistering ? null : () {
-              if (trip!.status == TripStatus.travelling) {
-                _finalizarViaje(trip);
+              if (activeTrip.status == TripStatus.travelling) {
+                _finalizarViaje(activeTrip);
               } else {
-                _iniciarViaje(trip);
+                _iniciarViaje(activeTrip);
               }
             },
-            icon: trip.status == TripStatus.travelling
+            icon: activeTrip.status == TripStatus.travelling
                 ? Icons.check_circle_rounded
                 : Icons.directions_bus_filled_rounded,
             fullWidth: true,
@@ -654,12 +655,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
 
           DesignSpacing.spacerV24,
-          _buildParaderosCard(trip!, isDark, colors),
-          _buildGpsSimulatorPanel(trip!, isDark, colors),
+          _buildParaderosCard(activeTrip, isDark, colors),
+          _buildGpsSimulatorPanel(activeTrip, isDark, colors),
 
           // Determinar si está en rango para habilitar controles
           (() {
-            final activeStop = _getActiveStop(trip!);
+            final activeStop = _getActiveStop(activeTrip);
             final inRange = activeStop == null || _isDriverInRange(activeStop);
 
             return Column(
