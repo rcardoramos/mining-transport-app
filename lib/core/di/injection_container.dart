@@ -43,33 +43,42 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<AppDatabase>(() => database);
 
   // 4. Registrar Servicio de Estado de Sesión (para expiraciones globales)
-  locator.registerLazySingleton<SessionStatusService>(() => SessionStatusService());
+  locator.registerLazySingleton<SessionStatusService>(
+    () => SessionStatusService(),
+  );
 
   // 5. Registrar Servicio de GPS / Geolocalización
   locator.registerLazySingleton<GpsService>(() => GpsService());
 
   // Registrar Servicio de Alertas de Audio
-  locator.registerLazySingleton<AudioService>(() => AudioServiceImpl(locator<AppLogger>()));
+  locator.registerLazySingleton<AudioService>(
+    () => AudioServiceImpl(locator<AppLogger>()),
+  );
 
   // 6. Registrar Cliente HTTP (Dio) con inyección de dependencias
-  locator.registerLazySingleton<DioClient>(() => DioClient(
-        secureStorage: locator<SecureStorage>(),
-        logger: locator<AppLogger>(),
-      ));
+  locator.registerLazySingleton<DioClient>(
+    () => DioClient(
+      secureStorage: locator<SecureStorage>(),
+      logger: locator<AppLogger>(),
+    ),
+  );
 
   // 7. DataSources
   locator.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(locator<DioClient>()),
   );
   locator.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(locator<SecureStorage>(), locator<AppDatabase>()),
+    () => AuthLocalDataSourceImpl(
+      locator<SecureStorage>(),
+      locator<AppDatabase>(),
+    ),
   );
   // Para conectar con el servidor backend real en producción, descomenta esto:
   // locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
   //   () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
   // );
 
-  // Para trabajar con el simulador de datos localmente (desarrollo):
+  // Para trabajar con el simulador de datos localmente (desarrollo): Comentar las lineas en caso ya se peguen las apis.
   locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
     () => MockHomeDashboardRemoteDataSource(),
   );
@@ -86,20 +95,48 @@ Future<void> setupLocator() async {
   );
 
   // 9. UseCases
-  locator.registerLazySingleton<LoginUseCase>(() => LoginUseCase(locator<AuthRepository>()));
-  locator.registerLazySingleton<LogoutUseCase>(() => LogoutUseCase(locator<AuthRepository>()));
-  locator.registerLazySingleton<GetCurrentUserUseCase>(() => GetCurrentUserUseCase(locator<AuthRepository>()));
-  locator.registerLazySingleton<CheckSessionUseCase>(() => CheckSessionUseCase(locator<AuthRepository>()));
+  locator.registerLazySingleton<LoginUseCase>(
+    () => LoginUseCase(locator<AuthRepository>()),
+  );
+  locator.registerLazySingleton<LogoutUseCase>(
+    () => LogoutUseCase(locator<AuthRepository>()),
+  );
+  locator.registerLazySingleton<GetCurrentUserUseCase>(
+    () => GetCurrentUserUseCase(locator<AuthRepository>()),
+  );
+  locator.registerLazySingleton<CheckSessionUseCase>(
+    () => CheckSessionUseCase(locator<AuthRepository>()),
+  );
 
-  locator.registerLazySingleton<GetDriverInfoUseCase>(() => GetDriverInfoUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<GetTodayTripsUseCase>(() => GetTodayTripsUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<GetPendingTripsUseCase>(() => GetPendingTripsUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<GetDashboardSummaryUseCase>(() => GetDashboardSummaryUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<UpdateTripStatusUseCase>(() => UpdateTripStatusUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<RegisterPassengerUseCase>(() => RegisterPassengerUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<GetPassengersOnBoardUseCase>(() => GetPassengersOnBoardUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<CheckCollaboratorUseCase>(() => CheckCollaboratorUseCase(locator<HomeDashboardRepository>()));
-  locator.registerLazySingleton<CompleteStopUseCase>(() => CompleteStopUseCase(locator<HomeDashboardRepository>()));
+  locator.registerLazySingleton<GetDriverInfoUseCase>(
+    () => GetDriverInfoUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<GetTodayTripsUseCase>(
+    () => GetTodayTripsUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<GetPendingTripsUseCase>(
+    () => GetPendingTripsUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<GetDashboardSummaryUseCase>(
+    () => GetDashboardSummaryUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<UpdateTripStatusUseCase>(
+    () => UpdateTripStatusUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<RegisterPassengerUseCase>(
+    () => RegisterPassengerUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<GetPassengersOnBoardUseCase>(
+    () => GetPassengersOnBoardUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<CheckCollaboratorUseCase>(
+    () => CheckCollaboratorUseCase(locator<HomeDashboardRepository>()),
+  );
+  locator.registerLazySingleton<CompleteStopUseCase>(
+    () => CompleteStopUseCase(locator<HomeDashboardRepository>()),
+  );
 
-  locator<AppLogger>().i('Dependency Injection Container initialized successfully.');
+  locator<AppLogger>().i(
+    'Dependency Injection Container initialized successfully.',
+  );
 }
