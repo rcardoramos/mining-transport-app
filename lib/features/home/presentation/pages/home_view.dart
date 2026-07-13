@@ -414,6 +414,31 @@ class _HomeViewState extends ConsumerState<HomeView> with SingleTickerProviderSt
             );
           },
         ),
+        DesignSpacing.spacerV32,
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Desarrollado por',
+                style: DesignTypography.caption.copyWith(
+                  color: isDark
+                      ? DesignColors.textSecondaryDark.withOpacity(0.4)
+                      : DesignColors.textSecondaryLight.withOpacity(0.4),
+                  letterSpacing: 1.0,
+                ),
+              ),
+              DesignSpacing.spacerV8,
+              Image.asset(
+                'assets/images/adryan_logo.png',
+                height: 20,
+                fit: BoxFit.contain,
+                color: isDark ? Colors.white.withOpacity(0.6) : null,
+              ),
+            ],
+          ),
+        ),
+        DesignSpacing.spacerV16,
       ],
     );
   }
