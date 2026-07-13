@@ -1,176 +1,351 @@
-# Contratos de API: Integración con ERP ADRYAN
+# Contratos de API: Integración con Backend (.NET Framework)
 
-Este documento define la interfaz de programación (REST API v1) para la comunicación entre la aplicación móvil "APP Buses" y el backend corporativo de ADRYAN.
+Este documento define las especificaciones del contrato de API REST (RPC-style) para la comunicación entre la aplicación móvil y el backend corporativo en .NET. 
 
----
-
-## 1. Cabeceras Comunes (Headers)
-* `Content-Type: application/json`
-* `Accept: application/json`
-* `Authorization: Bearer <JWT_TOKEN>` (Requerido para todos los endpoints excepto `/auth/login`)
+Todas las peticiones (a excepción del Login) viajan por el método **POST**, y la autenticación se valida pasando las claves `usuario` y `token` directamente en el cuerpo del JSON de la solicitud en lugar de usar cabeceras HTTP estándar.
 
 ---
 
-## 2. Definición de Endpoints
+## 1. Estructura de Respuesta Estándar (.NET Wrapper)
 
-### 2.1 POST /api/v1/auth/login
-Inicia sesión de usuario y retorna el token de acceso.
+Todas las respuestas del backend siguen el patrón de envoltura corporativa:
 
-* **Request**:
 ```json
 {
-  "username": "dispatcher_01",
-  "password": "SecurePassword123"
+  "Success": true,
+  "Message": "Mensaje informativo o de error descriptivo",
+  "Data": { ... } // Objeto o arreglo con la información solicitada
 }
 ```
-* **Response (200 OK)**:
+
+---
+
+## 2. Inventario de Endpoints
+
+### 2.1 Módulo de Autenticación
+
+#### `POST /api/Auth/Login`
+Autentica al chofer y registra la información técnica del dispositivo.
+
+* **Request Body**:
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "a6b1c8d2-4321-9876-bcde-5f4e3d2c1b0a",
-    "username": "dispatcher_01",
-    "fullName": "Ricardo Ramos Julca",
-    "role": "DISPATCHER"
+  "usuario": "pbeltran",
+  "pass": "TU_PASSWORD",
+  "deviceUid": "DEV-0042",
+  "modelo": "Samsung A54",
+  "lat": -5.194490,
+  "lng": -80.632820
+}
+```
+
+* **Response Body (200 OK)**:
+```json
+{
+  "Success": true,
+  "Message": "Login exitoso",
+  "Data": {
+    "Token": "jwt_token_generado_por_el_servidor_aqui...",
+    "User": {
+      "id": "DRV-998",
+      "username": "pbeltran",
+      "fullName": "Pedro Beltrán",
+      "role": "DRIVER"
+    }
   }
 }
 ```
-* **Errors**:
-  * `401 Unauthorized`: Usuario o contraseña incorrectos.
-  * `423 Locked`: Usuario bloqueado administrativamente.
 
 ---
 
-### 2.2 GET /api/v1/sync/masters
-Descarga el padrón maestro completo para la operación offline.
+### 2.2 Módulo de Catálogos (Sincronización para Operación Offline)
 
-* **Query Parameters**:
-  * `last_sync`: DateTime (ISO 8601, ej. `2026-06-10T12:00:00Z`). Permite descargas incrementales de maestros modificados desde la última fecha.
-* **Response (200 OK)**:
+#### `POST /api/Catalogo/Bootstrap`
+Descarga de manera agrupada todos los maestros necesarios para la persistencia local de SQLite (Drift).
+
+* **Request Body**:
 ```json
 {
-  "lastSyncTimestamp": "2026-06-10T19:00:00Z",
-  "drivers": [
-    {
-      "id": "d1e2f3g4-5678-90ab-cdef-1234567890ab",
-      "code": "COND-045",
-      "fullName": "Carlos Mendoza",
-      "licenseNumber": "Q-44556677",
-      "licenseExpiration": "2028-12-31",
-      "isActive": true
-    }
-  ],
-  "buses": [
-    {
-      "id": "b1c2d3e4-5678-90ab-cdef-1234567890ab",
-      "plateNumber": "F5T-980",
-      "capacity": 44,
-      "model": "Mercedes Benz",
-      "isActive": true
-    }
-  ],
-  "routes": [
-    {
-      "id": "r1s2t3u4-5678-90ab-cdef-1234567890ab",
-      "name": "Ruta Interna Mina - Campamento",
-      "origin": "Garita Principal",
-      "destination": "Campamento Oasis",
-      "distanceKm": 15.5
-    }
-  ],
-  "passengers": [
-    {
-      "id": "p1q2r3s4-5678-90ab-cdef-1234567890ab",
-      "docNumber": "44556677",
-      "code": "EMP-9081",
-      "firstName": "Juan",
-      "lastName": "Pérez",
-      "companyName": "Minera Miski Mayo",
-      "status": "Active",
-      "emoExpirationDate": "2027-05-15",
-      "inductionExpirationDate": "2027-02-28",
-      "hasSecurityBlock": false
-    }
-  ]
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion"
 }
 ```
 
----
-
-### 2.3 POST /api/v1/trips
-Apertura un viaje en el servidor.
-
-* **Request**:
+* **Response Body (200 OK)**:
 ```json
 {
-  "id": "t1r2i3p4-5678-90ab-cdef-1234567890ab",
-  "driverId": "d1e2f3g4-5678-90ab-cdef-1234567890ab",
-  "busId": "b1c2d3e4-5678-90ab-cdef-1234567890ab",
-  "routeId": "r1s2t3u4-5678-90ab-cdef-1234567890ab",
-  "serviceId": "s1e2r3v4-5678-90ab-cdef-1234567890ab",
-  "startKm": 120500,
-  "startTime": "2026-06-10T14:30:00Z"
-}
-```
-* **Response (201 Created)**:
-```json
-{
-  "id": "t1r2i3p4-5678-90ab-cdef-1234567890ab",
-  "status": "Open",
-  "syncStatus": "Synced"
-}
-```
-
----
-
-### 2.4 POST /api/v1/trips/{tripId}/boarding
-Registra el abordaje de un pasajero en el viaje.
-
-* **Request**:
-```json
-{
-  "id": "br123456-5678-90ab-cdef-1234567890ab",
-  "passengerId": "p1q2r3s4-5678-90ab-cdef-1234567890ab",
-  "busStopId": "bs987654-5678-90ab-cdef-1234567890ab",
-  "scanType": "DNI",
-  "scanTimestamp": "2026-06-10T14:35:12Z",
-  "latitude": -5.123456,
-  "longitude": -80.654321,
-  "status": "Boarded",
-  "justification": null
-}
-```
-* **Response (201 Created)**:
-```json
-{
-  "id": "br123456-5678-90ab-cdef-1234567890ab",
-  "status": "Boarded"
-}
-```
-* **Response (409 Conflict)**:
-  * Ocurre si el abordaje ya se encuentra registrado en el servidor (ej. reintento de sync).
-
----
-
-### 2.5 POST /api/v1/trips/{tripId}/close
-Cierra un viaje en el servidor y procesa las firmas.
-
-* **Request**:
-```json
-{
-  "endKm": 120515,
-  "endTime": "2026-06-10T15:10:00Z",
-  "signatures": {
-    "dispatcherSignatureBase64": "data:image/png;base64,iVBORw0KGgo...",
-    "driverSignatureBase64": "data:image/png;base64,iVBORw0KGgo..."
+  "Success": true,
+  "Message": "Carga de catálogos completada",
+  "Data": {
+    "Rutas": [
+      { "id": 1, "nombre": "Ruta Piura - Mina Miski Mayo", "distanciaKm": 120.5 }
+    ],
+    "Servicios": [
+      { "id": 1, "nombre": "Servicio de Personal de Guardia" }
+    ],
+    "Horarios": [
+      { "id": 1, "horaSalida": "06:00:00" }
+    ],
+    "Buses": [
+      { "id": 1, "placa": "F5T-980", "capacidad": 44, "modelo": "Mercedes Benz" }
+    ],
+    "Paraderos": [
+      {
+        "id": 1,
+        "nombre": "Óvalo Grau (Piura)",
+        "latitud": -5.194490,
+        "longitud": -80.632820,
+        "radioPermitido": 50.0, // Radio en metros para permitir el abordaje
+        "orden": 1 // Secuencia en la ruta
+      }
+    ]
   }
 }
 ```
-* **Response (200 OK)**:
+
+*(Nota: También se exponen los endpoints específicos `POST /api/Catalogo/Rutas`, `POST /api/Catalogo/Servicios`, `POST /api/Catalogo/Horarios`, `POST /api/Catalogo/Paraderos` y `POST /api/Catalogo/Buses` con la misma estructura de request y response según sea requerido).*
+
+---
+
+### 2.3 Módulo de Gestión de Viajes
+
+#### `POST /api/Viaje/Aperturar`
+Crea un registro de viaje activo para el chofer y el vehículo.
+
+* **Request Body**:
 ```json
 {
-  "id": "t1r2i3p4-5678-90ab-cdef-1234567890ab",
-  "status": "Closed",
-  "manifestUrl": "https://api.miskimayo.pe/manifests/t1r2i3p4.pdf"
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "uidCliente": "11111111-1111-1111-1111-111111111111",
+  "rutaId": 1,
+  "servicioId": 1,
+  "horarioId": 1,
+  "busId": 1,
+  "fechaServicio": "2026-06-22",
+  "deviceUid": "DEV-0042"
+}
+```
+
+* **Response Body (200 OK)**:
+```json
+{
+  "Success": true,
+  "Message": "Viaje aperturado exitosamente",
+  "Data": {
+    "ViajeId": 128
+  }
+}
+```
+
+#### `POST /api/Viaje/Obtener`
+Consulta el estado actual, pasajeros a bordo y la lista de paraderos autorizados específicos del viaje.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "viajeId": 128
+}
+```
+
+* **Response Body (200 OK)**:
+```json
+{
+  "Success": true,
+  "Message": "Detalle de viaje obtenido",
+  "Data": {
+    "ViajeId": 128,
+    "AforoActual": 24,
+    "CapacidadMax": 44,
+    "Estado": "IN_PROGRESS",
+    "ParaderosAutorizados": [
+      {
+        "id": 1,
+        "nombre": "Óvalo Grau",
+        "latitud": -5.194490,
+        "longitud": -80.632820,
+        "radioPermitido": 50.0,
+        "orden": 1
+      },
+      {
+        "id": 2,
+        "nombre": "Catacaos",
+        "latitud": -5.265000,
+        "longitud": -80.678000,
+        "radioPermitido": 30.0,
+        "orden": 2
+      }
+    ]
+  }
+}
+```
+
+#### `POST /api/Viaje/Historial`
+Retorna el historial de viajes realizados por el conductor logueado.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "estado": "COMPLETED", // Filtrar por estado (opcional)
+  "desde": "2026-06-01T00:00:00Z", // Opcional
+  "hasta": "2026-06-30T23:59:59Z" // Opcional
+}
+```
+
+#### `POST /api/Viaje/Cerrar`
+Cierra el viaje activo y bloquea el aforo.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "viajeId": 128,
+  "paraderoCierreId": 4,
+  "lat": -5.833000,
+  "lng": -81.050000
+}
+```
+
+---
+
+### 2.4 Módulo de Pasajeros y Validaciones (Embarque)
+
+#### `POST /api/Pasajero/Validar`
+Consulta el estado de aptitud médica e inducciones de un colaborador (DNI/Fotocheck).
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "dni": "44556677",
+  "codigo": null // Se puede enviar código de fotocheck o DNI
+}
+```
+
+* **Response Body (200 OK - Autorizado)**:
+```json
+{
+  "Success": true,
+  "Message": "Colaborador apto",
+  "Data": {
+    "Dni": "44556677",
+    "NombreCompleto": "Juan Pérez Gómez",
+    "Empresa": "MISKI MAYO",
+    "EstadoLaboral": "OK", // OK, VACACIONES, CESADO, LICENCIA, DESCANSO_MEDICO
+    "AptoParaAbordar": true
+  }
+}
+```
+
+* **Response Body (200 OK - No Autorizado/Excepción)**:
+```json
+{
+  "Success": true,
+  "Message": "Colaborador de vacaciones",
+  "Data": {
+    "Dni": "44556677",
+    "NombreCompleto": "Juan Pérez Gómez",
+    "Empresa": "MISKI MAYO",
+    "EstadoLaboral": "VACACIONES",
+    "AptoParaAbordar": false // Activa alerta sonora en la app
+  }
+}
+```
+
+#### `POST /api/Pasajero/ResolverParadero`
+Resuelve cuál es el paradero autorizado de la ruta más cercano a la ubicación GPS actual del bus.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "lat": -5.265000,
+  "lng": -80.678000
+}
+```
+
+* **Response Body (200 OK)**:
+```json
+{
+  "Success": true,
+  "Message": "Paradero resuelto",
+  "Data": {
+    "ParaderoId": 2,
+    "Nombre": "Catacaos",
+    "DistanciaMetros": 12.5
+  }
+}
+```
+
+#### `POST /api/Pasajero/Registrar`
+Registra el abordaje oficial de un colaborador regular de Miski Mayo.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "viajeId": 128,
+  "uidCliente": "22222222-2222-2222-2222-222222222222",
+  "codigoUnico": "EMP-9081",
+  "dni": "44556677",
+  "nombreCompleto": "Juan Pérez Gómez",
+  "empresa": "MISKI MAYO",
+  "puesto": "Operario de Planta",
+  "unidad": "Fosfatos",
+  "tipoPasajero": "MISKI_MAYO", // MISKI_MAYO, VISITA
+  "estadoLaboral": "OK",
+  "resultado": "ABORDO", // ABORDO, RECHAZADO, EXCEPCION
+  "observacion": null,
+  "paraderoId": 1,
+  "lugarSubida": "Óvalo Grau",
+  "lat": -5.194490,
+  "lng": -80.632820
+}
+```
+
+#### `POST /api/Pasajero/RegistrarVisita`
+Registra el abordaje de una visita externa o contratista con justificaciones y autorizaciones.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "viajeId": 128,
+  "uidCliente": "33333333-3333-3333-3333-333333333333",
+  "dni": "99887766",
+  "nombreCompleto": "VISITANTE EXTERNO SAC",
+  "empresa": "Terceros Metalmecánica",
+  "tipoPasajero": "VISITA",
+  "estadoLaboral": "NO_REGISTRADO",
+  "resultado": "ABORDO_CON_OBS",
+  "observacion": "Ingreso autorizado para inspección de seguridad",
+  "lugarSubida": "Catacaos",
+  "lat": -5.265000,
+  "lng": -80.678000,
+  "motivoVisita": "Inspección técnica de mantenimiento",
+  "autorizadoPor": "Supervisor Juan Alva"
+}
+```
+
+#### `POST /api/Pasajero/Lista`
+Obtiene la lista de pasajeros actualmente abordados en el viaje para visualización del chofer.
+
+* **Request Body**:
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "viajeId": 128,
+  "buscar": null, // Cadena de búsqueda (nombre o DNI)
+  "filtro": "TODOS" // TODOS, COLABORADORES, VISITAS
 }
 ```
