@@ -34,7 +34,7 @@ class _SplashViewState extends ConsumerState<SplashView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
+                  'assets/images/logo-loading.png',
                   height: 120,
                   fit: BoxFit.contain,
                 ),

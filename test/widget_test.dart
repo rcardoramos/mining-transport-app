@@ -41,7 +41,7 @@ void main() {
         find.byWidgetPredicate((widget) =>
             widget is Image &&
             widget.image is AssetImage &&
-            (widget.image as AssetImage).assetName == 'assets/images/logo.png'),
+            (widget.image as AssetImage).assetName == 'assets/images/logo-loading.png'),
         findsOneWidget);
 
     // Verify that the developer watermark logo is present.
