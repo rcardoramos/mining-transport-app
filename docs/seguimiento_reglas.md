@@ -5,29 +5,24 @@ Este documento sirve como bitácora y guía de seguimiento para el flujo de vali
 ---
 
 ## 📌 Estado Actual del Requerimiento
-* **Estado**: Implementado en Frontend (Maqueta/Simulación funcional).
-* **Confirmación Pendiente**: Aprobación definitiva del flujo de selección por parte de Negocio / Backend.
+* **Estado**: Implementado e Integrado (Identificación Automática).
+* **Confirmación**: Backend provee la categoría (`Miski Mayo`, `Contratista`, `Terceros`, `Visita`) y el estado directamente en la respuesta del servicio de verificación (`checkCollaborator`).
 
 ---
 
 ## 🔄 Flujo de Trabajo Implementado
 
-1. **Colaboradores Registrados**:
-   * Son identificados automáticamente en la verificación (`checkCollaborator`).
-   * Pertenecen a **Miski Mayo** por defecto (o según asigne la base de datos).
-   * Se registran directamente sin interrupciones y se les asigna su respectivo badge visual en el listado.
+1. **Identificación Automática (Colaboradores y Externos)**:
+   * Todos los pasajeros (colaboradores directos o personal contratista, terceros y visitas registradas) son validados por medio de `checkCollaborator` usando su DNI o escaneo de Fotocheck/QR.
+   * El servicio del backend responde con la información completa: nombre, estado de excepción laboral y la categoría correspondiente.
+   * La aplicación mapea esta categoría de manera automática (`collaborator.category`) y realiza el abordaje sin interrupciones ni cuadros de diálogo de selección interactivos.
+   * En la UI del manifiesto se le asigna de inmediato su respectivo badge visual según la categoría resuelta (`Miski Mayo`, `Contratista`, `Terceros`, `Visita`).
 
-2. **DNI / Fotocheck No Registrado (Pasajeros Externos)**:
-   * Cuando se introduce un DNI que no existe en el padrón local (en el mock, DNI que inicia con `9`), la verificación retorna un error controlado (`CollaboratorNotFoundFailure`).
-   * En lugar de denegar el acceso, el sistema activa una alerta interactiva para el chofer preguntándole la categoría del pasajero externo:
-     * **Contratista**
-     * **Terceros**
-     * **Visita**
-   * Tras la selección, se registra con estado `ok` y con el nombre genérico `Externo (Categoría)` para permitir su abordaje y conteo.
+2. **DNI No Registrado en el Padrón (No Encontrado)**:
+   * Si el DNI consultado no existe de ninguna forma en el padrón del sistema (el check retorna `CollaboratorNotFoundFailure`), se despliega una alerta informativa que deniega el abordaje por no estar registrado en el padrón.
 
 ---
 
-## ⚠️ Aspectos a Validar con el Backend/Negocio
-* [ ] ¿Es aceptable autogenerar el nombre genérico `Externo (Categoría)` si el DNI no existe, o se requiere un campo adicional de texto para que el chofer digite manualmente el nombre/apellidos de la visita?
-* [ ] ¿El backend proveerá un campo `categoria` o `empresa` estructurado en la API de verificación de colaborador para automatizar el badge visual?
-* [ ] ¿Las visitas, contratistas o terceros requieren pasar por las mismas reglas de aforo o tienen alguna restricción adicional de seguridad?
+## ⚠️ Aspectos Validados con el Backend/Negocio
+* [x] **¿El backend proveerá la categoría?** Sí, el servicio de verificación retorna el campo `category` estructurado, lo cual elimina la necesidad de que el conductor seleccione la categoría manualmente en el terminal.
+* [x] **¿Se requiere ingreso manual de nombres?** No, el padrón del backend provee los datos de registro (incluso para visitas o contratistas enrolados previamente). Si un DNI no está en el sistema, su acceso es denegado de forma predeterminada.

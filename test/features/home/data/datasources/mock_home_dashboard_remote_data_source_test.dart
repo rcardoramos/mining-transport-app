@@ -40,9 +40,9 @@ void main() {
         throwsException,
       );
     });
-    test('checkCollaborator should throw Exception when DNI starts with 9', () async {
+    test('checkCollaborator should throw Exception when DNI starts with 99', () async {
       expect(
-        () => dataSource.checkCollaborator('90001234'),
+        () => dataSource.checkCollaborator('99001234'),
         throwsException,
       );
     });

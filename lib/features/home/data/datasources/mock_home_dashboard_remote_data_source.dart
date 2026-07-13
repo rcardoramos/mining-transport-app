@@ -302,8 +302,8 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   Future<CollaboratorModel> checkCollaborator(String dni) async {
     await Future.delayed(const Duration(milliseconds: 200));
 
-    // Si el DNI empieza con 9, simulamos que no está en la base de datos
-    if (dni.startsWith('9')) {
+    // Si el DNI empieza con 99, simulamos que no está en la base de datos
+    if (dni.startsWith('99')) {
       throw Exception('not_found: El colaborador no existe en el padrón local');
     }
 

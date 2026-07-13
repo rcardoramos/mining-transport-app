@@ -199,7 +199,17 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (result.isFailure) {
       final failure = result.failureOrNull!;
       if (failure is CollaboratorNotFoundFailure) {
-        await _handleExternalPassenger(trip, dni);
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => DesignDialog(
+              title: 'Colaborador No Encontrado',
+              content: 'El DNI $dni no se encuentra registrado en el padrón del sistema.\nNo se permite su embarque.',
+              confirmLabel: 'Entendido',
+              onConfirm: () {},
+            ),
+          );
+        }
       } else {
         DesignSnackbar.showError(context, 'Error al verificar colaborador.');
       }
@@ -213,12 +223,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok);
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category);
       setState(() => _isRegistering = false);
 
       if (mounted) {
         if (success) {
-          DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} registrado exitosamente.');
+          DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} (${collaborator.category}) registrado exitosamente.');
           _loadPassengers();
         } else {
           DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
@@ -262,12 +272,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, collaborator.status);
+              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category);
           setState(() => _isRegistering = false);
 
           if (mounted) {
             if (success) {
-              DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} registrado con estado de excepción ($alertType).');
+              DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} (${collaborator.category}) registrado con estado de excepción ($alertType).');
               _loadPassengers();
             } else {
               DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
@@ -360,119 +370,6 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
   }
 
-  Future<void> _handleExternalPassenger(TripEntity trip, String dni) async {
-    final selectedCategory = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
-          shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
-          title: Text(
-            'Pasajero Externo',
-            style: DesignTypography.titleLarge.copyWith(
-              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'El DNI $dni no está registrado en el padrón.\n\n'
-                'Seleccione la categoría del pasajero externo para registrarlo:',
-                style: DesignTypography.bodyMedium.copyWith(
-                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                ),
-              ),
-              DesignSpacing.spacerV16,
-              _buildCategoryOption(ctx, 'Contratista', Colors.orange, isDark),
-              DesignSpacing.spacerV8,
-              _buildCategoryOption(ctx, 'Terceros', Colors.purple, isDark),
-              DesignSpacing.spacerV8,
-              _buildCategoryOption(ctx, 'Visita', Colors.blue, isDark),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(
-                'Cancelar',
-                style: DesignTypography.labelLarge.copyWith(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (selectedCategory == null || !mounted) return;
-
-    // Registrar al pasajero con la categoría seleccionada
-    setState(() => _isRegistering = true);
-    final success = await ref
-        .read(homeDashboardViewModelProvider.notifier)
-        .registerPassenger(trip.id, dni, CollaboratorStatus.ok, selectedCategory);
-    setState(() => _isRegistering = false);
-
-    if (mounted) {
-      if (success) {
-        DesignSnackbar.showSuccess(
-            context, 'Pasajero Externo ($selectedCategory) DNI $dni registrado exitosamente.');
-        _loadPassengers();
-      } else {
-        DesignSnackbar.showError(context, 'Fallo al registrar pasajero externo.');
-      }
-    }
-  }
-
-  Widget _buildCategoryOption(BuildContext ctx, String label, Color color, bool isDark) {
-    return InkWell(
-      onTap: () => Navigator.pop(ctx, label),
-      borderRadius: DesignRadius.allMedium,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF5F5F5),
-          borderRadius: DesignRadius.allMedium,
-          border: Border.all(
-            color: isDark ? const Color(0xFF3D3D3D) : const Color(0xFFE5E5E5),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            DesignSpacing.spacerH12,
-            Text(
-              label,
-              style: DesignTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildCategoryBadge(String category, bool isDark) {
     Color bgColor;
