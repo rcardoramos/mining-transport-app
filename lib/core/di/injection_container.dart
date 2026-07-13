@@ -16,6 +16,7 @@ import 'package:mining_transport_app/features/auth/domain/usecases/login_usecase
 import 'package:mining_transport_app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
 import 'package:mining_transport_app/features/home/data/datasources/mock_home_dashboard_remote_data_source.dart';
+import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source_impl.dart';
 import 'package:mining_transport_app/features/home/data/repositories/home_dashboard_repository_impl.dart';
 import 'package:mining_transport_app/features/home/domain/repositories/home_dashboard_repository.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/get_driver_info_usecase.dart';
@@ -63,6 +64,12 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(locator<SecureStorage>(), locator<AppDatabase>()),
   );
+  // Para conectar con el servidor backend real en producción, descomenta esto:
+  // locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+  //   () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
+  // );
+
+  // Para trabajar con el simulador de datos localmente (desarrollo):
   locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
     () => MockHomeDashboardRemoteDataSource(),
   );
