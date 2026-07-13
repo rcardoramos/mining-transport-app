@@ -5,7 +5,7 @@ class DesignColors {
   DesignColors._();
 
   // Paleta Light Mode
-  static const Color primaryLight = Color(0xFF0F4C5C); // Teal Oscuro
+  static const Color primaryLight = Color(0xFFE2231A); // Rojo Corporativo Miski Mayo
   static const Color secondaryLight = Color(0xFFE36414); // Naranja de Seguridad Industrial
   static const Color successLight = Color(0xFF2D6A4F); // Verde Aprobado
   static const Color warningLight = Color(0xFFF5B041); // Amarillo Advertencia
