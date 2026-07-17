@@ -8,17 +8,19 @@ import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/audio/audio_service.dart';
-import '../widgets/connectivity_bar.dart';
+import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../../domain/entities/stop_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
-import 'package:mining_transport_app/features/passenger/domain/usecases/check_collaborator_usecase.dart';
+import 'package:mining_transport_app/features/validation/domain/usecases/validate_labor_rules_usecase.dart';
+import 'package:mining_transport_app/features/validation/domain/entities/labor_validation_result.dart';
 import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
 import 'package:mining_transport_app/features/occupancy/domain/usecases/validate_occupancy_usecase.dart';
 
+import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/core/utils/result.dart';
 
 /// Pantalla de Embarque de Pasajeros.
@@ -357,8 +359,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     setState(() => _isRegistering = true);
-    final checkUseCase = GetIt.I<CheckCollaboratorUseCase>();
-    final result = await checkUseCase.execute(dni);
+    final isOnline = ref.read(syncProvider).isOnline;
+    final validateUseCase = GetIt.I<ValidateLaborRulesUseCase>();
+    final result = await validateUseCase.execute(dni, isOnline);
     
     setState(() => _isRegistering = false);
 
@@ -384,7 +387,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       return;
     }
 
-    final collaborator = result.successOrNull!;
+    final validation = result.successOrNull!;
     final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(dni);
     final prefix = isScan ? 'qr_scan' : 'manual';
     
@@ -393,45 +396,196 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         ? '${prefix}_transit:${activeStop.name}'
         : null;
 
-    if (collaborator.status != CollaboratorStatus.ok) {
+    if (validation.status != LaborValidationStatus.allowed) {
       GetIt.I<AudioService>().playAlertSound();
     }
 
-    if (collaborator.status == CollaboratorStatus.ok) {
+    if (validation.status == LaborValidationStatus.allowed) {
       // Registrar de inmediato
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
       setState(() => _isRegistering = false);
 
       if (mounted) {
         if (success) {
-          DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} (${collaborator.category}) registrado exitosamente.');
+          DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
           _loadPassengers();
         } else {
           DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
         }
       }
-    } else if (collaborator.status == CollaboratorStatus.terminated) {
-      // Acceso denegado
+    } else if (validation.status == LaborValidationStatus.blockedSecurity) {
       if (mounted) {
         showDialog(
           context: context,
           builder: (ctx) => DesignDialog(
             title: 'Acceso Denegado',
-            content: 'El colaborador ${collaborator.fullName} (DNI: $dni) se encuentra en estado CESADO.\nNo está permitido su embarque.',
+            content: 'El colaborador ${validation.fullName} (DNI: $dni) cuenta con un bloqueo activo por motivos de seguridad o disciplina.\n\nEl embarque está terminantemente prohibido.',
             confirmLabel: 'Entendido',
             onConfirm: () {},
           ),
         );
       }
+    } else if (validation.status == LaborValidationStatus.blockedInactive) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Acceso Denegado',
+            content: 'El colaborador ${validation.fullName} (DNI: $dni) se encuentra en estado CESADO o INACTIVO.\n\nNo está permitido su embarque.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
+    } else if (validation.status == LaborValidationStatus.blockedEmoExpired) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.medical_services_rounded, color: Colors.orange, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Examen Médico Vencido',
+                    style: DesignTypography.titleMedium.copyWith(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'El colaborador ${validation.fullName} tiene el Examen Médico Ocupacional (EMO) vencido.',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'F. Vence: ${validation.emoExpirationDate != null ? PeruDateFormatter.formatDate(validation.emoExpirationDate) : 'N/D'}',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No se permite su embarque hasta que regularice su examen médico.',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Entendido',
+                    style: DesignTypography.labelLarge.copyWith(
+                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else if (validation.status == LaborValidationStatus.blockedInductionExpired) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.gpp_bad_rounded, color: Colors.red, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Inducción Vencida',
+                    style: DesignTypography.titleMedium.copyWith(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'El colaborador ${validation.fullName} tiene la inducción de seguridad anual vencida.',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'F. Vence: ${validation.inductionExpirationDate != null ? PeruDateFormatter.formatDate(validation.inductionExpirationDate) : 'N/D'}',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Por motivos de seguridad, no está permitido su abordaje en la unidad.',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Entendido',
+                    style: DesignTypography.labelLarge.copyWith(
+                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      }
     } else {
       // Vacaciones, descanso médico o licencia
       String alertType = '';
-      if (collaborator.status == CollaboratorStatus.vacation) alertType = 'Vacaciones';
-      if (collaborator.status == CollaboratorStatus.medicalLeave) alertType = 'DM';
-      if (collaborator.status == CollaboratorStatus.license) alertType = 'Licencia';
+      CollaboratorStatus nextStatus = CollaboratorStatus.ok;
+      if (validation.status == LaborValidationStatus.warningVacation) {
+        alertType = 'Vacaciones';
+        nextStatus = CollaboratorStatus.vacation;
+      }
+      if (validation.status == LaborValidationStatus.warningMedicalLeave) {
+        alertType = 'DM';
+        nextStatus = CollaboratorStatus.medicalLeave;
+      }
+      if (validation.status == LaborValidationStatus.warningLicense) {
+        alertType = 'Licencia';
+        nextStatus = CollaboratorStatus.license;
+      }
 
       if (mounted) {
         final confirmBoard = await showDialog<bool>(
@@ -439,7 +593,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           barrierDismissible: false,
           builder: (ctx) => DesignDialog(
             title: 'Alerta de Embarque',
-            content: 'Este colaborador (${collaborator.fullName}) está con $alertType.\n\n¿Desea permitir el embarque a bordo del bus?',
+            content: 'Este colaborador (${validation.fullName}) está con $alertType.\n\n¿Desea permitir el embarque a bordo del bus?',
             confirmLabel: 'Embarcar',
             cancelLabel: 'No embarcar',
             onConfirm: () {},
@@ -451,12 +605,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
+              .registerPassenger(trip.id, dni, nextStatus, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
           setState(() => _isRegistering = false);
 
           if (mounted) {
             if (success) {
-              DesignSnackbar.showSuccess(context, 'Pasajero ${collaborator.fullName} (${collaborator.category}) registrado con estado de excepción ($alertType).');
+              DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
               _loadPassengers();
             } else {
               DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');

@@ -5,7 +5,7 @@ import '../tokens/radius/design_radius.dart';
 import '../tokens/spacing/design_spacing.dart';
 import '../animations/design_animations.dart';
 
-enum DesignButtonType { primary, secondary, outlined, text }
+enum DesignButtonType { primary, secondary, outlined, text, danger }
 
 /// Botones corporativos altamente reutilizables con soporte de estados e interacciones.
 class DesignButton extends StatelessWidget {
@@ -57,6 +57,16 @@ class DesignButton extends StatelessWidget {
     this.borderRadius,
   }) : type = DesignButtonType.text;
 
+  const DesignButton.danger({
+    super.key,
+    required this.text,
+    this.onTap,
+    this.isLoading = false,
+    this.icon,
+    this.fullWidth = true,
+    this.borderRadius,
+  }) : type = DesignButtonType.danger;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -83,6 +93,10 @@ class DesignButton extends StatelessWidget {
       case DesignButtonType.text:
         bg = Colors.transparent;
         fg = isDark ? DesignColors.primaryDark : DesignColors.primaryLight;
+        break;
+      case DesignButtonType.danger:
+        bg = isDark ? DesignColors.dangerDark : DesignColors.dangerLight;
+        fg = Colors.white;
         break;
     }
 

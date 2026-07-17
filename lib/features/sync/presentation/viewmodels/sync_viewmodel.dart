@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mining_transport_app/core/sync/sync_queue.dart';
+import 'package:mining_transport_app/core/sync/sync_manager.dart';
+import 'package:get_it/get_it.dart';
 
 class SyncState {
   final bool isOnline;
@@ -31,9 +34,12 @@ class SyncNotifier extends StateNotifier<SyncState> {
   StreamSubscription? _subscription;
   bool _manualOverride = false;
   bool _manualOnlineValue = true;
+  final SyncQueueManager _queueManager = GetIt.I<SyncQueueManager>();
+  final SyncManager _syncManager = GetIt.I<SyncManager>();
 
   SyncNotifier() : super(const SyncState(isOnline: true, pendingSyncCount: 0, isSyncing: false)) {
     _initConnectivity();
+    _refreshPendingCount();
   }
 
   void _initConnectivity() async {
@@ -49,37 +55,44 @@ class SyncNotifier extends StateNotifier<SyncState> {
     });
   }
 
+  Future<void> _refreshPendingCount() async {
+    final count = await _queueManager.getPendingCount();
+    state = state.copyWith(pendingSyncCount: count);
+  }
+
   void _updateStatus(List<ConnectivityResult> results) {
     final hasConnection = results.isNotEmpty && !results.contains(ConnectivityResult.none);
     state = state.copyWith(isOnline: hasConnection);
+    if (hasConnection) {
+      syncLocalData();
+    }
   }
 
   void toggleConnectionManual() {
     _manualOverride = true;
     _manualOnlineValue = !state.isOnline;
     state = state.copyWith(isOnline: _manualOnlineValue);
-  }
-
-  void incrementPendingSync() {
-    if (!state.isOnline) {
-      state = state.copyWith(pendingSyncCount: state.pendingSyncCount + 1);
+    if (_manualOnlineValue) {
+      syncLocalData();
     }
   }
 
-  void setPendingSyncCount(int count) {
-    state = state.copyWith(pendingSyncCount: count);
+  Future<void> queueAction({
+    required String actionType,
+    required String payloadJson,
+  }) async {
+    await _queueManager.queueAction(actionType: actionType, payloadJson: payloadJson);
+    await _refreshPendingCount();
   }
 
   Future<void> syncLocalData() async {
+    await _refreshPendingCount();
     if (state.pendingSyncCount == 0 || state.isSyncing || !state.isOnline) return;
 
     state = state.copyWith(isSyncing: true);
-    // Simular retraso de llamada de red de sincronización
-    await Future.delayed(const Duration(seconds: 2));
-    state = state.copyWith(
-      isSyncing: false,
-      pendingSyncCount: 0,
-    );
+    await _syncManager.triggerSync();
+    await _refreshPendingCount();
+    state = state.copyWith(isSyncing: false);
   }
 
   @override

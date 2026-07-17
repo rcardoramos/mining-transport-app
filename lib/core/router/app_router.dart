@@ -9,6 +9,7 @@ import 'package:mining_transport_app/features/auth/presentation/viewmodels/login
 import 'package:mining_transport_app/features/home/presentation/pages/home_view.dart';
 import 'package:mining_transport_app/features/home/presentation/pages/boarding_view.dart';
 import 'package:mining_transport_app/features/manifest/presentation/pages/manifest_detail_view.dart';
+import 'package:mining_transport_app/features/sync/presentation/pages/sync_monitor_view.dart';
 
 /// Proveedor que expone la instancia de [GoRouter] con lógica de redirección reactiva.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -79,6 +80,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/design-system-preview',
         builder: (context, state) => const DesignSystemPreview(),
+      ),
+      GoRoute(
+        path: '/sync-monitor',
+        builder: (context, state) => const SyncMonitorView(),
       ),
     ],
   );

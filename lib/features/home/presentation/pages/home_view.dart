@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
-import '../widgets/connectivity_bar.dart';
+import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/driver_profile_card.dart';

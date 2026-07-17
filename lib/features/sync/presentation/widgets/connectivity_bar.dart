@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mining_transport_app/core/utils/sync_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 
 /// Barra de estado de conectividad con soporte para sincronización local.
@@ -31,7 +32,7 @@ class ConnectivityBar extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: bgColor,
         border: Border(
@@ -85,6 +86,18 @@ class ConnectivityBar extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ),
+          
+          DesignSpacing.spacerH8,
+          
+          // Botón del Monitor de Sincronización
+          IconButton(
+            icon: const Icon(Icons.settings_suggest_rounded, size: 18),
+            onPressed: () => context.push('/sync-monitor'),
+            tooltip: 'Monitor de Sincronización',
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(4),
+            color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
           ),
           
           const Spacer(),

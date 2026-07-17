@@ -13,7 +13,10 @@ import 'package:mining_transport_app/features/passenger/domain/usecases/register
 import '../../domain/usecases/complete_stop_usecase.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../states/home_dashboard_state.dart';
-import 'package:mining_transport_app/core/utils/sync_provider.dart';
+import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
+import 'dart:convert';
+import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
+import 'package:mining_transport_app/features/home/data/datasources/mock_home_dashboard_remote_data_source.dart';
 
 /// ViewModel que gestiona el estado y eventos de la pantalla principal (Home).
 class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
@@ -111,6 +114,24 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   Future<void> updateTripStatus(String tripId, TripStatus newStatus) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
+    final isOnline = _ref.read(syncProvider).isOnline;
+    if (!isOnline) {
+      final payloadJson = jsonEncode({
+        'tripId': tripId,
+        'status': newStatus.name,
+      });
+      await _ref.read(syncProvider.notifier).queueAction(
+        actionType: 'CLOSE_TRIP',
+        payloadJson: payloadJson,
+      );
+      
+      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
+      await mockDataSource.updateTripStatus(tripId, newStatus.name);
+      
+      await _fetchData();
+      return;
+    }
+
     final result = await _updateTripStatusUseCase.execute(tripId, newStatus);
     
     if (result.isFailure) {
@@ -121,18 +142,36 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return;
     }
     
-    // Si no hay conexión a internet, aumentar los pendientes de sincronización
-    final isOnline = _ref.read(syncProvider).isOnline;
-    if (!isOnline) {
-      _ref.read(syncProvider.notifier).incrementPendingSync();
-    }
-    
     await _fetchData();
   }
 
   Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
+    final isOnline = _ref.read(syncProvider).isOnline;
+    if (!isOnline) {
+      final payloadJson = jsonEncode({
+        'tripId': tripId,
+        'dni': dni,
+        'status': status?.name,
+        'category': category,
+        'registrationMethod': registrationMethod,
+        'lat': lat,
+        'lng': lng,
+        'justification': justification,
+      });
+      await _ref.read(syncProvider.notifier).queueAction(
+        actionType: 'BOARD_PASSENGER',
+        payloadJson: payloadJson,
+      );
+      
+      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
+      await mockDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification);
+
+      await _fetchData();
+      return true;
+    }
+
     final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification);
     
     if (result.isFailure) {
@@ -143,12 +182,6 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return false;
     }
     
-    // Si no hay conexión a internet, aumentar los pendientes de sincronización
-    final isOnline = _ref.read(syncProvider).isOnline;
-    if (!isOnline) {
-      _ref.read(syncProvider.notifier).incrementPendingSync();
-    }
-    
     await _fetchData();
     return true;
   }
@@ -156,6 +189,24 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   Future<bool> completeStop(String tripId, String stopId) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
+    final isOnline = _ref.read(syncProvider).isOnline;
+    if (!isOnline) {
+      final payloadJson = jsonEncode({
+        'tripId': tripId,
+        'stopId': stopId,
+      });
+      await _ref.read(syncProvider.notifier).queueAction(
+        actionType: 'COMPLETE_STOP',
+        payloadJson: payloadJson,
+      );
+      
+      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
+      await mockDataSource.completeStop(tripId, stopId);
+      
+      await _fetchData();
+      return true;
+    }
+
     final result = await _completeStopUseCase.execute(tripId, stopId);
     
     if (result.isFailure) {

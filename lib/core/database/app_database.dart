@@ -166,6 +166,115 @@ class AppDatabase extends _$AppDatabase {
       beforeOpen: (details) async {
         // Habilitar claves foráneas en SQLite
         await customStatement('PRAGMA foreign_keys = ON;');
+
+        // Seeding database if passengers table is empty
+        final count = await select(passengers).get();
+        if (count.isEmpty) {
+          final today = DateTime.now();
+          final futureDate = DateTime(today.year + 1, today.month, today.day);
+          final pastDate = DateTime(today.year - 1, today.month, today.day);
+
+          await batch((batch) {
+            batch.insertAll(passengers, [
+              PassengersCompanion.insert(
+                id: '48102030',
+                docNumber: '48102030',
+                code: 'COD-48102',
+                firstName: 'Juan',
+                lastName: 'Pérez',
+                companyName: 'Miski Mayo',
+                status: 'ok',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '11111111',
+                docNumber: '11111111',
+                code: 'COD-11111',
+                firstName: 'Carlos',
+                lastName: 'Mendoza (Vac.)',
+                companyName: 'Miski Mayo',
+                status: 'vacation',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '22222222',
+                docNumber: '22222222',
+                code: 'COD-22222',
+                firstName: 'Ana',
+                lastName: 'Flores (Med.)',
+                companyName: 'Miski Mayo',
+                status: 'medicalLeave',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '33333333',
+                docNumber: '33333333',
+                code: 'COD-33333',
+                firstName: 'Jorge',
+                lastName: 'Torres (Lic.)',
+                companyName: 'Miski Mayo',
+                status: 'license',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '44444444',
+                docNumber: '44444444',
+                code: 'COD-44444',
+                firstName: 'Luz',
+                lastName: 'Huamán (Ces.)',
+                companyName: 'Contratista',
+                status: 'terminated',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '55555555',
+                docNumber: '55555555',
+                code: 'COD-55555',
+                firstName: 'Pedro',
+                lastName: 'Salinas (EMO Exp.)',
+                companyName: 'Terceros',
+                status: 'ok',
+                emoExpirationDate: pastDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '66666666',
+                docNumber: '66666666',
+                code: 'COD-66666',
+                firstName: 'María',
+                lastName: 'Cárdenas (Ind. Exp.)',
+                companyName: 'Contratista',
+                status: 'ok',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: pastDate,
+                hasSecurityBlock: false,
+              ),
+              PassengersCompanion.insert(
+                id: '77777777',
+                docNumber: '77777777',
+                code: 'COD-77777',
+                firstName: 'José',
+                lastName: 'Quispe (Bloqueado)',
+                companyName: 'Contratista',
+                status: 'ok',
+                emoExpirationDate: futureDate,
+                inductionExpirationDate: futureDate,
+                hasSecurityBlock: true,
+              ),
+            ]);
+          });
+        }
       },
     );
   }
