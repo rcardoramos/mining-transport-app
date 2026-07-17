@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:mining_transport_app/core/di/injection_container.dart';
+import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/utils/result.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -25,34 +27,23 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<UserEntity, Failure>> login(String username, String password) async {
-    // Si estamos en DEV, hacer bypass completo del login para desarrollo rápido y local
-    bool isDev = false;
     try {
-      isDev = EnvConfig.instance.environment == AppEnvironment.dev;
-    } catch (_) {}
+      double latitude = -5.194490;
+      double longitude = -80.632820;
+      try {
+        final position = locator<GpsService>().currentPosition;
+        latitude = position.latitude;
+        longitude = position.longitude;
+      } catch (_) {}
 
-    if (isDev) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      final user = UserEntity(
-        id: 'DRV-998',
-        username: username,
-        fullName: 'Ricardo Ramos',
-        role: 'DRIVER',
-        token: 'mock_jwt_token',
-      );
-      final userModel = UserModel.fromEntity(user);
-      await _localDataSource.saveToken('mock_jwt_token');
-      await _localDataSource.saveUser(userModel);
-      await _localDataSource.saveUsername(username);
-      await _localDataSource.savePasswordHash(_hashPassword(password));
-      
-      return Success(user);
-    }
-
-    try {
       // Intentar login remoto con el servidor ERP
       final response = await _remoteDataSource.login(
-        LoginRequest(username: username, password: password),
+        LoginRequest(
+          username: username,
+          password: password,
+          lat: latitude,
+          lng: longitude,
+        ),
       );
 
       // Guardar sesión y tokens de forma local
@@ -79,6 +70,9 @@ class AuthRepositoryImpl implements AuthRepository {
       // Manejar códigos de error específicos del backend
       if (e.response?.statusCode == 401) {
         return const FailureResult(UnauthorizedFailure('Usuario o contraseña incorrectos.'));
+      }
+      if (e.type == DioExceptionType.badResponse && e.error is String) {
+        return FailureResult(UnauthorizedFailure(e.error as String));
       }
       if (e.response?.statusCode == 423) {
         return const FailureResult(ValidationFailure('Usuario bloqueado administrativamente.'));

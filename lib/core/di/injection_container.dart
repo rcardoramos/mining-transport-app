@@ -75,14 +75,14 @@ Future<void> setupLocator() async {
     ),
   );
   // Para conectar con el servidor backend real en producción, descomenta esto:
-  // locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
-  //   () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
-  // );
+  locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+    () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
+  );
 
   // Para trabajar con el simulador de datos localmente (desarrollo): Comentar las lineas en caso ya se peguen las apis.
-  locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
-    () => MockHomeDashboardRemoteDataSource(),
-  );
+  // locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+  //   () => MockHomeDashboardRemoteDataSource(),
+  // );
 
   // 8. Repositories
   locator.registerLazySingleton<AuthRepository>(

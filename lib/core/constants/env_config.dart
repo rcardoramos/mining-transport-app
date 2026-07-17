@@ -20,13 +20,13 @@ class EnvConfig {
       case AppEnvironment.dev:
         _instance = EnvConfig(
           environment: AppEnvironment.dev,
-          baseUrl: 'https://api-dev.miskimayo.pe/api/v1',
+          baseUrl: 'http://40.75.87.68/wsadryanbus/',
         );
         break;
       case AppEnvironment.staging:
         _instance = EnvConfig(
           environment: AppEnvironment.staging,
-          baseUrl: 'https://api-qa.miskimayo.pe/api/v1',
+          baseUrl: 'http://40.75.87.68/wsadryanbus/',
         );
         break;
       case AppEnvironment.prod:

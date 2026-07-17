@@ -35,7 +35,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final response = await _dioClient.dio.post(
-      '/api/Viaje/Historial',
+      'api/Viaje/Historial',
       data: {
         'usuario': username,
         'token': token,
@@ -54,7 +54,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final response = await _dioClient.dio.post(
-      '/api/Viaje/Historial',
+      'api/Viaje/Historial',
       data: {
         'usuario': username,
         'token': token,
@@ -84,7 +84,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
 
     if (status == 'completed') {
       final response = await _dioClient.dio.post(
-        '/api/Viaje/Cerrar',
+        'api/Viaje/Cerrar',
         data: {
           'usuario': username,
           'token': token,
@@ -99,7 +99,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     } else {
       // Aperturar / Iniciar viaje en tránsito
       final response = await _dioClient.dio.post(
-        '/api/Viaje/Aperturar',
+        'api/Viaje/Aperturar',
         data: {
           'usuario': username,
           'token': token,
@@ -123,7 +123,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final isVisita = category == 'Visita' || registrationMethod == 'visit';
-    final endpoint = isVisita ? '/api/Pasajero/RegistrarVisita' : '/api/Pasajero/Registrar';
+    final endpoint = isVisita ? 'api/Pasajero/RegistrarVisita' : 'api/Pasajero/Registrar';
 
     final body = {
       'usuario': username,
@@ -158,7 +158,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final response = await _dioClient.dio.post(
-      '/api/Pasajero/Lista',
+      'api/Pasajero/Lista',
       data: {
         'usuario': username,
         'token': token,
@@ -179,7 +179,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final response = await _dioClient.dio.post(
-      '/api/Pasajero/Validar',
+      'api/Pasajero/Validar',
       data: {
         'usuario': username,
         'token': token,
@@ -200,7 +200,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final token = await _secureStorage.getToken() ?? '';
 
     final response = await _dioClient.dio.post(
-      '/api/Viaje/CompletarParadero',
+      'api/Viaje/CompletarParadero',
       data: {
         'usuario': username,
         'token': token,

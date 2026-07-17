@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/features/auth/data/models/login_request.dart';
 import 'package:mining_transport_app/features/auth/data/models/login_response.dart';
@@ -21,13 +23,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<LoginResponse> login(LoginRequest request) async {
     try {
       final response = await _dioClient.dio.post(
-        '/auth/login',
+        'api/Auth/Login',
         data: request.toJson(),
       );
-      return LoginResponse.fromJson(response.data as Map<String, dynamic>);
+      
+      final wrapped = response.data as Map<String, dynamic>;
+      final success = wrapped['Success'] as bool? ?? false;
+      
+      if (!success) {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+          error: wrapped['Message'] ?? 'Usuario o clave incorrectos',
+        );
+      }
+      
+      final data = wrapped['Data'] as Map<String, dynamic>;
+      final token = data['Token'] as String;
+      final userJson = data['User'] as Map<String, dynamic>;
+      
+      return LoginResponse(
+        token: token,
+        user: UserModel.fromJson(userJson),
+      );
     } catch (e) {
-      // Simular login exitoso en DEV si el servidor no responde o no está disponible
-      if (EnvConfig.instance.environment == AppEnvironment.dev) {
+      // Simular login exitoso en DEV únicamente si el servidor no responde (error de red/conexión)
+      // NUNCA si el servidor respondió explícitamente con credenciales inválidas.
+      final isNetworkError = e is DioException && (
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError ||
+        e.error is SocketException
+      );
+
+      if (isNetworkError && EnvConfig.instance.environment == AppEnvironment.dev) {
         await Future.delayed(const Duration(milliseconds: 600));
         if (request.username.isNotEmpty && request.password.isNotEmpty) {
           return LoginResponse(
@@ -35,7 +66,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             user: UserModel(
               id: 'DRV-998',
               username: request.username,
-              fullName: 'Ricardo Ramos',
+              fullName: 'Ricardo Ramos (Simulado)',
               role: 'DRIVER',
             ),
           );

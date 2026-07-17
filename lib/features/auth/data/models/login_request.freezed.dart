@@ -21,8 +21,18 @@ LoginRequest _$LoginRequestFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$LoginRequest {
+  @JsonKey(name: 'usuario')
   String get username => throw _privateConstructorUsedError;
+  @JsonKey(name: 'pass')
   String get password => throw _privateConstructorUsedError;
+  @JsonKey(name: 'deviceUid')
+  String get deviceUid => throw _privateConstructorUsedError;
+  @JsonKey(name: 'modelo')
+  String get modelo => throw _privateConstructorUsedError;
+  @JsonKey(name: 'lat')
+  double get lat => throw _privateConstructorUsedError;
+  @JsonKey(name: 'lng')
+  double get lng => throw _privateConstructorUsedError;
 
   /// Serializes this LoginRequest to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -41,7 +51,14 @@ abstract class $LoginRequestCopyWith<$Res> {
     $Res Function(LoginRequest) then,
   ) = _$LoginRequestCopyWithImpl<$Res, LoginRequest>;
   @useResult
-  $Res call({String username, String password});
+  $Res call({
+    @JsonKey(name: 'usuario') String username,
+    @JsonKey(name: 'pass') String password,
+    @JsonKey(name: 'deviceUid') String deviceUid,
+    @JsonKey(name: 'modelo') String modelo,
+    @JsonKey(name: 'lat') double lat,
+    @JsonKey(name: 'lng') double lng,
+  });
 }
 
 /// @nodoc
@@ -58,7 +75,14 @@ class _$LoginRequestCopyWithImpl<$Res, $Val extends LoginRequest>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? username = null, Object? password = null}) {
+  $Res call({
+    Object? username = null,
+    Object? password = null,
+    Object? deviceUid = null,
+    Object? modelo = null,
+    Object? lat = null,
+    Object? lng = null,
+  }) {
     return _then(
       _value.copyWith(
             username: null == username
@@ -69,6 +93,22 @@ class _$LoginRequestCopyWithImpl<$Res, $Val extends LoginRequest>
                 ? _value.password
                 : password // ignore: cast_nullable_to_non_nullable
                       as String,
+            deviceUid: null == deviceUid
+                ? _value.deviceUid
+                : deviceUid // ignore: cast_nullable_to_non_nullable
+                      as String,
+            modelo: null == modelo
+                ? _value.modelo
+                : modelo // ignore: cast_nullable_to_non_nullable
+                      as String,
+            lat: null == lat
+                ? _value.lat
+                : lat // ignore: cast_nullable_to_non_nullable
+                      as double,
+            lng: null == lng
+                ? _value.lng
+                : lng // ignore: cast_nullable_to_non_nullable
+                      as double,
           )
           as $Val,
     );
@@ -84,7 +124,14 @@ abstract class _$$LoginRequestImplCopyWith<$Res>
   ) = __$$LoginRequestImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String username, String password});
+  $Res call({
+    @JsonKey(name: 'usuario') String username,
+    @JsonKey(name: 'pass') String password,
+    @JsonKey(name: 'deviceUid') String deviceUid,
+    @JsonKey(name: 'modelo') String modelo,
+    @JsonKey(name: 'lat') double lat,
+    @JsonKey(name: 'lng') double lng,
+  });
 }
 
 /// @nodoc
@@ -100,7 +147,14 @@ class __$$LoginRequestImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? username = null, Object? password = null}) {
+  $Res call({
+    Object? username = null,
+    Object? password = null,
+    Object? deviceUid = null,
+    Object? modelo = null,
+    Object? lat = null,
+    Object? lng = null,
+  }) {
     return _then(
       _$LoginRequestImpl(
         username: null == username
@@ -111,6 +165,22 @@ class __$$LoginRequestImplCopyWithImpl<$Res>
             ? _value.password
             : password // ignore: cast_nullable_to_non_nullable
                   as String,
+        deviceUid: null == deviceUid
+            ? _value.deviceUid
+            : deviceUid // ignore: cast_nullable_to_non_nullable
+                  as String,
+        modelo: null == modelo
+            ? _value.modelo
+            : modelo // ignore: cast_nullable_to_non_nullable
+                  as String,
+        lat: null == lat
+            ? _value.lat
+            : lat // ignore: cast_nullable_to_non_nullable
+                  as double,
+        lng: null == lng
+            ? _value.lng
+            : lng // ignore: cast_nullable_to_non_nullable
+                  as double,
       ),
     );
   }
@@ -119,19 +189,40 @@ class __$$LoginRequestImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$LoginRequestImpl implements _LoginRequest {
-  const _$LoginRequestImpl({required this.username, required this.password});
+  const _$LoginRequestImpl({
+    @JsonKey(name: 'usuario') required this.username,
+    @JsonKey(name: 'pass') required this.password,
+    @JsonKey(name: 'deviceUid') this.deviceUid = 'DEV-0042',
+    @JsonKey(name: 'modelo') this.modelo = 'Samsung A54',
+    @JsonKey(name: 'lat') this.lat = -5.194490,
+    @JsonKey(name: 'lng') this.lng = -80.632820,
+  });
 
   factory _$LoginRequestImpl.fromJson(Map<String, dynamic> json) =>
       _$$LoginRequestImplFromJson(json);
 
   @override
+  @JsonKey(name: 'usuario')
   final String username;
   @override
+  @JsonKey(name: 'pass')
   final String password;
+  @override
+  @JsonKey(name: 'deviceUid')
+  final String deviceUid;
+  @override
+  @JsonKey(name: 'modelo')
+  final String modelo;
+  @override
+  @JsonKey(name: 'lat')
+  final double lat;
+  @override
+  @JsonKey(name: 'lng')
+  final double lng;
 
   @override
   String toString() {
-    return 'LoginRequest(username: $username, password: $password)';
+    return 'LoginRequest(username: $username, password: $password, deviceUid: $deviceUid, modelo: $modelo, lat: $lat, lng: $lng)';
   }
 
   @override
@@ -142,12 +233,18 @@ class _$LoginRequestImpl implements _LoginRequest {
             (identical(other.username, username) ||
                 other.username == username) &&
             (identical(other.password, password) ||
-                other.password == password));
+                other.password == password) &&
+            (identical(other.deviceUid, deviceUid) ||
+                other.deviceUid == deviceUid) &&
+            (identical(other.modelo, modelo) || other.modelo == modelo) &&
+            (identical(other.lat, lat) || other.lat == lat) &&
+            (identical(other.lng, lng) || other.lng == lng));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, username, password);
+  int get hashCode =>
+      Object.hash(runtimeType, username, password, deviceUid, modelo, lat, lng);
 
   /// Create a copy of LoginRequest
   /// with the given fields replaced by the non-null parameter values.
@@ -165,17 +262,35 @@ class _$LoginRequestImpl implements _LoginRequest {
 
 abstract class _LoginRequest implements LoginRequest {
   const factory _LoginRequest({
-    required final String username,
-    required final String password,
+    @JsonKey(name: 'usuario') required final String username,
+    @JsonKey(name: 'pass') required final String password,
+    @JsonKey(name: 'deviceUid') final String deviceUid,
+    @JsonKey(name: 'modelo') final String modelo,
+    @JsonKey(name: 'lat') final double lat,
+    @JsonKey(name: 'lng') final double lng,
   }) = _$LoginRequestImpl;
 
   factory _LoginRequest.fromJson(Map<String, dynamic> json) =
       _$LoginRequestImpl.fromJson;
 
   @override
+  @JsonKey(name: 'usuario')
   String get username;
   @override
+  @JsonKey(name: 'pass')
   String get password;
+  @override
+  @JsonKey(name: 'deviceUid')
+  String get deviceUid;
+  @override
+  @JsonKey(name: 'modelo')
+  String get modelo;
+  @override
+  @JsonKey(name: 'lat')
+  double get lat;
+  @override
+  @JsonKey(name: 'lng')
+  double get lng;
 
   /// Create a copy of LoginRequest
   /// with the given fields replaced by the non-null parameter values.
