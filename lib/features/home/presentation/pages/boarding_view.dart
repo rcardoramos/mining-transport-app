@@ -16,6 +16,7 @@ import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/stop_entity.dart';
 import '../../domain/usecases/get_passengers_on_board_usecase.dart';
 import '../../domain/usecases/check_collaborator_usecase.dart';
+import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
 
 import 'package:mining_transport_app/core/utils/result.dart';
 
@@ -91,23 +92,24 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
   bool _isDriverInRange(StopEntity stop) {
     if (_currentPosition == null) return false;
-    final distance = _gpsService.calculateDistance(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-      stop.latitude,
-      stop.longitude,
+    final validator = GetIt.I<ValidateStopGeofencingUseCase>();
+    final result = validator.execute(
+      userLatitude: _currentPosition!.latitude,
+      userLongitude: _currentPosition!.longitude,
+      stop: stop,
     );
-    return distance <= stop.allowedRadius;
+    return result.inRange;
   }
 
   double _getDistanceToStop(StopEntity stop) {
     if (_currentPosition == null) return 0.0;
-    return _gpsService.calculateDistance(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-      stop.latitude,
-      stop.longitude,
+    final validator = GetIt.I<ValidateStopGeofencingUseCase>();
+    final result = validator.execute(
+      userLatitude: _currentPosition!.latitude,
+      userLongitude: _currentPosition!.longitude,
+      stop: stop,
     );
+    return result.distanceInMetres;
   }
 
   String _formatTime(DateTime? dateTime) {
@@ -202,27 +204,117 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
-    // 0. Verificar rango del paradero activo si está configurado
+    // 0. Verificar precisión de GPS (RN-GEO-04-02)
+    if (_currentPosition != null && _currentPosition!.accuracy > 30.0) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Señal GPS Deficiente',
+            content: 'La precisión actual del GPS es de ${_currentPosition!.accuracy.toStringAsFixed(1)} metros.\n\n'
+                'Se requiere una precisión de 30 metros o mejor para garantizar el registro de auditoría.\n\n'
+                'Por favor, espera unos segundos a que la señal mejore o colócate en una zona más despejada.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
+      return;
+    }
+
+    // 0.1 Verificar rango del paradero activo si está configurado (RN-GEO-04-01)
     final activeStop = _getActiveStop(trip);
+    String? justification;
     if (activeStop != null) {
       final inRange = _isDriverInRange(activeStop);
       if (!inRange) {
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => DesignDialog(
-              title: 'Fuera de Rango de Paradero',
-              content: 'Te encuentras fuera del radio permitido para este paradero:\n\n'
-                  '• Paradero: ${activeStop.name}\n'
-                  '• Distancia actual: ${_getDistanceToStop(activeStop).toStringAsFixed(1)} metros\n'
-                  '• Radio permitido: ${activeStop.allowedRadius.toStringAsFixed(0)} metros\n\n'
-                  'Por favor, acércate al paradero para registrar el abordaje de pasajeros.',
-              confirmLabel: 'Entendido',
-              onConfirm: () {},
-            ),
-          );
+        final distance = _getDistanceToStop(activeStop);
+        final justificationController = TextEditingController();
+        final justificationFormKey = GlobalKey<FormState>();
+
+        final confirmForced = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            return AlertDialog(
+              title: Text(
+                'Fuera de Rango de Paradero',
+                style: DesignTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
+              ),
+              content: Form(
+                key: justificationFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Te encuentras fuera del radio permitido para este paradero:\n\n'
+                      '• Paradero: ${activeStop.name}\n'
+                      '• Distancia actual: ${distance.toStringAsFixed(1)} metros\n'
+                      '• Radio permitido: ${activeStop.allowedRadius.toStringAsFixed(0)} metros\n\n'
+                      'Puedes forzar el registro ingresando una justificación escrita:',
+                      style: DesignTypography.bodyMedium.copyWith(
+                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                      ),
+                    ),
+                    DesignSpacing.spacerV16,
+                    DesignTextField(
+                      controller: justificationController,
+                      labelText: 'Justificación de Abordaje',
+                      hintText: 'Ej. Tránsito pesado, clima adverso, etc.',
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'La justificación es requerida';
+                        }
+                        if (val.trim().length < 5) {
+                          return 'Ingrese una justificación detallada (mín. 5 caract.)';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
+              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(
+                    'Cancelar',
+                    style: DesignTypography.labelLarge.copyWith(
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (justificationFormKey.currentState!.validate()) {
+                      Navigator.pop(ctx, true);
+                    }
+                  },
+                  child: Text(
+                    'Forzar Registro',
+                    style: DesignTypography.labelLarge.copyWith(
+                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+
+        if (confirmForced == true) {
+          justification = justificationController.text.trim();
+        } else {
+          return;
         }
-        return;
       }
     }
 
@@ -305,7 +397,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category, customMethod);
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, collaborator.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
       setState(() => _isRegistering = false);
 
       if (mounted) {
@@ -354,7 +446,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category, customMethod);
+              .registerPassenger(trip.id, dni, collaborator.status, collaborator.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
           setState(() => _isRegistering = false);
 
           if (mounted) {
@@ -658,11 +750,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           _buildParaderosCard(activeTrip, isDark, colors),
           _buildGpsSimulatorPanel(activeTrip, isDark, colors),
 
-          // Determinar si está en rango para habilitar controles
+          // Habilitar controles siempre (geofencing se valida al registrar)
           (() {
-            final activeStop = _getActiveStop(activeTrip);
-            final inRange = activeStop == null || _isDriverInRange(activeStop);
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -679,54 +768,51 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
                 // ── Opción 1: Escaneo QR ─────────────────────────────────────────
                 DesignCard.basic(
-                  onTap: (_isRegistering || !inRange) ? null : () => _showCameraSimulator(trip!),
-                  child: Opacity(
-                    opacity: inRange ? 1.0 : 0.45,
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: DesignSpacing.allS,
-                          decoration: BoxDecoration(
-                            color: colors.info.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.qr_code_scanner_rounded,
-                              size: 32, color: colors.info),
+                  onTap: _isRegistering ? null : () => _showCameraSimulator(trip!),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: DesignSpacing.allS,
+                        decoration: BoxDecoration(
+                          color: colors.info.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        DesignSpacing.spacerH16,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Escanear DNI o Fotocheck',
-                                style: DesignTypography.titleMedium.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? DesignColors.textPrimaryDark
-                                      : DesignColors.textPrimaryLight,
-                                ),
+                        child: Icon(Icons.qr_code_scanner_rounded,
+                            size: 32, color: colors.info),
+                      ),
+                      DesignSpacing.spacerH16,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Escanear DNI o Fotocheck',
+                              style: DesignTypography.titleMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? DesignColors.textPrimaryDark
+                                    : DesignColors.textPrimaryLight,
                               ),
-                              DesignSpacing.spacerV4,
-                              Text(
-                                'Usa la cámara para leer el código QR o barras del fotocheck corporativo.',
-                                style: DesignTypography.caption.copyWith(
-                                  color: isDark
-                                      ? DesignColors.textSecondaryDark
-                                      : DesignColors.textSecondaryLight,
-                                ),
+                            ),
+                            DesignSpacing.spacerV4,
+                            Text(
+                              'Usa la cámara para leer el código QR o barras del fotocheck corporativo.',
+                              style: DesignTypography.caption.copyWith(
+                                color: isDark
+                                    ? DesignColors.textSecondaryDark
+                                    : DesignColors.textSecondaryLight,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: isDark
-                              ? DesignColors.textSecondaryDark
-                              : DesignColors.textSecondaryLight,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: isDark
+                            ? DesignColors.textSecondaryDark
+                            : DesignColors.textSecondaryLight,
+                      ),
+                    ],
                   ),
                 ),
 
@@ -734,62 +820,59 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
                 // ── Opción 2: Embarque Manual ─────────────────────────────────────
                 DesignCard.basic(
-                  onTap: (_isRegistering || !inRange)
+                  onTap: _isRegistering
                       ? null
                       : () {
                           setState(() {
                             _isManualInputVisible = !_isManualInputVisible;
                           });
                         },
-                  child: Opacity(
-                    opacity: inRange ? 1.0 : 0.45,
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: DesignSpacing.allS,
-                          decoration: BoxDecoration(
-                            color: colors.warning.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.keyboard_rounded,
-                              size: 32, color: colors.warning),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: DesignSpacing.allS,
+                        decoration: BoxDecoration(
+                          color: colors.warning.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        DesignSpacing.spacerH16,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Embarque Manual',
-                                style: DesignTypography.titleMedium.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? DesignColors.textPrimaryDark
-                                      : DesignColors.textPrimaryLight,
-                                ),
+                        child: Icon(Icons.keyboard_rounded,
+                            size: 32, color: colors.warning),
+                      ),
+                      DesignSpacing.spacerH16,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Embarque Manual',
+                              style: DesignTypography.titleMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? DesignColors.textPrimaryDark
+                                    : DesignColors.textPrimaryLight,
                               ),
-                              DesignSpacing.spacerV4,
-                              Text(
-                                'Ingresa el DNI manualmente si el fotocheck no puede ser leído por la cámara.',
-                                style: DesignTypography.caption.copyWith(
-                                  color: isDark
-                                      ? DesignColors.textSecondaryDark
-                                      : DesignColors.textSecondaryLight,
-                                ),
+                            ),
+                            DesignSpacing.spacerV4,
+                            Text(
+                              'Ingresa el DNI manualmente si el fotocheck no puede ser leído por la cámara.',
+                              style: DesignTypography.caption.copyWith(
+                                color: isDark
+                                    ? DesignColors.textSecondaryDark
+                                    : DesignColors.textSecondaryLight,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Icon(
-                          _isManualInputVisible
-                              ? Icons.keyboard_arrow_up_rounded
-                              : Icons.keyboard_arrow_down_rounded,
-                          color: isDark
-                              ? DesignColors.textSecondaryDark
-                              : DesignColors.textSecondaryLight,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Icon(
+                        _isManualInputVisible
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: isDark
+                            ? DesignColors.textSecondaryDark
+                            : DesignColors.textSecondaryLight,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -802,9 +885,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             transitionBuilder: (child, animation) =>
                 FadeTransition(opacity: animation, child: child),
             child: (() {
-              final activeStop = _getActiveStop(trip!);
-              final inRange = activeStop == null || _isDriverInRange(activeStop);
-              return (_isManualInputVisible && inRange)
+              return _isManualInputVisible
                   ? Padding(
                       key: const ValueKey('manual_form'),
                       padding: const EdgeInsets.only(top: 16),
@@ -1383,8 +1464,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    icon: const Icon(Icons.gps_fixed_rounded, size: 16),
-                    label: const Text('Dentro de Rango', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.gps_fixed_rounded, size: 14),
+                    label: const Text('Dentro', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     onPressed: () {
                       _gpsService.setSimulatedPosition(
                         activeStop.latitude,
@@ -1402,12 +1483,32 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    icon: const Icon(Icons.gps_off_rounded, size: 16),
-                    label: const Text('Fuera de Rango', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.gps_off_rounded, size: 14),
+                    label: const Text('Fuera', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     onPressed: () {
                       _gpsService.setSimulatedPosition(
                         activeStop.latitude + 0.005,
                         activeStop.longitude + 0.005,
+                      );
+                    },
+                  ),
+                ),
+                DesignSpacing.spacerH8,
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade800,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.signal_wifi_bad_rounded, size: 14),
+                    label: const Text('Inestable', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      _gpsService.setSimulatedPosition(
+                        activeStop.latitude,
+                        activeStop.longitude,
+                        50.0, // 50m accuracy -> Poor signal
                       );
                     },
                   ),

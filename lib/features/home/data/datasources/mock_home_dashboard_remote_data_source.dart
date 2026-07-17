@@ -234,7 +234,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod]) async {
+  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification]) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
     // Determinar la categoría (si es proporcionada, la usamos; si no, la deducimos del DNI)
@@ -267,12 +267,13 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
     final prefix = isScan ? 'qr_scan' : 'manual';
     
     final method = registrationMethod ?? (isTravelling ? '${prefix}_transit' : prefix);
+    final finalMethod = justification != null ? '$method (Forzado: $justification)' : method;
 
     final newPassenger = PassengerModel(
       dni: dni,
       fullName: finalName,
       boardedAt: DateTime.now().toIso8601String(),
-      registrationMethod: method,
+      registrationMethod: finalMethod,
       status: finalStatus,
       seatNumber: '${(_passengers[id]?.length ?? 0) + 1}',
       category: finalCategory,

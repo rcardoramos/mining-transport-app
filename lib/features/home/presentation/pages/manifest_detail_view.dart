@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
-import '../viewmodels/home_dashboard_viewmodel.dart';
-import '../../domain/entities/trip_entity.dart';
-import '../../domain/entities/passenger_entity.dart';
-import '../../domain/entities/collaborator_entity.dart';
-import '../../domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
+import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_passengers_on_board_usecase.dart';
 import 'package:printing/printing.dart';
 import 'package:mining_transport_app/core/pdf/pdf_service.dart';
 

@@ -22,7 +22,7 @@ Actualmente, **todas las fases principales han sido implementadas** en su lógic
 | **Fase 3** | **Gestión de Viajes (Trip)** | 🟢 **Completado** | Visualización de viajes pendientes y del día actual en el Dashboard del conductor. Control de estados de viajes ("Programado", "En viaje", "Finalizado"), captura de kilometraje (odómetro inicial/final) con diálogos de confirmación y firmas lógicas de cierre. |
 | **Fase 4** | **Captura de Pasajeros** | 🟢 **Completado** | Interfaz para escaneo y registro manual de código de barras/DNI/Fotocheck en la vista de Embarque (`BoardingView`). Soporte para simulación de lectura. |
 | **Fase 5** | **Validación Laboral** | 🟢 **Completado** | Evaluación local de reglas críticas del colaborador: vigencia de examen médico (EMO), inducción de seguridad anual aprobada, y ausencia de bloqueos administrativos. Alertas visuales destacadas (amarillo/rojo) en caso de discrepancia. |
-| **Fase 6** | **Geolocalización (GPS)** | 🟢 **Completado** | Control geolocalizado de paraderos de abordaje autorizados en tránsito. Permite abordar solo en rango del paradero activo con indicador interactivo de GPS y fallback para rutas tradicionales sin paraderos. |
+| **Fase 6** | **Geolocalización (GPS)** | 🟢 **Completado** | Control geolocalizado de paraderos de abordaje autorizados en tránsito. Valida la precisión de la señal (< 30 m) y aplica geofencing, permitiendo forzar el registro fuera de rango mediante justificación escrita. |
 | **Fase 7** | **Control de Aforo** | 🟢 **Completado** | Contador visual dinámico de aforo a bordo en tiempo real, bloqueos y alertas cuando se excede la capacidad máxima del bus, y validación contra registros duplicados. |
 | **Fase 8** | **Emisión de Manifiestos** | 🟢 **Completado** | Visualización detallada del manifiesto de pasajeros del viaje actual en la pestaña "Manifiestos" o "Historial", mostrando la información del viaje, conductor y listado de colaboradores a bordo. |
 | **Fase 9** | **Sincronización en Background** | 🟢 **Completado** | Cola de sincronización local FIFO. Incorpora un banner reactivo de conectividad (`ConnectivityBar`) que monitoriza el estado de la red y el conteo de registros locales pendientes de envío. |
@@ -70,6 +70,9 @@ Actualmente, **todas las fases principales han sido implementadas** en su lógic
 
 9. **Servicio de Alertas de Audio**
    * [audio_service.dart](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/lib/core/audio/audio_service.dart): Abstracción e implementación de la reproducción de alerta sonora (`Alert.mp3`) para eventos de embarque no autorizados.
+
+10. **Servicio de Generación de PDF**
+    * [pdf_service.dart](file:///c:/Users/RICARDO%20RAMOS/OneDrive/Escritorio/mining-transport-app/lib/core/pdf/pdf_service.dart): Implementación nativa para la generación del documento PDF del manifiesto de pasajeros para imprimir y compartir.
 
 ### 🎨 Componentes Compartidos (`lib/shared/`)
 

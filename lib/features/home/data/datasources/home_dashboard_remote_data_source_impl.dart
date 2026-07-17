@@ -118,6 +118,9 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     String? status,
     String? category,
     String? registrationMethod,
+    double? lat,
+    double? lng,
+    String? justification,
   ]) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
@@ -132,9 +135,10 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       'dni': dni,
       'tipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
       'estadoLaboral': status ?? 'OK',
-      'resultado': 'ABORDO',
-      'lat': 0.0,
-      'lng': 0.0,
+      'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
+      'observacion': justification,
+      'lat': lat ?? 0.0,
+      'lng': lng ?? 0.0,
     };
 
     if (isVisita) {

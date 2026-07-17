@@ -21,11 +21,11 @@ class GpsService {
 
   Position get currentPosition => _currentSimulatedPosition ?? _createMockPosition(-12.046374, -77.042793);
 
-  void setSimulatedPosition(double latitude, double longitude) {
+  void setSimulatedPosition(double latitude, double longitude, [double accuracy = 5.0]) {
     _isSimulationMode = true;
-    _currentSimulatedPosition = _createMockPosition(latitude, longitude);
+    _currentSimulatedPosition = _createMockPosition(latitude, longitude, accuracy);
     _locationController.add(_currentSimulatedPosition!);
-    _logger.i('GPS Simulation: Location set to $latitude, $longitude');
+    _logger.i('GPS Simulation: Location set to $latitude, $longitude with accuracy $accuracy m');
   }
 
   Future<bool> requestPermissions() async {
@@ -103,12 +103,12 @@ class GpsService {
     return 12742000 * math.asin(math.sqrt(a)); // 2 * R; R = 6371 km = 6371000 m
   }
 
-  Position _createMockPosition(double lat, double lng) {
+  Position _createMockPosition(double lat, double lng, [double accuracy = 5.0]) {
     return Position(
       longitude: lng,
       latitude: lat,
       timestamp: DateTime.now(),
-      accuracy: 5.0,
+      accuracy: accuracy,
       altitude: 0.0,
       heading: 0.0,
       speed: 0.0,
