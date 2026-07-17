@@ -9,6 +9,8 @@ import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/passenger_entity.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:printing/printing.dart';
+import 'package:mining_transport_app/core/pdf/pdf_service.dart';
 
 /// Vista de Detalle de Manifiesto de Pasajeros para un Viaje Finalizado.
 class ManifestDetailView extends ConsumerStatefulWidget {
@@ -103,6 +105,24 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
 
   void _exportManifest() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final state = ref.read(homeDashboardViewModelProvider);
+    final data = state.data;
+    TripEntity? trip;
+    if (data != null) {
+      final all = [...data.todayTrips, ...data.pendingTrips];
+      try {
+        trip = all.firstWhere((t) => t.id == widget.tripId);
+      } catch (_) {}
+    }
+
+    if (trip == null) {
+      DesignSnackbar.showError(context, 'No se pudo generar el manifiesto. Viaje no encontrado.');
+      return;
+    }
+
+    final driverName = data?.driver.name ?? 'Ricardo Ramos';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
@@ -135,32 +155,52 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                 ),
                 DesignSpacing.spacerV12,
                 DesignListTile(
-                  title: 'Guardar en el dispositivo',
-                  subtitle: 'Descarga y guarda el documento PDF localmente',
-                  leading: const Icon(Icons.download_rounded, color: Colors.blue),
-                  onTap: () {
+                  title: 'Guardar/Imprimir PDF',
+                  subtitle: 'Abre el diálogo nativo para guardar o imprimir',
+                  leading: const Icon(Icons.print_rounded, color: Colors.blue),
+                  onTap: () async {
                     Navigator.pop(context);
-                    DesignSnackbar.showSuccess(context, 'Manifiesto guardado en el dispositivo.');
+                    try {
+                      final pdfService = PdfService();
+                      final pdfBytes = await pdfService.generateManifestPdf(
+                        trip: trip!,
+                        passengers: _passengersList,
+                        driverName: driverName,
+                      );
+                      await Printing.layoutPdf(
+                        onLayout: (format) async => pdfBytes,
+                        name: 'manifiesto_${trip.id}',
+                      );
+                    } catch (e) {
+                      if (context.mounted) {
+                        DesignSnackbar.showError(context, 'Error al abrir diálogo de impresión.');
+                      }
+                    }
                   },
                 ),
                 const Divider(),
                 DesignListTile(
-                  title: 'Compartir por WhatsApp',
-                  subtitle: 'Envía el PDF directamente a un chat o grupo',
-                  leading: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.green),
-                  onTap: () {
+                  title: 'Compartir PDF',
+                  subtitle: 'Comparte el archivo por WhatsApp u otras apps',
+                  leading: const Icon(Icons.share_rounded, color: Colors.green),
+                  onTap: () async {
                     Navigator.pop(context);
-                    DesignSnackbar.showSuccess(context, 'Manifiesto compartido por WhatsApp exitosamente.');
-                  },
-                ),
-                const Divider(),
-                DesignListTile(
-                  title: 'Enviar por Correo Electrónico',
-                  subtitle: 'Envía el archivo PDF adjunto a un destinatario',
-                  leading: const Icon(Icons.email_outlined, color: Colors.redAccent),
-                  onTap: () {
-                    Navigator.pop(context);
-                    DesignSnackbar.showSuccess(context, 'Manifiesto enviado por correo electrónico.');
+                    try {
+                      final pdfService = PdfService();
+                      final pdfBytes = await pdfService.generateManifestPdf(
+                        trip: trip!,
+                        passengers: _passengersList,
+                        driverName: driverName,
+                      );
+                      await Printing.sharePdf(
+                        bytes: pdfBytes,
+                        filename: 'manifiesto_${trip.id}.pdf',
+                      );
+                    } catch (e) {
+                      if (context.mounted) {
+                        DesignSnackbar.showError(context, 'Error al compartir el PDF.');
+                      }
+                    }
                   },
                 ),
               ],
