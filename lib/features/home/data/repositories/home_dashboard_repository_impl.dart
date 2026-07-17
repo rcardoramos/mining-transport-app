@@ -2,12 +2,12 @@ import 'package:mining_transport_app/core/utils/result.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/dashboard_summary_entity.dart';
-import '../../domain/entities/passenger_entity.dart';
-import '../../domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../../domain/repositories/home_dashboard_repository.dart';
 import '../datasources/home_dashboard_remote_data_source.dart';
-import '../models/passenger_model.dart';
-import '../models/collaborator_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
 
 /// Implementación concreta del Repositorio de Home Dashboard.
 class HomeDashboardRepositoryImpl implements HomeDashboardRepository {

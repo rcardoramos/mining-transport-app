@@ -4,8 +4,8 @@ import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
 import '../models/dashboard_summary_model.dart';
-import '../models/passenger_model.dart';
-import '../models/collaborator_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
 
 /// Implementación real del [HomeDashboardRemoteDataSource] utilizando [DioClient]
 /// para la integración con el backend en .NET.

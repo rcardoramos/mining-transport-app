@@ -9,9 +9,9 @@ import '../../domain/usecases/get_today_trips_usecase.dart';
 import '../../domain/usecases/get_pending_trips_usecase.dart';
 import '../../domain/usecases/get_dashboard_summary_usecase.dart';
 import '../../domain/usecases/update_trip_status_usecase.dart';
-import '../../domain/usecases/register_passenger_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/register_passenger_usecase.dart';
 import '../../domain/usecases/complete_stop_usecase.dart';
-import '../../domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../states/home_dashboard_state.dart';
 import 'package:mining_transport_app/core/utils/sync_provider.dart';
 

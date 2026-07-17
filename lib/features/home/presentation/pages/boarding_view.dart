@@ -11,12 +11,13 @@ import 'package:mining_transport_app/core/audio/audio_service.dart';
 import '../widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
-import '../../domain/entities/passenger_entity.dart';
-import '../../domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../../domain/entities/stop_entity.dart';
-import '../../domain/usecases/get_passengers_on_board_usecase.dart';
-import '../../domain/usecases/check_collaborator_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/check_collaborator_usecase.dart';
 import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
+import 'package:mining_transport_app/features/occupancy/domain/usecases/validate_occupancy_usecase.dart';
 
 import 'package:mining_transport_app/core/utils/result.dart';
 
@@ -336,7 +337,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     // 2. Verificar aforo excedido
-    if (trip.passengerCount >= trip.capacity) {
+    final occupancy = GetIt.I<ValidateOccupancyUseCase>().execute(
+      currentCount: trip.passengerCount,
+      capacity: trip.capacity,
+    );
+    if (occupancy.isFull) {
       if (mounted) {
         showDialog(
           context: context,
@@ -626,7 +631,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     final activeTrip = trip;
-    final safePercentage = (activeTrip.passengerCount / activeTrip.capacity).clamp(0.0, 1.0);
+    final occupancy = GetIt.I<ValidateOccupancyUseCase>().execute(
+      currentCount: activeTrip.passengerCount,
+      capacity: activeTrip.capacity,
+    );
 
     return Scaffold(
       appBar: DesignAppBar(
@@ -732,7 +740,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: safePercentage,
+                    value: occupancy.percentage,
                     backgroundColor: isDark
                         ? const Color(0xFF2C2C2C)
                         : const Color(0xFFE5E7EB),

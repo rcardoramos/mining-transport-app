@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../../domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 
 part 'collaborator_model.freezed.dart';
 part 'collaborator_model.g.dart';

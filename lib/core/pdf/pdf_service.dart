@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
-import 'package:mining_transport_app/features/home/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 class PdfService {

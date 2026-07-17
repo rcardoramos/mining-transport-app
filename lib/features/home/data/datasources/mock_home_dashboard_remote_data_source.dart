@@ -4,8 +4,8 @@ import '../models/driver_model.dart';
 import '../models/trip_model.dart';
 import '../models/stop_model.dart';
 import '../models/dashboard_summary_model.dart';
-import '../models/passenger_model.dart';
-import '../models/collaborator_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
+import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
 
 /// Implementación Mock de alta fidelidad del Data Source remoto.
 /// Mantiene estados en memoria para simular transiciones interactivas.

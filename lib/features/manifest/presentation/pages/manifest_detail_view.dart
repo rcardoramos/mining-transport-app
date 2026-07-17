@@ -6,9 +6,9 @@ import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
-import 'package:mining_transport_app/features/home/domain/entities/passenger_entity.dart';
-import 'package:mining_transport_app/features/home/domain/entities/collaborator_entity.dart';
-import 'package:mining_transport_app/features/home/domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
 import 'package:printing/printing.dart';
 import 'package:mining_transport_app/core/pdf/pdf_service.dart';
 

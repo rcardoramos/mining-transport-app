@@ -1,6 +1,6 @@
 import 'package:mining_transport_app/core/utils/result.dart';
-import '../entities/passenger_entity.dart';
-import '../repositories/home_dashboard_repository.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
+import 'package:mining_transport_app/features/home/domain/repositories/home_dashboard_repository.dart';
 
 /// Caso de uso para obtener la lista de pasajeros registrados a bordo de un viaje.
 class GetPassengersOnBoardUseCase {

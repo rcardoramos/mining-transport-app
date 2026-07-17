@@ -1,6 +1,6 @@
 import 'package:mining_transport_app/core/utils/result.dart';
-import '../entities/collaborator_entity.dart';
-import '../repositories/home_dashboard_repository.dart';
+import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/features/home/domain/repositories/home_dashboard_repository.dart';
 
 /// Caso de uso para verificar la disponibilidad laboral y reglas de embarque de un colaborador por su DNI.
 class CheckCollaboratorUseCase {
