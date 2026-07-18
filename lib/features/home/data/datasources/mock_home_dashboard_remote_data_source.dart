@@ -95,6 +95,24 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         capacity: 45,
         passengerCount: 15,
         status: 'scheduled',
+        stops: [
+          const StopModel(
+            id: 'STOP-102-1',
+            nombre: 'Paradero 1 - Terminal Campamento',
+            latitud: -5.265000,
+            longitud: -81.050000,
+            radioPermitido: 120.0,
+            orden: 1,
+          ),
+          const StopModel(
+            id: 'STOP-102-2',
+            nombre: 'Paradero 2 - Control de Entrada',
+            latitud: -5.275000,
+            longitud: -81.060000,
+            radioPermitido: 100.0,
+            orden: 2,
+          ),
+        ],
       ),
       TripModel(
         id: 'TRIP-103',
@@ -105,6 +123,24 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         capacity: 45,
         passengerCount: 0,
         status: 'scheduled',
+        stops: [
+          const StopModel(
+            id: 'STOP-103-1',
+            nombre: 'Paradero 1 - Puerto Bayóvar',
+            latitud: -5.250000,
+            longitud: -81.020000,
+            radioPermitido: 150.0,
+            orden: 1,
+          ),
+          const StopModel(
+            id: 'STOP-103-2',
+            nombre: 'Paradero 2 - Cruce Autopista',
+            latitud: -5.260000,
+            longitud: -81.030000,
+            radioPermitido: 100.0,
+            orden: 2,
+          ),
+        ],
       ),
     ];
 
@@ -118,6 +154,24 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         capacity: 50,
         passengerCount: 0,
         status: 'scheduled',
+        stops: [
+          const StopModel(
+            id: 'STOP-201-1',
+            nombre: 'Paradero 1 - Mina Principal',
+            latitud: -5.850000,
+            longitud: -80.800000,
+            radioPermitido: 150.0,
+            orden: 1,
+          ),
+          const StopModel(
+            id: 'STOP-201-2',
+            nombre: 'Paradero 2 - Control General',
+            latitud: -5.860000,
+            longitud: -80.810000,
+            radioPermitido: 100.0,
+            orden: 2,
+          ),
+        ],
       ),
       TripModel(
         id: 'TRIP-202',
@@ -128,6 +182,24 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
         capacity: 50,
         passengerCount: 0,
         status: 'scheduled',
+        stops: [
+          const StopModel(
+            id: 'STOP-202-1',
+            nombre: 'Paradero 1 - Terminal Piura',
+            latitud: -5.200000,
+            longitud: -80.630000,
+            radioPermitido: 120.0,
+            orden: 1,
+          ),
+          const StopModel(
+            id: 'STOP-202-2',
+            nombre: 'Paradero 2 - Garita Piura',
+            latitud: -5.210000,
+            longitud: -80.640000,
+            radioPermitido: 100.0,
+            orden: 2,
+          ),
+        ],
       ),
     ];
 

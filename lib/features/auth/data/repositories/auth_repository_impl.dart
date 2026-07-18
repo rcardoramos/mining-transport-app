@@ -22,11 +22,38 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required AuthLocalDataSource localDataSource,
-  })  : _remoteDataSource = remoteDataSource,
-        _localDataSource = localDataSource;
+  }) : _remoteDataSource = remoteDataSource,
+       _localDataSource = localDataSource;
 
   @override
-  Future<Result<UserEntity, Failure>> login(String username, String password) async {
+  Future<Result<UserEntity, Failure>> login(
+    String username,
+    String password,
+  ) async {
+    // Si estamos en DEV, hacer bypass completo del login para desarrollo rápido y local
+    bool isDev = false;
+    try {
+      isDev = EnvConfig.instance.environment == AppEnvironment.dev;
+    } catch (_) {}
+
+    if (isDev) {
+      await Future.delayed(const Duration(milliseconds: 400));
+      final user = UserEntity(
+        id: 'DRV-998',
+        username: username,
+        fullName: 'Ricardo Ramos',
+        role: 'DRIVER',
+        token: 'mock_jwt_token',
+      );
+      final userModel = UserModel.fromEntity(user);
+      await _localDataSource.saveToken('mock_jwt_token');
+      await _localDataSource.saveUser(userModel);
+      await _localDataSource.saveUsername(username);
+      await _localDataSource.savePasswordHash(_hashPassword(password));
+
+      return Success(user);
+    }
+
     try {
       double latitude = -5.194490;
       double longitude = -80.632820;
@@ -69,25 +96,33 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Manejar códigos de error específicos del backend
       if (e.response?.statusCode == 401) {
-        return const FailureResult(UnauthorizedFailure('Usuario o contraseña incorrectos.'));
+        return const FailureResult(
+          UnauthorizedFailure('Usuario o contraseña incorrectos.'),
+        );
       }
       if (e.type == DioExceptionType.badResponse && e.error is String) {
         return FailureResult(UnauthorizedFailure(e.error as String));
       }
       if (e.response?.statusCode == 423) {
-        return const FailureResult(ValidationFailure('Usuario bloqueado administrativamente.'));
+        return const FailureResult(
+          ValidationFailure('Usuario bloqueado administrativamente.'),
+        );
       }
 
-      return FailureResult(ServerFailure(
-        'Error en el servidor de autenticación.',
-        e.response?.statusCode,
-        e,
-      ));
+      return FailureResult(
+        ServerFailure(
+          'Error en el servidor de autenticación.',
+          e.response?.statusCode,
+          e,
+        ),
+      );
     } catch (e) {
       if (e is SocketException) {
         return await _loginOffline(username, password);
       }
-      return FailureResult(UnknownFailure('Error inesperado durante el inicio de sesión.', e));
+      return FailureResult(
+        UnknownFailure('Error inesperado durante el inicio de sesión.', e),
+      );
     }
   }
 
@@ -97,7 +132,9 @@ class AuthRepositoryImpl implements AuthRepository {
       await _localDataSource.clearSession();
       return const Success(null);
     } catch (e) {
-      return FailureResult(DatabaseFailure('Error al limpiar la sesión local.', e));
+      return FailureResult(
+        DatabaseFailure('Error al limpiar la sesión local.', e),
+      );
     }
   }
 
@@ -108,7 +145,9 @@ class AuthRepositoryImpl implements AuthRepository {
       if (userModel == null) return const Success(null);
       return Success(userModel.toEntity());
     } catch (e) {
-      return FailureResult(DatabaseFailure('Error al leer el usuario local.', e));
+      return FailureResult(
+        DatabaseFailure('Error al leer el usuario local.', e),
+      );
     }
   }
 
@@ -127,34 +166,43 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   /// Realiza el inicio de sesión offline comparando con las credenciales locales cifradas.
-  Future<Result<UserEntity, Failure>> _loginOffline(String username, String password) async {
+  Future<Result<UserEntity, Failure>> _loginOffline(
+    String username,
+    String password,
+  ) async {
     try {
       final storedUsername = await _localDataSource.getUsername();
       final storedHash = await _localDataSource.getPasswordHash();
       final cachedUser = await _localDataSource.getUser();
 
       if (storedUsername == null || storedHash == null || cachedUser == null) {
-        return const FailureResult(NetworkFailure(
-          'Sin conexión a internet y no se encontraron credenciales locales guardadas.',
-        ));
+        return const FailureResult(
+          NetworkFailure(
+            'Sin conexión a internet y no se encontraron credenciales locales guardadas.',
+          ),
+        );
       }
 
       if (storedUsername.toLowerCase() != username.toLowerCase()) {
-        return const FailureResult(UnauthorizedFailure(
-          'Las credenciales offline no coinciden con la última sesión guardada.',
-        ));
+        return const FailureResult(
+          UnauthorizedFailure(
+            'Las credenciales offline no coinciden con la última sesión guardada.',
+          ),
+        );
       }
 
       final enteredHash = _hashPassword(password);
       if (storedHash != enteredHash) {
-        return const FailureResult(UnauthorizedFailure(
-          'Contraseña offline incorrecta.',
-        ));
+        return const FailureResult(
+          UnauthorizedFailure('Contraseña offline incorrecta.'),
+        );
       }
 
       return Success(cachedUser.toEntity());
     } catch (e) {
-      return FailureResult(DatabaseFailure('Error al validar sesión offline.', e));
+      return FailureResult(
+        DatabaseFailure('Error al validar sesión offline.', e),
+      );
     }
   }
 

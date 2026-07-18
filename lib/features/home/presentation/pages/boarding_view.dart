@@ -20,6 +20,8 @@ import 'package:mining_transport_app/features/validation/domain/entities/labor_v
 import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
 import 'package:mining_transport_app/features/occupancy/domain/usecases/validate_occupancy_usecase.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:mining_transport_app/core/scanner/qr_scanner_page.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/core/utils/result.dart';
 
@@ -207,6 +209,14 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+    final activeStop = _getActiveStop(trip);
+    if (activeStop == null || !_isDriverInRange(activeStop)) {
+      if (mounted) {
+        DesignSnackbar.showError(context, 'No se encuentra en el rango del paradero activo para realizar el abordaje.');
+      }
+      return;
+    }
+
     // 0. Verificar precisión de GPS (RN-GEO-04-02)
     if (_currentPosition != null && _currentPosition!.accuracy > 30.0) {
       if (mounted) {
@@ -223,102 +233,6 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         );
       }
       return;
-    }
-
-    // 0.1 Verificar rango del paradero activo si está configurado (RN-GEO-04-01)
-    final activeStop = _getActiveStop(trip);
-    String? justification;
-    if (activeStop != null) {
-      final inRange = _isDriverInRange(activeStop);
-      if (!inRange) {
-        final distance = _getDistanceToStop(activeStop);
-        final justificationController = TextEditingController();
-        final justificationFormKey = GlobalKey<FormState>();
-
-        final confirmForced = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) {
-            final isDark = Theme.of(ctx).brightness == Brightness.dark;
-            return AlertDialog(
-              title: Text(
-                'Fuera de Rango de Paradero',
-                style: DesignTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
-                ),
-              ),
-              content: Form(
-                key: justificationFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Te encuentras fuera del radio permitido para este paradero:\n\n'
-                      '• Paradero: ${activeStop.name}\n'
-                      '• Distancia actual: ${distance.toStringAsFixed(1)} metros\n'
-                      '• Radio permitido: ${activeStop.allowedRadius.toStringAsFixed(0)} metros\n\n'
-                      'Puedes forzar el registro ingresando una justificación escrita:',
-                      style: DesignTypography.bodyMedium.copyWith(
-                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                      ),
-                    ),
-                    DesignSpacing.spacerV16,
-                    DesignTextField(
-                      controller: justificationController,
-                      labelText: 'Justificación de Abordaje',
-                      hintText: 'Ej. Tránsito pesado, clima adverso, etc.',
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'La justificación es requerida';
-                        }
-                        if (val.trim().length < 5) {
-                          return 'Ingrese una justificación detallada (mín. 5 caract.)';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              backgroundColor: isDark ? DesignColors.surfaceDark : DesignColors.surfaceLight,
-              shape: RoundedRectangleBorder(borderRadius: DesignRadius.allLarge),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(
-                    'Cancelar',
-                    style: DesignTypography.labelLarge.copyWith(
-                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (justificationFormKey.currentState!.validate()) {
-                      Navigator.pop(ctx, true);
-                    }
-                  },
-                  child: Text(
-                    'Forzar Registro',
-                    style: DesignTypography.labelLarge.copyWith(
-                      color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-
-        if (confirmForced == true) {
-          justification = justificationController.text.trim();
-        } else {
-          return;
-        }
-      }
     }
 
     // 1. Verificar duplicidad de pasajero
@@ -392,9 +306,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     final prefix = isScan ? 'qr_scan' : 'manual';
     
     // Si hay un paradero activo, incluimos su nombre en el método de registro
-    final customMethod = activeStop != null
-        ? '${prefix}_transit:${activeStop.name}'
-        : null;
+    final customMethod = '${prefix}_transit:${activeStop.name}';
 
     if (validation.status != LaborValidationStatus.allowed) {
       GetIt.I<AudioService>().playAlertSound();
@@ -405,7 +317,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
+          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, null);
       setState(() => _isRegistering = false);
 
       if (mounted) {
@@ -605,7 +517,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, nextStatus, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, justification);
+              .registerPassenger(trip.id, dni, nextStatus, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, null);
           setState(() => _isRegistering = false);
 
           if (mounted) {
@@ -623,6 +535,14 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
   Future<void> _submitManualDni(TripEntity trip) async {
     if (!_formKey.currentState!.validate()) return;
+
+    final activeStop = _getActiveStop(trip);
+    if (activeStop == null || !_isDriverInRange(activeStop)) {
+      if (mounted) {
+        DesignSnackbar.showError(context, 'No se encuentra en el rango del paradero activo para realizar el abordaje.');
+      }
+      return;
+    }
     
     setState(() => _isRegistering = true);
     await _handleCollaboratorBoarding(trip, _dniController.text.trim());
@@ -785,6 +705,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     final activeTrip = trip;
+    final activeStop = _getActiveStop(activeTrip);
+    final inRange = activeStop != null && _isDriverInRange(activeStop);
     final occupancy = GetIt.I<ValidateOccupancyUseCase>().execute(
       currentCount: activeTrip.passengerCount,
       capacity: activeTrip.capacity,
@@ -910,27 +832,94 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
           DesignSpacing.spacerV24,
           _buildParaderosCard(activeTrip, isDark, colors),
-          _buildGpsSimulatorPanel(activeTrip, isDark, colors),
+          if (kDebugMode)
+            _buildGpsSimulatorPanel(activeTrip, isDark, colors),
 
-          // Habilitar controles siempre (geofencing se valida al registrar)
+          // Habilitar controles cuando el bus esté en rango del paradero activo
           (() {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Selecciona el método de registro:',
-                  style: DesignTypography.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? DesignColors.textSecondaryDark
-                        : DesignColors.textSecondaryLight,
+            return Opacity(
+              opacity: inRange ? 1.0 : 0.5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Selecciona el método de registro:',
+                    style: DesignTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? DesignColors.textSecondaryDark
+                          : DesignColors.textSecondaryLight,
+                    ),
                   ),
-                ),
-                DesignSpacing.spacerV12,
+                  DesignSpacing.spacerV12,
 
-                // ── Opción 1: Escaneo QR ─────────────────────────────────────────
-                DesignCard.basic(
-                  onTap: _isRegistering ? null : () => _showCameraSimulator(trip!),
+                  // ── Opción 1: Escaneo QR ─────────────────────────────────────────
+                  DesignCard.basic(
+                    onTap: (_isRegistering || !inRange)
+                        ? null
+                        : () async {
+                          String? scannedDni;
+                          if (kDebugMode) {
+                            // En modo desarrollo, permitir elegir entre cámara real y simulador
+                            final choice = await showModalBottomSheet<String>(
+                              context: context,
+                              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              builder: (ctx) {
+                                final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                                return SafeArea(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: Icon(Icons.camera_alt_rounded, color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight),
+                                          title: Text('Usar Cámara Real', style: DesignTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                                          onTap: () => Navigator.pop(ctx, 'CAMERA'),
+                                        ),
+                                        ListTile(
+                                          leading: Icon(Icons.settings_suggest_rounded, color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight),
+                                          title: Text('Usar Simulador de Escaneo', style: DesignTypography.bodyMedium),
+                                          onTap: () => Navigator.pop(ctx, 'SIMULATOR'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+
+                            if (choice == 'CAMERA') {
+                              if (!context.mounted) return;
+                              scannedDni = await Navigator.push<String>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const QrScannerPage(),
+                                ),
+                              );
+                            } else if (choice == 'SIMULATOR') {
+                              _showCameraSimulator(trip!);
+                              return;
+                            } else {
+                              return; // Cancelado
+                            }
+                          } else {
+                            // En producción, ir directo a la cámara real
+                            scannedDni = await Navigator.push<String>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const QrScannerPage(),
+                              ),
+                            );
+                          }
+
+                          if (scannedDni != null && mounted) {
+                            _handleCollaboratorBoarding(trip!, scannedDni);
+                          }
+                        },
                   child: Row(
                     children: [
                       Container(
@@ -982,7 +971,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
                 // ── Opción 2: Embarque Manual ─────────────────────────────────────
                 DesignCard.basic(
-                  onTap: _isRegistering
+                  onTap: (_isRegistering || !inRange)
                       ? null
                       : () {
                           setState(() {
@@ -1036,8 +1025,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                       ),
                     ],
                   ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             );
           })(),
 
@@ -1102,7 +1092,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                 text: _isRegistering
                                     ? 'Procesando...'
                                     : 'Registrar Embarque',
-                                onTap: _isRegistering
+                                onTap: (_isRegistering || !inRange)
                                     ? null
                                     : () => _submitManualDni(trip!),
                                 icon: Icons.check_circle_outline_rounded,

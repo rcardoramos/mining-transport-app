@@ -1,11 +1,13 @@
 import 'package:get_it/get_it.dart';
+import 'package:mining_transport_app/core/constants/env_config.dart';
 import 'package:mining_transport_app/core/database/app_database.dart';
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/core/utils/session_status_service.dart';
-import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/audio/audio_service.dart';
+import 'package:mining_transport_app/core/gps/gps_service.dart';
+import 'package:mining_transport_app/core/pdf/pdf_service.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:mining_transport_app/features/auth/data/repositories/auth_repository_impl.dart';
@@ -25,10 +27,31 @@ import 'package:mining_transport_app/features/home/domain/usecases/get_today_tri
 import 'package:mining_transport_app/features/home/domain/usecases/get_pending_trips_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/get_dashboard_summary_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/update_trip_status_usecase.dart';
-import 'package:mining_transport_app/features/home/domain/usecases/register_passenger_usecase.dart';
-import 'package:mining_transport_app/features/home/domain/usecases/get_passengers_on_board_usecase.dart';
-import 'package:mining_transport_app/features/home/domain/usecases/check_collaborator_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/register_passenger_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/passenger/domain/usecases/check_collaborator_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/complete_stop_usecase.dart';
+
+import 'package:mining_transport_app/features/geolocation/data/datasources/geolocation_remote_data_source.dart';
+import 'package:mining_transport_app/features/geolocation/data/repositories/geolocation_repository_impl.dart';
+import 'package:mining_transport_app/features/geolocation/domain/repositories/geolocation_repository.dart';
+import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
+import 'package:mining_transport_app/features/geolocation/domain/usecases/resolve_nearest_stop_usecase.dart';
+import 'package:mining_transport_app/features/occupancy/domain/usecases/validate_occupancy_usecase.dart';
+import 'package:mining_transport_app/core/sync/sync_queue.dart';
+import 'package:mining_transport_app/core/sync/sync_worker.dart';
+import 'package:mining_transport_app/core/sync/sync_manager.dart';
+// Trip Feature
+import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
+import 'package:mining_transport_app/features/trip/data/datasources/mock_trip_remote_data_source.dart';
+
+// Validation Feature
+import 'package:mining_transport_app/features/validation/data/datasources/validation_local_data_source.dart';
+import 'package:mining_transport_app/features/validation/domain/repositories/validation_repository.dart';
+import 'package:mining_transport_app/features/validation/data/repositories/validation_repository_impl.dart';
+import 'package:mining_transport_app/features/validation/domain/usecases/validate_labor_rules_usecase.dart';
+// ignore: unused_import
+import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source_impl.dart';
 
 final GetIt locator = GetIt.instance;
 
@@ -43,6 +66,14 @@ Future<void> setupLocator() async {
   final database = AppDatabase();
   locator.registerLazySingleton<AppDatabase>(() => database);
 
+  // Sync Infrastructure
+  locator.registerLazySingleton<SyncQueueManager>(() => SyncQueueManager());
+  locator.registerLazySingleton<SyncWorker>(() => SyncWorker());
+  
+  final syncManager = SyncManager();
+  syncManager.initialize();
+  locator.registerLazySingleton<SyncManager>(() => syncManager);
+
   // 4. Registrar Servicio de Estado de Sesión (para expiraciones globales)
   locator.registerLazySingleton<SessionStatusService>(
     () => SessionStatusService(),
@@ -55,6 +86,9 @@ Future<void> setupLocator() async {
   locator.registerLazySingleton<AudioService>(
     () => AudioServiceImpl(locator<AppLogger>()),
   );
+
+  // Registrar Servicio de Generación de PDF
+  locator.registerLazySingleton<PdfService>(() => PdfService());
 
   // 6. Registrar Cliente HTTP (Dio) con inyección de dependencias
   locator.registerLazySingleton<DioClient>(
@@ -74,15 +108,18 @@ Future<void> setupLocator() async {
       locator<AppDatabase>(),
     ),
   );
-  // Para conectar con el servidor backend real en producción, descomenta esto:
-  locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
-    () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
-  );
+  // Determinar si usamos mocks o APIs reales según el entorno
+  final isDev = EnvConfig.instance.environment == AppEnvironment.dev;
 
-  // Para trabajar con el simulador de datos localmente (desarrollo): Comentar las lineas en caso ya se peguen las apis.
-  // locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
-  //   () => MockHomeDashboardRemoteDataSource(),
-  // );
+  if (isDev) {
+    locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+      () => MockHomeDashboardRemoteDataSource(),
+    );
+  } else {
+    locator.registerLazySingleton<HomeDashboardRemoteDataSource>(
+      () => HomeDashboardRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
+    );
+  }
 
   // 8. Repositories
   locator.registerLazySingleton<AuthRepository>(
@@ -135,6 +172,60 @@ Future<void> setupLocator() async {
   );
   locator.registerLazySingleton<CompleteStopUseCase>(
     () => CompleteStopUseCase(locator<HomeDashboardRepository>()),
+  );
+
+  // Geolocation UseCases
+  locator.registerLazySingleton<ValidateStopGeofencingUseCase>(
+    () => ValidateStopGeofencingUseCase(locator<GpsService>()),
+  );
+  locator.registerLazySingleton<ResolveNearestStopUseCase>(
+    () => ResolveNearestStopUseCase(locator<GeolocationRepository>()),
+  );
+
+  // Occupancy UseCases
+  locator.registerLazySingleton<ValidateOccupancyUseCase>(
+    () => ValidateOccupancyUseCase(),
+  );
+
+  // Geolocation DataSources
+  if (isDev) {
+    locator.registerLazySingleton<GeolocationRemoteDataSource>(
+      () => MockGeolocationRemoteDataSource(),
+    );
+  } else {
+    locator.registerLazySingleton<GeolocationRemoteDataSource>(
+      () => GeolocationRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
+    );
+  }
+
+  // Geolocation Repositories
+  locator.registerLazySingleton<GeolocationRepository>(
+    () => GeolocationRepositoryImpl(locator<GeolocationRemoteDataSource>()),
+  );
+
+  // ── Trip Feature ──────────────────────────────────────────────────────────
+  if (isDev) {
+    locator.registerLazySingleton<TripRemoteDataSource>(
+      () => MockTripRemoteDataSource(),
+    );
+  } else {
+    locator.registerLazySingleton<TripRemoteDataSource>(
+      () => TripRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
+    );
+  }
+
+  // ── Validation Feature ───────────────────────────────────────────────────
+  locator.registerLazySingleton<ValidationLocalDataSource>(
+    () => ValidationLocalDataSourceImpl(locator<AppDatabase>()),
+  );
+  locator.registerLazySingleton<ValidationRepository>(
+    () => ValidationRepositoryImpl(
+      locator<ValidationLocalDataSource>(),
+      locator<HomeDashboardRepository>(),
+    ),
+  );
+  locator.registerLazySingleton<ValidateLaborRulesUseCase>(
+    () => ValidateLaborRulesUseCase(locator<ValidationRepository>()),
   );
 
   locator<AppLogger>().i(

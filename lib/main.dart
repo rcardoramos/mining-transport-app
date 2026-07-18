@@ -8,17 +8,32 @@ import 'package:mining_transport_app/core/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar la configuración de entorno (Entorno de desarrollo por defecto)
-  EnvConfig.initialize(AppEnvironment.dev);
+  // Determinar entorno de ejecución a partir de --dart-define=ENV=xxx
+  const envString = String.fromEnvironment('ENV', defaultValue: 'dev');
+  AppEnvironment environment;
+  switch (envString.toLowerCase()) {
+    case 'prod':
+    case 'production':
+      environment = AppEnvironment.prod;
+      break;
+    case 'staging':
+      environment = AppEnvironment.staging;
+      break;
+    case 'dev':
+    default:
+      environment = AppEnvironment.dev;
+      break;
+  }
+
+  debugPrint('Iniciando aplicación en modo: ${environment.name.toUpperCase()}');
+
+  // Inicializar la configuración de entorno
+  EnvConfig.initialize(environment);
 
   // Inicializar localizador de dependencias (GetIt)
   await setupLocator();
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerWidget {
@@ -29,7 +44,7 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'APP Buses - Miski Mayo',
+      title: 'Miski Mayo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

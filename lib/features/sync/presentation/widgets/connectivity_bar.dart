@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mining_transport_app/core/constants/env_config.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 
@@ -70,15 +72,17 @@ class ConnectivityBar extends ConsumerWidget {
           ),
           DesignSpacing.spacerH8,
           
-          // Texto interactivo de estado de conexión
+          // Texto interactivo de estado de conexión (Solo alternable en desarrollo/staging, no en producción)
           GestureDetector(
-            onTap: () {
-              ref.read(syncProvider.notifier).toggleConnectionManual();
-              DesignSnackbar.showSuccess(
-                context,
-                'Modo alternado a: ${ref.read(syncProvider).isOnline ? "Online" : "Offline"}',
-              );
-            },
+            onTap: (kDebugMode && EnvConfig.instance.environment != AppEnvironment.prod)
+                ? () {
+                    ref.read(syncProvider.notifier).toggleConnectionManual();
+                    DesignSnackbar.showSuccess(
+                      context,
+                      'Modo alternado a: ${ref.read(syncProvider).isOnline ? "Online" : "Offline"}',
+                    );
+                  }
+                : null,
             child: Text(
               syncState.isOnline ? 'Online • Sincronizado' : 'Offline • Datos locales',
               style: DesignTypography.bodyMedium.copyWith(
@@ -88,17 +92,18 @@ class ConnectivityBar extends ConsumerWidget {
             ),
           ),
           
-          DesignSpacing.spacerH8,
-          
-          // Botón del Monitor de Sincronización
-          IconButton(
-            icon: const Icon(Icons.settings_suggest_rounded, size: 18),
-            onPressed: () => context.push('/sync-monitor'),
-            tooltip: 'Monitor de Sincronización',
-            constraints: const BoxConstraints(),
-            padding: const EdgeInsets.all(4),
-            color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-          ),
+          // Botón del Monitor de Sincronización (Solo visible en entornos de desarrollo/staging, no en producción)
+          if (EnvConfig.instance.environment != AppEnvironment.prod) ...[
+            DesignSpacing.spacerH8,
+            IconButton(
+              icon: const Icon(Icons.settings_suggest_rounded, size: 18),
+              onPressed: () => context.push('/sync-monitor'),
+              tooltip: 'Monitor de Sincronización',
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(4),
+              color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+            ),
+          ],
           
           const Spacer(),
           
