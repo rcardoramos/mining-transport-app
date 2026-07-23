@@ -125,8 +125,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         payloadJson: payloadJson,
       );
       
-      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
-      await mockDataSource.updateTripStatus(tripId, newStatus.name);
+      final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
+      if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+        await remoteDataSource.updateTripStatus(tripId, newStatus.name);
+      }
       
       await _fetchData();
       return;
@@ -165,8 +167,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         payloadJson: payloadJson,
       );
       
-      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
-      await mockDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification);
+      final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
+      if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+        await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification);
+      }
 
       await _fetchData();
       return true;
@@ -200,8 +204,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         payloadJson: payloadJson,
       );
       
-      final mockDataSource = GetIt.I<HomeDashboardRemoteDataSource>() as MockHomeDashboardRemoteDataSource;
-      await mockDataSource.completeStop(tripId, stopId);
+      final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
+      if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+        await remoteDataSource.completeStop(tripId, stopId);
+      }
       
       await _fetchData();
       return true;

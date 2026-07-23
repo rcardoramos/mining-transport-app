@@ -13,8 +13,26 @@ class CollaboratorModel with _$CollaboratorModel {
     @Default('Miski Mayo') String category,
   }) = _CollaboratorModel;
 
-  factory CollaboratorModel.fromJson(Map<String, dynamic> json) =>
-      _$CollaboratorModelFromJson(json);
+  factory CollaboratorModel.fromJson(Map<String, dynamic> json) {
+    final dniVal = json['dni'] ?? json['Dni'] ?? '';
+    final dni = dniVal.toString();
+
+    final fullNameVal = json['fullName'] ?? json['NombreCompleto'] ?? '';
+    final fullName = fullNameVal.toString();
+
+    final statusVal = json['status'] ?? json['EstadoLaboral'] ?? 'OK';
+    final status = statusVal.toString();
+
+    final categoryVal = json['category'] ?? json['Empresa'] ?? json['categoria'] ?? 'Miski Mayo';
+    final category = categoryVal.toString();
+
+    return CollaboratorModel(
+      dni: dni,
+      fullName: fullName,
+      status: status,
+      category: category,
+    );
+  }
 }
 
 extension CollaboratorModelMapper on CollaboratorModel {

@@ -1,5 +1,6 @@
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
@@ -39,13 +40,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       data: {
         'usuario': username,
         'token': token,
-        'estado': 'TODOS',
+        'estado': null,
       },
     );
 
     final wrapped = response.data as Map<String, dynamic>;
     final list = wrapped['Data'] as List<dynamic>;
-    return list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
+    final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
+
+    final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    return allTrips.where((trip) {
+      final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
+      if (tripDate == null) return false;
+      final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
+      return tripPeru.year == nowPeru.year &&
+             tripPeru.month == nowPeru.month &&
+             tripPeru.day == nowPeru.day;
+    }).toList();
   }
 
   @override
@@ -58,13 +69,22 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       data: {
         'usuario': username,
         'token': token,
-        'estado': 'PENDIENTE',
+        'estado': null,
       },
     );
 
     final wrapped = response.data as Map<String, dynamic>;
     final list = wrapped['Data'] as List<dynamic>;
-    return list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
+    final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
+
+    final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    final todayEnd = DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 23, 59, 59).add(const Duration(hours: 5));
+    return allTrips.where((trip) {
+      final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
+      if (tripDate == null) return false;
+      final statusUpper = trip.status.trim().toUpperCase();
+      return tripDate.isAfter(todayEnd) && statusUpper != 'COMPLETED' && statusUpper != 'CANCELLED';
+    }).toList();
   }
 
   @override

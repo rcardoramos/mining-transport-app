@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "f3ab2c8c-6e4a-41ea-9259-5edb544e15ba",
+    "_postman_id": "afdb7868-766e-4ea0-9641-712eece7dc9a",
     "name": "Buses Miski Mayo - App Movil",
-    "description": "Coleccion de pruebas para el API de registro de choferes/pasajeros (.NET Framework 4.7.2). El login guarda automaticamente el token en la variable de coleccion {{token}}.",
+    "description": "Coleccion de pruebas para el API de control de embarque (.NET Framework 4.7.2).\n\nContrato unificado: todas las peticiones (excepto Login) van por POST y llevan { usuario, token } en el cuerpo. Todas las respuestas usan el wrapper corporativo:\n\n{\n  \"Success\": true,\n  \"Message\": \"...\",\n  \"Data\": { ... }\n}\n\nEl Login guarda automaticamente el token en la variable {{token}} (Data.Token) y Aperturar guarda {{viajeId}} (Data.ViajeId). Hay un test a nivel de coleccion que verifica el wrapper en cada respuesta.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "27000927"
   },
@@ -19,9 +19,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "var json = pm.response.json();",
+                  "pm.test('Login exitoso con token y usuario', function () {",
+                  "    pm.expect(json.Success).to.be.true;",
+                  "    pm.expect(json.Data).to.have.property('Token');",
+                  "    pm.expect(json.Data).to.have.property('User');",
+                  "});",
                   "if (json && json.Data && json.Data.Token) {",
                   "    pm.collectionVariables.set('token', json.Data.Token);",
-                  "    console.log('Token guardado: ' + json.Data.Token);",
+                  "    console.log('Token guardado. Usuario: ' + (json.Data.User ? json.Data.User.username : ''));",
                   "} else {",
                   "    console.log('Login sin token. Message: ' + (json ? json.Message : ''));",
                   "}"
@@ -51,7 +56,8 @@
                 "Auth",
                 "Login"
               ]
-            }
+            },
+            "description": "Response Data: { Token, User { id, username, fullName, role } }."
           },
           "response": []
         }
@@ -84,7 +90,8 @@
                 "Catalogo",
                 "Bootstrap"
               ]
-            }
+            },
+            "description": "Response Data: { Rutas, Servicios, Horarios, Buses, Paraderos }. Paraderos incluye { id, nombre, latitud, longitud, radioPermitido, orden }."
           },
           "response": []
         },
@@ -112,7 +119,8 @@
                 "Catalogo",
                 "Rutas"
               ]
-            }
+            },
+            "description": "Data: [ { id, nombre, distanciaKm } ]"
           },
           "response": []
         },
@@ -140,7 +148,8 @@
                 "Catalogo",
                 "Servicios"
               ]
-            }
+            },
+            "description": "Data: [ { id, nombre } ]"
           },
           "response": []
         },
@@ -168,7 +177,8 @@
                 "Catalogo",
                 "Horarios"
               ]
-            }
+            },
+            "description": "Data: [ { id, horaSalida } ]  (horaSalida en formato HH:mm:ss)"
           },
           "response": []
         },
@@ -196,7 +206,8 @@
                 "Catalogo",
                 "Paraderos"
               ]
-            }
+            },
+            "description": "Data: [ { id, nombre, latitud, longitud, radioPermitido, orden } ]"
           },
           "response": []
         },
@@ -224,7 +235,8 @@
                 "Catalogo",
                 "Buses"
               ]
-            }
+            },
+            "description": "Data: [ { id, placa, capacidad, modelo } ]"
           },
           "response": []
         }
@@ -242,6 +254,10 @@
                 "type": "text/javascript",
                 "exec": [
                   "var json = pm.response.json();",
+                  "pm.test('Viaje aperturado con ViajeId', function () {",
+                  "    pm.expect(json.Success).to.be.true;",
+                  "    pm.expect(json.Data).to.have.property('ViajeId');",
+                  "});",
                   "if (json && json.Data && json.Data.ViajeId) {",
                   "    pm.collectionVariables.set('viajeId', json.Data.ViajeId);",
                   "    console.log('viajeId guardado: ' + json.Data.ViajeId);",
@@ -272,12 +288,13 @@
                 "Viaje",
                 "Aperturar"
               ]
-            }
+            },
+            "description": "Response Data: { ViajeId }."
           },
           "response": []
         },
         {
-          "name": "Obtener (detalle + aforo)",
+          "name": "Obtener (detalle + aforo + paraderos)",
           "request": {
             "method": "POST",
             "header": [
@@ -300,7 +317,8 @@
                 "Viaje",
                 "Obtener"
               ]
-            }
+            },
+            "description": "Response Data: { ViajeId, AforoActual, CapacidadMax, Estado (IN_PROGRESS/COMPLETED), ParaderosAutorizados: [ { id, nombre, latitud, longitud, radioPermitido, orden } ] }."
           },
           "response": []
         },
@@ -328,7 +346,8 @@
                 "Viaje",
                 "Historial"
               ]
-            }
+            },
+            "description": "estado opcional: IN_PROGRESS / COMPLETED (o null = todos). desde/hasta opcionales (yyyy-MM-dd)."
           },
           "response": []
         },
@@ -356,7 +375,8 @@
                 "Viaje",
                 "Manifiesto"
               ]
-            }
+            },
+            "description": "Response Data: { cabecera, pasajeros }."
           },
           "response": []
         },
@@ -384,7 +404,8 @@
                 "Viaje",
                 "Cerrar"
               ]
-            }
+            },
+            "description": "Response Data: { ViajeId }."
           },
           "response": []
         }
@@ -405,7 +426,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"dni\": \"12345678\",\n  \"codigo\": null\n}"
+              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"dni\": \"44556677\",\n  \"codigo\": null\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/Pasajero/Validar",
@@ -417,7 +438,8 @@
                 "Pasajero",
                 "Validar"
               ]
-            }
+            },
+            "description": "Response Data: { Dni, NombreCompleto, Empresa, EstadoLaboral (OK/VACACIONES/CESADO/LICENCIA/DESCANSO_MEDICO), AptoParaAbordar (bool) }. AptoParaAbordar=false dispara la alerta sonora en el app."
           },
           "response": []
         },
@@ -445,7 +467,8 @@
                 "Pasajero",
                 "ResolverParadero"
               ]
-            }
+            },
+            "description": "Response Data: { ParaderoId, Nombre, DistanciaMetros }."
           },
           "response": []
         },
@@ -461,7 +484,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"viajeId\": {{viajeId}},\n  \"uidCliente\": \"22222222-2222-2222-2222-222222222222\",\n  \"codigoUnico\": \"000000001\",\n  \"dni\": \"12345678\",\n  \"nombreCompleto\": \"JUAN PEREZ GOMEZ\",\n  \"empresa\": \"MISKI MAYO\",\n  \"puesto\": \"Operario\",\n  \"unidad\": \"Mina\",\n  \"tipoPasajero\": \"MISKI_MAYO\",\n  \"estadoLaboral\": \"ACTIVO\",\n  \"resultado\": \"ABORDO\",\n  \"observacion\": null,\n  \"paraderoId\": 1,\n  \"lugarSubida\": \"Piura\",\n  \"lat\": -5.194490,\n  \"lng\": -80.632820\n}"
+              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"viajeId\": {{viajeId}},\n  \"uidCliente\": \"22222222-2222-2222-2222-222222222222\",\n  \"codigoUnico\": \"EMP-9081\",\n  \"dni\": \"44556677\",\n  \"nombreCompleto\": \"JUAN PEREZ GOMEZ\",\n  \"empresa\": \"MISKI MAYO\",\n  \"puesto\": \"Operario de Planta\",\n  \"unidad\": \"Fosfatos\",\n  \"tipoPasajero\": \"MISKI_MAYO\",\n  \"estadoLaboral\": \"OK\",\n  \"resultado\": \"ABORDO\",\n  \"observacion\": null,\n  \"paraderoId\": 1,\n  \"lugarSubida\": \"Ovalo Grau\",\n  \"lat\": -5.194490,\n  \"lng\": -80.632820\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/Pasajero/Registrar",
@@ -489,7 +512,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"viajeId\": {{viajeId}},\n  \"uidCliente\": \"33333333-3333-3333-3333-333333333333\",\n  \"dni\": \"99887766\",\n  \"nombreCompleto\": \"VISITANTE EXTERNO SAC\",\n  \"empresa\": \"Tercero\",\n  \"tipoPasajero\": \"VISITA\",\n  \"estadoLaboral\": \"NO_REGISTRADO\",\n  \"resultado\": \"ABORDO_CON_OBS\",\n  \"observacion\": \"Ingreso autorizado por supervisor\",\n  \"lugarSubida\": \"Catacaos\",\n  \"lat\": -5.265000,\n  \"lng\": -80.678000,\n  \"motivoVisita\": \"Reunion tecnica\",\n  \"autorizadoPor\": \"Jefe de Operaciones\"\n}"
+              "raw": "{\n  \"usuario\": \"{{usuario}}\",\n  \"token\": \"{{token}}\",\n  \"viajeId\": {{viajeId}},\n  \"uidCliente\": \"33333333-3333-3333-3333-333333333333\",\n  \"dni\": \"99887766\",\n  \"nombreCompleto\": \"VISITANTE EXTERNO SAC\",\n  \"empresa\": \"Terceros Metalmecanica\",\n  \"tipoPasajero\": \"VISITA\",\n  \"estadoLaboral\": \"NO_REGISTRADO\",\n  \"resultado\": \"ABORDO_CON_OBS\",\n  \"observacion\": \"Ingreso autorizado para inspeccion de seguridad\",\n  \"lugarSubida\": \"Catacaos\",\n  \"lat\": -5.265000,\n  \"lng\": -80.678000,\n  \"motivoVisita\": \"Inspeccion tecnica de mantenimiento\",\n  \"autorizadoPor\": \"Supervisor Juan Alva\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/Pasajero/RegistrarVisita",
@@ -529,11 +552,30 @@
                 "Pasajero",
                 "Lista"
               ]
-            }
+            },
+            "description": "filtro: TODOS / COLABORADORES / VISITAS. buscar: nombre o DNI (opcional)."
           },
           "response": []
         }
       ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Test comun: valida el wrapper corporativo { Success, Message, Data }.",
+          "var json;",
+          "try { json = pm.response.json(); } catch (e) { json = null; }",
+          "pm.test('Respuesta con wrapper .NET (Success/Message)', function () {",
+          "    pm.expect(json, 'cuerpo JSON').to.be.an('object');",
+          "    pm.expect(json).to.have.property('Success');",
+          "    pm.expect(json).to.have.property('Message');",
+          "});"
+        ]
+      }
     }
   ],
   "variable": [
