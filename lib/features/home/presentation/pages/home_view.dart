@@ -228,20 +228,28 @@ class _HomeViewState extends ConsumerState<HomeView>
           ),
         ];
       },
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildTripList(
-            data.todayTrips,
-            'No tienes viajes programados para hoy',
-            hasActiveTrip,
-            data.summary,
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTripList(
+                  data.todayTrips,
+                  'No tienes viajes programados para hoy',
+                  hasActiveTrip,
+                ),
+                _buildTripList(
+                  data.pendingTrips,
+                  'No tienes viajes pendientes programados',
+                  hasActiveTrip,
+                ),
+              ],
+            ),
           ),
-          _buildTripList(
-            data.pendingTrips,
-            'No tienes viajes pendientes programados',
-            hasActiveTrip,
-            data.summary,
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
+            child: DashboardStatsSection(summary: data.summary),
           ),
         ],
       ),
@@ -718,7 +726,6 @@ class _HomeViewState extends ConsumerState<HomeView>
     List<dynamic> trips,
     String emptyText,
     bool hasActiveTrip,
-    dynamic summary,
   ) {
     return ListView(
       padding: DesignSpacing.allM,
@@ -747,8 +754,6 @@ class _HomeViewState extends ConsumerState<HomeView>
             );
           }),
         ],
-        DesignSpacing.spacerV24,
-        DashboardStatsSection(summary: summary),
       ],
     );
   }
