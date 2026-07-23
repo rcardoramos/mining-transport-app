@@ -102,6 +102,11 @@ Para generar los instaladores (.apk) optimizados para producción o pruebas, uti
 flutter build apk --release --dart-define=ENV=prod
 ```
 
+#### Generar APK para Staging (Consumo de APIs de Pruebas / Pre-Producción)
+```bash
+flutter build apk --release --dart-define=ENV=staging
+```
+
 #### Generar APK para Desarrollo / Pruebas de QA (Con Simuladores y Mocks locales)
 ```bash
 flutter build apk --release --dart-define=ENV=dev

@@ -28,6 +28,12 @@ Actualmente, **todas las fases principales han sido implementadas** en su lógic
 | **Fase 9** | **Sincronización en Background** | 🟢 **Completado** | Cola de sincronización local FIFO. Incorpora un banner reactivo de conectividad (`ConnectivityBar`) que monitoriza el estado de la red y el conteo de registros locales pendientes de envío. |
 | **Fase 10** | **Reportes y Auditoría** | 🟢 **Completado** | Historial de auditoría local en base de datos. Pestaña de perfil del conductor que detalla sus estadísticas acumuladas (viajes, pasajeros) y un calendario semanal interactivo. |
 
+### 🔧 Actualizaciones de Integración y Estabilidad (Reunión Backend)
+* **Soporte de API Unificado para Historial**: Se corrigió el consumo del endpoint `api/Viaje/Historial` enviando `estado: null` para retornar todo el historial de viajes, y se implementó un filtrado dinámico por fecha local (Zona Horaria Perú) en la capa de datos para separar los viajes de "Hoy" y "Pendientes".
+* **Deserialización Tolerante a Mayúsculas (PascalCase)**: Se modificaron los deserializadores de `TripModel`, `StopModel`, `CollaboratorModel` y `PassengerModel` para aceptar dinámicamente claves del JSON tanto en camelCase (formato local) como en PascalCase (formato del servidor .NET, ej. `ViajeId`, `Ruta`, `Estado`, `Dni`), previniendo excepciones de casteo nulo (`Null is not a subtype of String`).
+* **Formatos de Fecha Flexibles**: Se extendió `PeruDateFormatter` con la función `parseFlexible` para admitir formatos de fecha latino/local `dd/MM/yyyy` de la API real.
+* **Componente de Indicadores Estático**: Se extrajo el `DashboardStatsSection` fuera de la vista deslizable (`TabBarView`) en `HomeView`, manteniéndolo fijo en la base de la pantalla de inicio durante los gestos de deslizamiento.
+
 ---
 
 ## 📂 Estructura del Código Fuente y Archivos Creados
