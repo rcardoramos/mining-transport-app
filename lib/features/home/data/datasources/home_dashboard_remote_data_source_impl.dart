@@ -148,13 +148,27 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final isVisita = category == 'Visita' || registrationMethod == 'visit';
     final endpoint = isVisita ? 'api/Pasajero/RegistrarVisita' : 'api/Pasajero/Registrar';
 
+    final mappedStatus = (status == null)
+        ? 'OK'
+        : (status.toLowerCase() == 'ok'
+            ? 'OK'
+            : (status.toLowerCase() == 'vacation'
+                ? 'VACACIONES'
+                : (status.toLowerCase() == 'medicalleave'
+                    ? 'DESCANSO_MEDICO'
+                    : (status.toLowerCase() == 'license'
+                        ? 'LICENCIA'
+                        : (status.toLowerCase() == 'terminated'
+                            ? 'CESADO'
+                            : status.toUpperCase())))));
+
     final body = {
       'usuario': username,
       'token': token,
       'viajeId': int.tryParse(id) ?? 1,
       'dni': dni,
       'tipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
-      'estadoLaboral': status ?? 'OK',
+      'estadoLaboral': mappedStatus,
       'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
       'observacion': justification,
       'lat': lat ?? 0.0,
