@@ -37,8 +37,8 @@ class TripModel with _$TripModel {
     final scheduledTimeVal = json['scheduledTime'] ?? json['FechaServicio'] ?? json['FechaHoraProgramada'] ?? json['fechaServicio'] ?? json['horaSalida'] ?? DateTime.now().toUtc().toIso8601String();
     final scheduledTime = scheduledTimeVal.toString();
 
-    // 4. Parse Shift (shift or Turno or turno)
-    final shiftVal = json['shift'] ?? json['Turno'] ?? json['turno'] ?? 'Día';
+    // 4. Parse Shift (shift or Turno or turno or Horario)
+    final shiftVal = json['shift'] ?? json['Turno'] ?? json['turno'] ?? json['Horario'] ?? 'Día';
     final shift = shiftVal.toString();
 
     // 5. Parse Unit Code / Bus / Placa (unitCode or Placa or CodigoUnidad or unit_code)
@@ -57,12 +57,16 @@ class TripModel with _$TripModel {
     final statusVal = json['status'] ?? json['Estado'] ?? json['estado'] ?? 'scheduled';
     final status = statusVal.toString();
 
-    // 9. Parse startedAt and completedAt (startedAt / FechaInicio, completedAt / FechaFin)
-    final startedAtVal = json['startedAt'] ?? json['FechaInicio'] ?? json['started_at'];
-    final startedAt = startedAtVal?.toString();
+    // 9. Parse startedAt and completedAt (startedAt / FechaInicio / FechaApertura, completedAt / FechaFin / FechaCierre)
+    final startedAtVal = json['startedAt'] ?? json['FechaInicio'] ?? json['FechaApertura'] ?? json['started_at'];
+    final startedAt = (startedAtVal == null || startedAtVal.toString().trim().toLowerCase() == 'null')
+        ? null
+        : startedAtVal.toString();
 
-    final completedAtVal = json['completedAt'] ?? json['FechaFin'] ?? json['completed_at'];
-    final completedAt = completedAtVal?.toString();
+    final completedAtVal = json['completedAt'] ?? json['FechaFin'] ?? json['FechaCierre'] ?? json['completed_at'];
+    final completedAt = (completedAtVal == null || completedAtVal.toString().trim().toLowerCase() == 'null')
+        ? null
+        : completedAtVal.toString();
 
     // 10. Parse stops (stops or ParaderosAutorizados or paraderos)
     final stopsJson = json['stops'] ?? json['ParaderosAutorizados'] ?? json['paraderos'];
@@ -87,6 +91,19 @@ class TripModel with _$TripModel {
   }
 
   TripEntity toEntity() {
+    final parsedStartedAt = PeruDateFormatter.parseFlexible(startedAt);
+    final parsedCompletedAt = PeruDateFormatter.parseFlexible(completedAt);
+
+    // Determine dynamic status
+    TripStatus resolvedStatus = _parseTripStatus(status);
+    if (resolvedStatus == TripStatus.scheduled || resolvedStatus == TripStatus.readyToStart) {
+      if (parsedCompletedAt != null) {
+        resolvedStatus = TripStatus.completed;
+      } else if (parsedStartedAt != null) {
+        resolvedStatus = TripStatus.inProgress;
+      }
+    }
+
     return TripEntity(
       id: id,
       route: route,
@@ -95,9 +112,9 @@ class TripModel with _$TripModel {
       unitCode: unitCode,
       capacity: capacity,
       passengerCount: passengerCount,
-      status: _parseTripStatus(status),
-      startedAt: PeruDateFormatter.parseFlexible(startedAt),
-      completedAt: PeruDateFormatter.parseFlexible(completedAt),
+      status: resolvedStatus,
+      startedAt: parsedStartedAt,
+      completedAt: parsedCompletedAt,
       stops: stops?.map((s) => s.toEntity()).toList(),
     );
   }
@@ -105,7 +122,7 @@ class TripModel with _$TripModel {
 
 TripStatus _parseTripStatus(String statusStr) {
   final clean = statusStr.trim().toUpperCase().replaceAll('_', '');
-  if (clean == 'COMPLETED' || clean == 'FINALIZADO') {
+  if (clean == 'COMPLETED' || clean == 'FINALIZADO' || clean == 'C') {
     return TripStatus.completed;
   }
   if (clean == 'INPROGRESS' || clean == 'ENPROGRESS' || clean == 'EN_CURSO') {
@@ -120,7 +137,7 @@ TripStatus _parseTripStatus(String statusStr) {
   if (clean == 'READYTOSTART' || clean == 'PORINICIAR') {
     return TripStatus.readyToStart;
   }
-  if (clean == 'SCHEDULED' || clean == 'PROGRAMADO') {
+  if (clean == 'SCHEDULED' || clean == 'PROGRAMADO' || clean == 'A') {
     return TripStatus.scheduled;
   }
   
