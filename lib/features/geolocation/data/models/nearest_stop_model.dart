@@ -12,8 +12,22 @@ class NearestStopModel with _$NearestStopModel {
     @JsonKey(name: 'DistanciaMetros') required double distanciaMetros,
   }) = _NearestStopModel;
 
-  factory NearestStopModel.fromJson(Map<String, dynamic> json) =>
-      _$NearestStopModelFromJson(json);
+  factory NearestStopModel.fromJson(Map<String, dynamic> json) {
+    final paraderoIdVal = json['ParaderoId'] ?? json['paraderoId'] ?? json['id'] ?? json['Id'] ?? 0;
+    final paraderoId = int.tryParse(paraderoIdVal.toString()) ?? 0;
+
+    final nombreVal = json['Nombre'] ?? json['nombre'] ?? 'Paradero';
+    final nombre = nombreVal.toString();
+
+    final distanciaMetrosVal = json['DistanciaMetros'] ?? json['distanciaMetros'] ?? json['distancia_metros'] ?? 0.0;
+    final distanciaMetros = double.tryParse(distanciaMetrosVal.toString()) ?? 0.0;
+
+    return NearestStopModel(
+      paraderoId: paraderoId,
+      nombre: nombre,
+      distanciaMetros: distanciaMetros,
+    );
+  }
 
   const NearestStopModel._();
 

@@ -17,7 +17,30 @@ class UserModel with _$UserModel {
 
   const UserModel._();
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    final idVal = json['id'] ?? json['Id'] ?? '';
+    final id = idVal.toString();
+
+    final usernameVal = json['username'] ?? json['Username'] ?? '';
+    final username = usernameVal.toString();
+
+    final fullNameVal = json['fullName'] ?? json['FullName'] ?? json['NombreCompleto'] ?? '';
+    final fullName = fullNameVal.toString();
+
+    final roleVal = json['role'] ?? json['Role'] ?? 'DRIVER';
+    final role = roleVal.toString();
+
+    final tokenVal = json['token'] ?? json['Token'];
+    final token = tokenVal?.toString();
+
+    return UserModel(
+      id: id,
+      username: username,
+      fullName: fullName,
+      role: role,
+      token: token,
+    );
+  }
 
   /// Convierte un [UserEntity] de dominio a este [UserModel] de datos.
   factory UserModel.fromEntity(UserEntity entity) => UserModel(
