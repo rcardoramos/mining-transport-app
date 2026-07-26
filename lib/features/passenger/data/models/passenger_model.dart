@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 part 'passenger_model.freezed.dart';
 part 'passenger_model.g.dart';
@@ -55,18 +56,40 @@ class PassengerModel with _$PassengerModel {
 /// Extensión para convertir [PassengerModel] → [PassengerEntity]
 extension PassengerModelMapper on PassengerModel {
   PassengerEntity toEntity() {
-    final statusEnum = CollaboratorStatus.values.firstWhere(
-      (e) => e.name == status,
-      orElse: () => CollaboratorStatus.ok,
-    );
     return PassengerEntity(
       dni: dni,
       fullName: fullName,
-      boardedAt: DateTime.parse(boardedAt),
+      boardedAt: PeruDateFormatter.parseFlexible(boardedAt) ?? DateTime.now(),
       registrationMethod: registrationMethod,
-      status: statusEnum,
+      status: _parseCollaboratorStatus(status),
       seatNumber: seatNumber,
       category: category,
     );
   }
+}
+
+CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {
+  if (statusStr == null) return CollaboratorStatus.ok;
+  final clean = statusStr.trim().toUpperCase();
+  
+  if (clean == 'OK' || clean == 'ACTIVO' || clean == 'ACTIVE') {
+    return CollaboratorStatus.ok;
+  }
+  if (clean == 'VACACIONES' || clean == 'VACATION' || clean == 'VACACIONES_ALERT') {
+    return CollaboratorStatus.vacation;
+  }
+  if (clean == 'DESCANSO_MEDICO' || clean == 'DESCANSO' || clean == 'MEDICAL_LEAVE' || clean == 'MEDICALLEAVE') {
+    return CollaboratorStatus.medicalLeave;
+  }
+  if (clean == 'LICENCIA' || clean == 'LICENSE' || clean == 'LIC') {
+    return CollaboratorStatus.license;
+  }
+  if (clean == 'CESADO' || clean == 'INACTIVO' || clean == 'TERMINATED' || clean == 'CESADO_ALERT') {
+    return CollaboratorStatus.terminated;
+  }
+  
+  return CollaboratorStatus.values.firstWhere(
+    (e) => e.name.toUpperCase() == clean,
+    orElse: () => CollaboratorStatus.ok,
+  );
 }

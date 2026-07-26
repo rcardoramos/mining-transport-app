@@ -25,7 +25,7 @@ class DriverModel with _$DriverModel {
       name: name,
       code: code,
       status: DriverStatus.values.firstWhere(
-        (e) => e.name == status,
+        (e) => e.name.toLowerCase() == status.trim().toLowerCase(),
         orElse: () => DriverStatus.inactive,
       ),
       todayTripsCount: todayTripsCount,
