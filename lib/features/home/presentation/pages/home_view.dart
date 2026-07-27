@@ -31,13 +31,21 @@ class _HomeViewState extends ConsumerState<HomeView>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
     final nowUtc = DateTime.now().toUtc();
     final nowPeru = nowUtc.subtract(const Duration(hours: 5));
     _selectedCalendarDate = DateTime(nowPeru.year, nowPeru.month, nowPeru.day);
   }
 
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -182,77 +190,80 @@ class _HomeViewState extends ConsumerState<HomeView>
     final hasActiveTrip =
         data.todayTrips.any((t) => t.status == TripStatus.inProgress) ||
         data.pendingTrips.any((t) => t.status == TripStatus.inProgress);
-    final allEmpty = data.todayTrips.isEmpty && data.pendingTrips.isEmpty;
 
-    return NestedScrollView(
-      physics: allEmpty ? const NeverScrollableScrollPhysics() : null,
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          SliverPadding(
-            padding: DesignSpacing.allM,
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                GreetingHeader(driverName: data.driver.name),
-                DesignSpacing.spacerV16,
-                DriverProfileCard(driver: data.driver),
-                DesignSpacing.spacerV24,
-                TabBar(
-                  controller: _tabController,
-                  labelColor: isDark
-                      ? DesignColors.primaryDark
-                      : DesignColors.primaryLight,
-                  unselectedLabelColor: isDark
-                      ? DesignColors.textSecondaryDark
-                      : DesignColors.textSecondaryLight,
-                  labelStyle: DesignTypography.labelLarge.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  unselectedLabelStyle: DesignTypography.labelMedium,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  indicator: BoxDecoration(
-                    color:
-                        (isDark
-                                ? DesignColors.primaryDark
-                                : DesignColors.primaryLight)
-                            .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  tabs: const [
-                    Tab(text: 'Viajes de Hoy'),
-                    Tab(text: 'Viajes Pendientes'),
-                  ],
-                ),
-              ]),
-            ),
+    final selectedTrips = _tabController.index == 0
+        ? data.todayTrips
+        : data.pendingTrips;
+
+    final emptyText = _tabController.index == 0
+        ? 'No tienes viajes programados para hoy'
+        : 'No tienes viajes pendientes programados';
+
+    return ListView(
+      padding: DesignSpacing.allM,
+      children: [
+        GreetingHeader(driverName: data.driver.name),
+        DesignSpacing.spacerV16,
+        DriverProfileCard(driver: data.driver),
+        DesignSpacing.spacerV24,
+        TabBar(
+          controller: _tabController,
+          labelColor: isDark
+              ? DesignColors.primaryDark
+              : DesignColors.primaryLight,
+          unselectedLabelColor: isDark
+              ? DesignColors.textSecondaryDark
+              : DesignColors.textSecondaryLight,
+          labelStyle: DesignTypography.labelLarge.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ];
-      },
-      body: Column(
-        children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTripList(
-                  data.todayTrips,
-                  'No tienes viajes programados para hoy',
-                  hasActiveTrip,
-                ),
-                _buildTripList(
-                  data.pendingTrips,
-                  'No tienes viajes pendientes programados',
-                  hasActiveTrip,
-                ),
-              ],
-            ),
+          unselectedLabelStyle: DesignTypography.labelMedium,
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          indicator: BoxDecoration(
+            color:
+                (isDark
+                        ? DesignColors.primaryDark
+                        : DesignColors.primaryLight)
+                    .withOpacity(0.1),
+            borderRadius: BorderRadius.circular(25),
           ),
+          tabs: const [
+            Tab(text: 'Viajes de Hoy'),
+            Tab(text: 'Viajes Pendientes'),
+          ],
+        ),
+        DesignSpacing.spacerV16,
+        if (selectedTrips.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
-            child: DashboardStatsSection(summary: data.summary),
-          ),
-        ],
-      ),
+            padding: const EdgeInsets.symmetric(vertical: 40.0),
+            child: Center(
+              child: DesignEmptyState(
+                title: 'Sin Viajes',
+                description: emptyText,
+                icon: Icons.calendar_today_rounded,
+              ),
+            ),
+          )
+        else
+          ...selectedTrips.map((trip) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: TripItemCard(
+                trip: trip,
+                isAperturarDisabled:
+                    hasActiveTrip && trip.status != TripStatus.inProgress,
+                onStatusChanged: (newStatus) {
+                  _handleTripStatusChanged(trip, newStatus);
+                },
+                onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
+                onVerResumen: () => _showResumenDialog(trip),
+              ),
+            );
+          }),
+        DesignSpacing.spacerV8,
+        DashboardStatsSection(summary: data.summary),
+      ],
     );
   }
 
@@ -722,41 +733,7 @@ class _HomeViewState extends ConsumerState<HomeView>
     );
   }
 
-  Widget _buildTripList(
-    List<dynamic> trips,
-    String emptyText,
-    bool hasActiveTrip,
-  ) {
-    return ListView(
-      padding: DesignSpacing.allM,
-      physics: trips.isEmpty ? const NeverScrollableScrollPhysics() : null,
-      children: [
-        if (trips.isEmpty) ...[
-          DesignEmptyState(
-            title: 'Lista Vacía',
-            description: emptyText,
-            icon: Icons.calendar_today_rounded,
-          ),
-        ] else ...[
-          ...trips.map((trip) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TripItemCard(
-                trip: trip,
-                isAperturarDisabled:
-                    hasActiveTrip && trip.status != TripStatus.inProgress,
-                onStatusChanged: (newStatus) {
-                  _handleTripStatusChanged(trip, newStatus);
-                },
-                onContinuarEmbarque: () => _showEmbarqueSimulator(trip),
-                onVerResumen: () => _showResumenDialog(trip),
-              ),
-            );
-          }),
-        ],
-      ],
-    );
-  }
+
 
   void _handleTripStatusChanged(TripEntity trip, TripStatus newStatus) {
     if (newStatus == TripStatus.inProgress) {
