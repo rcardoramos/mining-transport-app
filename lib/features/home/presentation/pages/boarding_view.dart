@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/audio/audio_service.dart';
 import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
@@ -19,6 +20,7 @@ import 'package:mining_transport_app/features/validation/domain/usecases/validat
 import 'package:mining_transport_app/features/validation/domain/entities/labor_validation_result.dart';
 import 'package:mining_transport_app/features/geolocation/domain/usecases/validate_stop_geofencing_usecase.dart';
 import 'package:mining_transport_app/features/occupancy/domain/usecases/validate_occupancy_usecase.dart';
+import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:mining_transport_app/core/scanner/qr_scanner_page.dart';
@@ -49,11 +51,15 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   StreamSubscription<Position>? _gpsSubscription;
   Position? _currentPosition;
 
+  TripEntity? _detailedTrip;
+  bool _isLoadingTripDetail = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPassengers();
+      _loadTripDetail();
     });
     _currentPosition = _gpsService.currentPosition;
     _gpsSubscription = _gpsService.positionStream.listen((Position position) {
@@ -63,6 +69,26 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         });
       }
     });
+  }
+
+  Future<void> _loadTripDetail() async {
+    if (!mounted) return;
+    setState(() => _isLoadingTripDetail = true);
+    try {
+      final dataSource = GetIt.I<TripRemoteDataSource>();
+      final model = await dataSource.getTripDetail(widget.tripId);
+      if (mounted) {
+        setState(() {
+          _detailedTrip = model.toEntity();
+        });
+      }
+    } catch (e, stack) {
+      GetIt.I<AppLogger>().e('Error al cargar detalle del viaje: $e', stack);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingTripDetail = false);
+      }
+    }
   }
 
   Future<void> _loadPassengers() async {
@@ -584,6 +610,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         .read(homeDashboardViewModelProvider.notifier)
         .updateTripStatus(trip.id, TripStatus.travelling);
 
+    await _loadTripDetail();
+
     if (mounted) {
       DesignSnackbar.showSuccess(
           context, '¡Viaje iniciado! El bus está en tránsito.');
@@ -614,6 +642,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     await ref
         .read(homeDashboardViewModelProvider.notifier)
         .updateTripStatus(trip.id, TripStatus.completed);
+
+    await _loadTripDetail();
 
     if (mounted) {
       DesignSnackbar.showSuccess(
@@ -672,7 +702,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     final state = ref.watch(homeDashboardViewModelProvider);
     final colors = Theme.of(context).extension<DesignThemeExtension>()!;
 
-    if (state.isLoading) {
+    if (state.isLoading || (_detailedTrip == null && _isLoadingTripDetail)) {
       return const Scaffold(body: Center(child: DesignCircularLoader()));
     }
 
@@ -687,7 +717,14 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       } catch (_) {}
     }
 
-    if (trip == null) {
+    final resolvedTrip = _detailedTrip != null
+        ? _detailedTrip!.copyWith(
+            passengerCount: trip?.passengerCount ?? _detailedTrip!.passengerCount,
+            status: trip?.status ?? _detailedTrip!.status,
+          )
+        : trip;
+
+    if (resolvedTrip == null) {
       return Scaffold(
         appBar: DesignAppBar(
           title: 'Embarque',
@@ -704,7 +741,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       );
     }
 
-    final activeTrip = trip;
+    final activeTrip = resolvedTrip;
     final activeStop = _getActiveStop(activeTrip);
     final inRange = activeStop != null && _isDriverInRange(activeStop);
     final occupancy = GetIt.I<ValidateOccupancyUseCase>().execute(
@@ -759,7 +796,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                   children: [
                     Expanded(
                       child: Text(
-                        trip.route,
+                        activeTrip.route,
                         style: DesignTypography.titleMedium.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark
@@ -769,8 +806,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                       ),
                     ),
                     DesignBadge(
-                      label: trip.status == TripStatus.travelling ? 'En tránsito' : 'En curso',
-                      color: trip.status == TripStatus.travelling ? colors.success : colors.info,
+                      label: activeTrip.status == TripStatus.travelling ? 'En tránsito' : 'En curso',
+                      color: activeTrip.status == TripStatus.travelling ? colors.success : colors.info,
                     ),
                   ],
                 ),
@@ -779,11 +816,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildMeta(Icons.access_time_rounded, 'Prog.',
-                        _formatTime(trip.scheduledTime), isDark),
+                        _formatTime(activeTrip.scheduledTime), isDark),
                     _buildMeta(Icons.play_circle_fill_rounded, 'Inicio',
-                        _formatTime(trip.startedAt), isDark),
+                        _formatTime(activeTrip.startedAt), isDark),
                     _buildMeta(Icons.directions_bus_rounded, 'Vehículo',
-                        trip.unitCode, isDark),
+                        activeTrip.unitCode, isDark),
                   ],
                 ),
                 DesignSpacing.spacerV16,
@@ -802,7 +839,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                       ),
                     ),
                     Text(
-                      '${trip.passengerCount} / ${trip.capacity}',
+                      '${activeTrip.passengerCount} / ${activeTrip.capacity}',
                       style: DesignTypography.titleMedium.copyWith(
                         fontWeight: FontWeight.bold,
                         color: isDark
@@ -901,7 +938,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                 ),
                               );
                             } else if (choice == 'SIMULATOR') {
-                              _showCameraSimulator(trip!);
+                              _showCameraSimulator(activeTrip);
                               return;
                             } else {
                               return; // Cancelado
@@ -917,7 +954,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                           }
 
                           if (scannedDni != null && mounted) {
-                            _handleCollaboratorBoarding(trip!, scannedDni);
+                            _handleCollaboratorBoarding(activeTrip, scannedDni);
                           }
                         },
                   child: Row(
@@ -1094,7 +1131,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                     : 'Registrar Embarque',
                                 onTap: (_isRegistering || !inRange)
                                     ? null
-                                    : () => _submitManualDni(trip!),
+                                    : () => _submitManualDni(activeTrip),
                                 icon: Icons.check_circle_outline_rounded,
                                 fullWidth: true,
                               ),
@@ -1515,12 +1552,13 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                 .completeStop(trip.id, activeStop.id);
                             setState(() => _isRegistering = false);
                             if (success && mounted) {
-                              DesignSnackbar.showSuccess(
-                                context,
-                                '¡${activeStop.name} completado! Avanzando al siguiente paradero.',
-                              );
-                              _loadPassengers();
-                            }
+                                DesignSnackbar.showSuccess(
+                                  context,
+                                  '¡${activeStop.name} completado! Avanzando al siguiente paradero.',
+                                );
+                                _loadPassengers();
+                                await _loadTripDetail();
+                              }
                           },
                   ),
                 ),
