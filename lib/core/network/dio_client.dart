@@ -42,10 +42,11 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = await _secureStorage.getToken();
-    if (token != null) {
-      options.headers['Authorization'] = 'Bearer $token';
-    }
+    // NOTA: El backend corporativo en .NET Framework 4.7.2 utiliza un contrato unificado
+    // donde la autenticación se realiza enviando { usuario, token } en el cuerpo (body)
+    // de cada petición POST. Agregar la cabecera 'Authorization: Bearer <token>' causa
+    // que el servidor responda con HTTP 401 Unauthorized debido a que el token es un
+    // GUID personalizado y no un JWT estándar esperado por cualquier middleware de auth.
     handler.next(options);
   }
 
