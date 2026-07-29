@@ -172,6 +172,29 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification);
       }
 
+      // Incrementar el aforo localmente en el State del ViewModel para visualización inmediata offline
+      final currentData = state.data;
+      if (currentData != null) {
+        final updatedToday = currentData.todayTrips.map((t) {
+          if (t.id == tripId) {
+            return t.copyWith(passengerCount: t.passengerCount + 1);
+          }
+          return t;
+        }).toList();
+        final updatedPending = currentData.pendingTrips.map((t) {
+          if (t.id == tripId) {
+            return t.copyWith(passengerCount: t.passengerCount + 1);
+          }
+          return t;
+        }).toList();
+        state = state.copyWith(
+          data: currentData.copyWith(
+            todayTrips: updatedToday,
+            pendingTrips: updatedPending,
+          ),
+        );
+      }
+
       await _fetchData();
       return true;
     }
@@ -184,6 +207,22 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         errorMessage: result.failureOrNull?.message ?? 'Fallo al registrar pasajero',
       );
       return false;
+    }
+
+    // Actualizar el viaje en el State local con la entidad actualizada retornada por el servidor
+    final updatedTrip = result.successOrNull;
+    if (updatedTrip != null) {
+      final currentData = state.data;
+      if (currentData != null) {
+        final updatedToday = currentData.todayTrips.map((t) => t.id == tripId ? updatedTrip : t).toList();
+        final updatedPending = currentData.pendingTrips.map((t) => t.id == tripId ? updatedTrip : t).toList();
+        state = state.copyWith(
+          data: currentData.copyWith(
+            todayTrips: updatedToday,
+            pendingTrips: updatedPending,
+          ),
+        );
+      }
     }
     
     await _fetchData();

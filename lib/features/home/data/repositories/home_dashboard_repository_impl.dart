@@ -1,4 +1,6 @@
 import 'package:mining_transport_app/core/utils/result.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../domain/entities/trip_entity.dart';
 import '../../domain/entities/dashboard_summary_entity.dart';
@@ -29,7 +31,18 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getTodayTrips() async {
     try {
       final models = await _remoteDataSource.getTodayTrips();
-      final entities = models.map((m) => m.toEntity()).toList();
+      final entities = <TripEntity>[];
+      final secureStorage = GetIt.I<SecureStorage>();
+      for (final m in models) {
+        var entity = m.toEntity();
+        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+          final isTravelling = await secureStorage.isTripTravelling(entity.id);
+          if (isTravelling) {
+            entity = entity.copyWith(status: TripStatus.travelling);
+          }
+        }
+        entities.add(entity);
+      }
       return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
@@ -40,7 +53,18 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getPendingTrips() async {
     try {
       final models = await _remoteDataSource.getPendingTrips();
-      final entities = models.map((m) => m.toEntity()).toList();
+      final entities = <TripEntity>[];
+      final secureStorage = GetIt.I<SecureStorage>();
+      for (final m in models) {
+        var entity = m.toEntity();
+        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+          final isTravelling = await secureStorage.isTripTravelling(entity.id);
+          if (isTravelling) {
+            entity = entity.copyWith(status: TripStatus.travelling);
+          }
+        }
+        entities.add(entity);
+      }
       return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
@@ -61,7 +85,15 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<TripEntity, Failure>> updateTripStatus(String id, TripStatus status) async {
     try {
       final model = await _remoteDataSource.updateTripStatus(id, status.name);
-      return Success(model.toEntity());
+      var entity = model.toEntity();
+      if (status == TripStatus.travelling) {
+        await GetIt.I<SecureStorage>().saveTripTravelling(id, true);
+        entity = entity.copyWith(status: TripStatus.travelling);
+      } else if (status == TripStatus.completed) {
+        await GetIt.I<SecureStorage>().deleteTripTravelling(id);
+        entity = entity.copyWith(status: TripStatus.completed);
+      }
+      return Success(entity);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }

@@ -72,6 +72,19 @@ class SecureStorage {
   }
 
 
+  Future<void> saveTripTravelling(String tripId, bool travelling) async {
+    await _storage.write(key: 'trip_travelling_$tripId', value: travelling.toString());
+  }
+
+  Future<bool> isTripTravelling(String tripId) async {
+    final val = await _storage.read(key: 'trip_travelling_$tripId');
+    return val == 'true';
+  }
+
+  Future<void> deleteTripTravelling(String tripId) async {
+    await _storage.delete(key: 'trip_travelling_$tripId');
+  }
+
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }

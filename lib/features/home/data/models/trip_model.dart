@@ -29,9 +29,19 @@ class TripModel with _$TripModel {
     final idVal = json['id'] ?? json['Id'] ?? json['ViajeId'] ?? json['viajeId'] ?? '';
     final id = idVal.toString();
 
-    // 2. Parse Route (Ruta or route or RutaNombre)
-    final routeVal = json['route'] ?? json['Ruta'] ?? json['RutaNombre'] ?? json['ruta'] ?? 'Ruta Sin Nombre';
-    final route = routeVal.toString();
+    // 2. Parse Route (Ruta or route or RutaNombre or NombreRuta)
+    final routeRaw = json['route'] ?? json['Ruta'] ?? json['RutaNombre'] ?? json['NombreRuta'] ?? json['ruta'];
+    String route = 'Ruta Sin Nombre';
+    if (routeRaw != null) {
+      if (routeRaw is Map) {
+        final nameVal = routeRaw['nombre'] ?? routeRaw['Nombre'] ?? routeRaw['name'] ?? routeRaw['Name'] ?? routeRaw['Ruta'] ?? routeRaw['ruta'];
+        if (nameVal != null) {
+          route = nameVal.toString();
+        }
+      } else {
+        route = routeRaw.toString();
+      }
+    }
 
     // 3. Parse Scheduled Time (scheduledTime or FechaServicio or FechaHoraProgramada or HoraSalida)
     final scheduledTimeVal = json['scheduledTime'] ?? json['FechaServicio'] ?? json['FechaHoraProgramada'] ?? json['fechaServicio'] ?? json['horaSalida'] ?? DateTime.now().toUtc().toIso8601String();
@@ -47,11 +57,13 @@ class TripModel with _$TripModel {
 
     // 6. Parse Capacity (capacity or Capacidad or CapacidadMax or capacidad)
     final capacityVal = json['capacity'] ?? json['Capacidad'] ?? json['CapacidadMax'] ?? json['capacidad'] ?? 40;
-    final capacity = int.tryParse(capacityVal.toString()) ?? 40;
+    final parsedCapacity = int.tryParse(capacityVal.toString()) ?? 40;
+    final capacity = parsedCapacity <= 0 ? 40 : parsedCapacity;
 
     // 7. Parse Passenger Count / Aforo (passengerCount or Pasajeros or AforoActual or pasajeros)
     final passengerCountVal = json['passengerCount'] ?? json['Pasajeros'] ?? json['AforoActual'] ?? json['pasajeros'] ?? 0;
-    final passengerCount = int.tryParse(passengerCountVal.toString()) ?? 0;
+    final parsedPassengerCount = int.tryParse(passengerCountVal.toString()) ?? 0;
+    final passengerCount = parsedPassengerCount < 0 ? 0 : parsedPassengerCount;
 
     // 8. Parse Status (status or Estado or estado)
     final statusVal = json['status'] ?? json['Estado'] ?? json['estado'] ?? 'scheduled';

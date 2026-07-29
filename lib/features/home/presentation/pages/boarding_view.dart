@@ -717,12 +717,24 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       } catch (_) {}
     }
 
+    final resolvedPassengerCount = _passengersList.isNotEmpty
+        ? _passengersList.length
+        : (trip?.passengerCount ?? _detailedTrip?.passengerCount ?? 0);
+
+    final resolvedCapacity = (_detailedTrip?.capacity ?? 0) > 0
+        ? _detailedTrip!.capacity
+        : ((trip?.capacity ?? 0) > 0 ? trip!.capacity : 40);
+
     final resolvedTrip = _detailedTrip != null
         ? _detailedTrip!.copyWith(
-            passengerCount: trip?.passengerCount ?? _detailedTrip!.passengerCount,
+            passengerCount: resolvedPassengerCount,
+            capacity: resolvedCapacity,
             status: trip?.status ?? _detailedTrip!.status,
           )
-        : trip;
+        : trip?.copyWith(
+            passengerCount: resolvedPassengerCount,
+            capacity: resolvedCapacity,
+          );
 
     if (resolvedTrip == null) {
       return Scaffold(

@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
+import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/result.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
@@ -21,7 +23,19 @@ class TripRepositoryImpl implements TripRepository {
   Future<Result<List<TripEntity>, Failure>> getTodayTrips() async {
     try {
       final models = await _remoteDataSource.getTodayTrips();
-      return Success(models.map((m) => m.toEntity()).toList());
+      final entities = <TripEntity>[];
+      final secureStorage = GetIt.I<SecureStorage>();
+      for (final m in models) {
+        var entity = m.toEntity();
+        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+          final isTravelling = await secureStorage.isTripTravelling(entity.id);
+          if (isTravelling) {
+            entity = entity.copyWith(status: TripStatus.travelling);
+          }
+        }
+        entities.add(entity);
+      }
+      return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }
@@ -31,7 +45,19 @@ class TripRepositoryImpl implements TripRepository {
   Future<Result<List<TripEntity>, Failure>> getPendingTrips() async {
     try {
       final models = await _remoteDataSource.getPendingTrips();
-      return Success(models.map((m) => m.toEntity()).toList());
+      final entities = <TripEntity>[];
+      final secureStorage = GetIt.I<SecureStorage>();
+      for (final m in models) {
+        var entity = m.toEntity();
+        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+          final isTravelling = await secureStorage.isTripTravelling(entity.id);
+          if (isTravelling) {
+            entity = entity.copyWith(status: TripStatus.travelling);
+          }
+        }
+        entities.add(entity);
+      }
+      return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }
@@ -80,18 +106,26 @@ class TripRepositoryImpl implements TripRepository {
         actionType: 'CLOSE_TRIP',
         payloadJson: jsonEncode({'tripId': tripId, 'endKm': endKm}),
       );
+      // Borrar el estado de viaje en tránsito local
+      await GetIt.I<SecureStorage>().deleteTripTravelling(tripId);
       // Actualizar estado local en el mock para mantener la UI reactiva
       try {
         final model = await _remoteDataSource.closeTrip(tripId: tripId, endKm: endKm);
-        return Success(model.toEntity());
+        var entity = model.toEntity();
+        entity = entity.copyWith(status: TripStatus.completed);
+        return Success(entity);
       } catch (e) {
         return FailureResult(UnknownFailure(e.toString()));
       }
     }
 
     try {
+      // Borrar el estado de viaje en tránsito local
+      await GetIt.I<SecureStorage>().deleteTripTravelling(tripId);
       final model = await _remoteDataSource.closeTrip(tripId: tripId, endKm: endKm);
-      return Success(model.toEntity());
+      var entity = model.toEntity();
+      entity = entity.copyWith(status: TripStatus.completed);
+      return Success(entity);
     } catch (e) {
       return FailureResult(NetworkFailure(e.toString()));
     }
@@ -101,7 +135,14 @@ class TripRepositoryImpl implements TripRepository {
   Future<Result<TripEntity, Failure>> getTripDetail(String tripId) async {
     try {
       final model = await _remoteDataSource.getTripDetail(tripId);
-      return Success(model.toEntity());
+      var entity = model.toEntity();
+      if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+        final isTravelling = await GetIt.I<SecureStorage>().isTripTravelling(tripId);
+        if (isTravelling) {
+          entity = entity.copyWith(status: TripStatus.travelling);
+        }
+      }
+      return Success(entity);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }
