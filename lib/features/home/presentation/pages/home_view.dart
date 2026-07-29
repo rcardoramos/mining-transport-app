@@ -786,8 +786,11 @@ class _HomeViewState extends ConsumerState<HomeView>
     }
   }
 
-  void _showEmbarqueSimulator(TripEntity trip) {
-    context.push('/dashboard/boarding/${trip.id}');
+  void _showEmbarqueSimulator(TripEntity trip) async {
+    await context.push('/dashboard/boarding/${trip.id}');
+    if (mounted) {
+      ref.read(homeDashboardViewModelProvider.notifier).loadDashboard();
+    }
   }
 
   void _showResumenDialog(TripEntity trip) {

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import '../../domain/entities/home_dashboard_data.dart';
 import '../../domain/entities/trip_entity.dart';
+import '../../domain/entities/stop_entity.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../domain/entities/dashboard_summary_entity.dart';
 import '../../domain/usecases/get_driver_info_usecase.dart';
@@ -130,7 +131,30 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         await remoteDataSource.updateTripStatus(tripId, newStatus.name);
       }
       
-      await _fetchData();
+      final currentData = state.data;
+      if (currentData != null) {
+        final updatedToday = currentData.todayTrips.map((t) {
+          if (t.id == tripId) {
+            return t.copyWith(status: newStatus);
+          }
+          return t;
+        }).toList();
+        final updatedPending = currentData.pendingTrips.map((t) {
+          if (t.id == tripId) {
+            return t.copyWith(status: newStatus);
+          }
+          return t;
+        }).toList();
+        state = state.copyWith(
+          isRefreshing: false,
+          data: currentData.copyWith(
+            todayTrips: updatedToday,
+            pendingTrips: updatedPending,
+          ),
+        );
+      } else {
+        state = state.copyWith(isRefreshing: false);
+      }
       return;
     }
 
@@ -188,14 +212,16 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
           return t;
         }).toList();
         state = state.copyWith(
+          isRefreshing: false,
           data: currentData.copyWith(
             todayTrips: updatedToday,
             pendingTrips: updatedPending,
           ),
         );
+      } else {
+        state = state.copyWith(isRefreshing: false);
       }
 
-      await _fetchData();
       return true;
     }
 
@@ -232,37 +258,43 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   Future<bool> completeStop(String tripId, String stopId) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
-    final isOnline = _ref.read(syncProvider).isOnline;
-    if (!isOnline) {
-      final payloadJson = jsonEncode({
-        'tripId': tripId,
-        'stopId': stopId,
-      });
-      await _ref.read(syncProvider.notifier).queueAction(
-        actionType: 'COMPLETE_STOP',
-        payloadJson: payloadJson,
-      );
-      
-      final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
-      if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+    // Completar paradero es una acción puramente local en el frontend en producción,
+    // ya que no existe un endpoint en el servidor real para esto.
+    final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
+    if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+      try {
         await remoteDataSource.completeStop(tripId, stopId);
-      }
-      
-      await _fetchData();
-      return true;
+      } catch (_) {}
     }
-
-    final result = await _completeStopUseCase.execute(tripId, stopId);
     
-    if (result.isFailure) {
+    final currentData = state.data;
+    if (currentData != null) {
+      final updatedToday = currentData.todayTrips.map((t) {
+        if (t.id == tripId) {
+          final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
+          return t.copyWith(stops: stops);
+        }
+        return t;
+      }).toList();
+      final updatedPending = currentData.pendingTrips.map((t) {
+        if (t.id == tripId) {
+          final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
+          return t.copyWith(stops: stops);
+        }
+        return t;
+      }).toList();
       state = state.copyWith(
         isRefreshing: false,
-        errorMessage: result.failureOrNull?.message ?? 'Fallo al completar el paradero',
+        data: currentData.copyWith(
+          todayTrips: updatedToday,
+          pendingTrips: updatedPending,
+          summary: currentData.summary, // Mantener el mismo summary
+        ),
       );
-      return false;
+    } else {
+      state = state.copyWith(isRefreshing: false);
     }
     
-    await _fetchData();
     return true;
   }
 }

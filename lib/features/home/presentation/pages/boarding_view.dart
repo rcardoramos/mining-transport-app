@@ -9,6 +9,7 @@ import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/audio/audio_service.dart';
+import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
@@ -78,8 +79,15 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       final dataSource = GetIt.I<TripRemoteDataSource>();
       final model = await dataSource.getTripDetail(widget.tripId);
       if (mounted) {
+        var entity = model.toEntity();
+        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
+          final isTravelling = await GetIt.I<SecureStorage>().isTripTravelling(widget.tripId);
+          if (isTravelling) {
+            entity = entity.copyWith(status: TripStatus.travelling);
+          }
+        }
         setState(() {
-          _detailedTrip = model.toEntity();
+          _detailedTrip = entity;
         });
       }
     } catch (e, stack) {

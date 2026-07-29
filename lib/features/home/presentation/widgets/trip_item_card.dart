@@ -62,7 +62,7 @@ class TripItemCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colors = Theme.of(context).extension<DesignThemeExtension>()!;
     final statusColor = _getStatusColor(trip.status, colors);
-    final isTripActive = trip.status == TripStatus.inProgress;
+    final isTripActive = trip.status == TripStatus.inProgress || trip.status == TripStatus.travelling;
 
     Widget cardBody = DesignCard.status(
       statusColor: isTripActive ? (isDark ? DesignColors.primaryDark : DesignColors.primaryLight) : statusColor,
