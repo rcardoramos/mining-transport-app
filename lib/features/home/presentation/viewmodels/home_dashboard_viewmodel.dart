@@ -1,19 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
-import '../../domain/entities/home_dashboard_data.dart';
-import '../../domain/entities/trip_entity.dart';
-import '../../domain/entities/stop_entity.dart';
-import '../../domain/entities/driver_entity.dart';
-import '../../domain/entities/dashboard_summary_entity.dart';
-import '../../domain/usecases/get_driver_info_usecase.dart';
-import '../../domain/usecases/get_today_trips_usecase.dart';
-import '../../domain/usecases/get_pending_trips_usecase.dart';
-import '../../domain/usecases/get_dashboard_summary_usecase.dart';
-import '../../domain/usecases/update_trip_status_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/entities/home_dashboard_data.dart';
+import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/stop_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/driver_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/dashboard_summary_entity.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_driver_info_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_today_trips_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_pending_trips_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/get_dashboard_summary_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/update_trip_status_usecase.dart';
 import 'package:mining_transport_app/features/passenger/domain/usecases/register_passenger_usecase.dart';
-import '../../domain/usecases/complete_stop_usecase.dart';
+import 'package:mining_transport_app/features/home/domain/usecases/complete_stop_usecase.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
-import '../states/home_dashboard_state.dart';
+import 'package:mining_transport_app/features/home/presentation/states/home_dashboard_state.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'dart:convert';
 import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
@@ -240,8 +240,8 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     if (updatedTrip != null) {
       final currentData = state.data;
       if (currentData != null) {
-        final updatedToday = currentData.todayTrips.map((t) => t.id == tripId ? updatedTrip : t).toList();
-        final updatedPending = currentData.pendingTrips.map((t) => t.id == tripId ? updatedTrip : t).toList();
+        final updatedToday = currentData.todayTrips.map<TripEntity>((t) => t.id == tripId ? updatedTrip : t).toList();
+        final updatedPending = currentData.pendingTrips.map<TripEntity>((t) => t.id == tripId ? updatedTrip : t).toList();
         state = state.copyWith(
           data: currentData.copyWith(
             todayTrips: updatedToday,

@@ -10,6 +10,7 @@ import '../../domain/repositories/home_dashboard_repository.dart';
 import '../datasources/home_dashboard_remote_data_source.dart';
 import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
+import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
 
 /// Implementación concreta del Repositorio de Home Dashboard.
 class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
@@ -42,13 +43,19 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           }
         }
         
-        // Obtener el conteo real de pasajeros a bordo para evitar descuadres en el dashboard
+        // Obtener el conteo real de pasajeros y capacidad real a bordo para evitar descuadres en el dashboard
         if (entity.status != TripStatus.cancelled) {
           try {
             final passengers = await _remoteDataSource.getPassengersOnBoard(entity.id);
             entity = entity.copyWith(passengerCount: passengers.length);
           } catch (_) {
             // Mantener el conteo del modelo si hay error
+          }
+          try {
+            final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
+            entity = entity.copyWith(capacity: tripDetail.capacity);
+          } catch (_) {
+            // Mantener la capacidad del modelo si hay error
           }
         }
         
@@ -75,13 +82,19 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           }
         }
         
-        // Obtener el conteo real de pasajeros a bordo para evitar descuadres en el dashboard
+        // Obtener el conteo real de pasajeros y capacidad real a bordo para evitar descuadres en el dashboard
         if (entity.status != TripStatus.cancelled) {
           try {
             final passengers = await _remoteDataSource.getPassengersOnBoard(entity.id);
             entity = entity.copyWith(passengerCount: passengers.length);
           } catch (_) {
             // Mantener el conteo del modelo si hay error
+          }
+          try {
+            final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
+            entity = entity.copyWith(capacity: tripDetail.capacity);
+          } catch (_) {
+            // Mantener la capacidad del modelo si hay error
           }
         }
         

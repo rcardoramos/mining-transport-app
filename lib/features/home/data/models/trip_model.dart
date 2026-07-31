@@ -55,8 +55,18 @@ class TripModel with _$TripModel {
     final unitCodeVal = json['unitCode'] ?? json['Placa'] ?? json['CodigoUnidad'] ?? json['unit_code'] ?? 'BUS-01';
     final unitCode = unitCodeVal.toString();
 
-    // 6. Parse Capacity (capacity or Capacidad or CapacidadMax or capacidad)
-    final capacityVal = json['capacity'] ?? json['Capacidad'] ?? json['CapacidadMax'] ?? json['capacidad'] ?? 40;
+    // 6. Parse Capacity (capacity, Capacidad, CapacidadMax, capacidadMax, capacidad, etc.)
+    final capacityVal = json['capacity'] ??
+        json['Capacity'] ??
+        json['Capacidad'] ??
+        json['capacidad'] ??
+        json['CapacidadMax'] ??
+        json['capacidadMax'] ??
+        json['Capacidad_Max'] ??
+        json['capacidad_max'] ??
+        json['CapMax'] ??
+        json['capMax'] ??
+        40;
     final parsedCapacity = int.tryParse(capacityVal.toString()) ?? 40;
     final capacity = parsedCapacity <= 0 ? 40 : parsedCapacity;
 
