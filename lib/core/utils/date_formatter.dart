@@ -37,10 +37,19 @@ class PeruDateFormatter {
     return '$day/$month/$year';
   }
 
-  /// Parses a date string in various formats (ISO-8601, dd/MM/yyyy).
   static DateTime? parseFlexible(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty) return null;
     final clean = dateStr.trim();
+
+    // If the string contains a clear timezone indicator (Z, z, or offset like -05, +00),
+    // we trust DateTime.tryParse to handle the timezone offset correctly.
+    if (clean.endsWith('Z') || clean.endsWith('z') || 
+        RegExp(r'[+-]\d{2}:?\d{2}$').hasMatch(clean)) {
+      final parsed = DateTime.tryParse(clean);
+      if (parsed != null) {
+        return parsed.toUtc();
+      }
+    }
 
     int? year;
     int? month;
