@@ -109,6 +109,20 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   @override
   Future<Result<DashboardSummaryEntity, Failure>> getDashboardSummary() async {
     try {
+      final tripsResult = await getTodayTrips();
+      if (tripsResult.isSuccess) {
+        final trips = tripsResult.successOrNull ?? [];
+        final completed = trips.where((t) => t.status == TripStatus.completed).length;
+        final passengers = trips
+            .where((t) => t.status == TripStatus.completed)
+            .fold(0, (sum, t) => sum + t.passengerCount);
+            
+        return Success(DashboardSummaryEntity(
+          completedTrips: completed,
+          passengersTransported: passengers,
+          observationsRegistered: 0,
+        ));
+      }
       final model = await _remoteDataSource.getDashboardSummary();
       return Success(model.toEntity());
     } catch (e) {
