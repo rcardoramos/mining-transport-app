@@ -43,9 +43,30 @@ class TripModel with _$TripModel {
       }
     }
 
-    // 3. Parse Scheduled Time (scheduledTime or FechaServicio or FechaHoraProgramada or HoraSalida)
-    final scheduledTimeVal = json['scheduledTime'] ?? json['FechaServicio'] ?? json['FechaHoraProgramada'] ?? json['fechaServicio'] ?? json['horaSalida'] ?? DateTime.now().toUtc().toIso8601String();
-    final scheduledTime = scheduledTimeVal.toString();
+    // 3. Parse Scheduled Time (Combine Date from FechaServicio/scheduledTime and Time from HoraSalida/horaSalida)
+    final dateVal = json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
+    final timeVal = json['HoraSalida'] ?? json['horaSalida'] ?? json['HoraProgramada'] ?? json['horaProgramada'] ?? json['hora_salida'] ?? '';
+
+    String scheduledTime = DateTime.now().toUtc().toIso8601String();
+    if (dateVal.toString().isNotEmpty) {
+      String dateStr = dateVal.toString().split('T')[0].split(' ')[0]; // yyyy-MM-dd or dd/MM/yyyy
+      String timeStr = '00:00:00';
+      if (timeVal.toString().isNotEmpty) {
+        timeStr = timeVal.toString();
+        if (timeStr.contains('T')) {
+          timeStr = timeStr.split('T')[1].split(' ')[0];
+        } else if (timeStr.contains(' ')) {
+          timeStr = timeStr.split(' ')[1];
+        }
+      } else if (dateVal.toString().contains('T')) {
+        timeStr = dateVal.toString().split('T')[1].split(' ')[0];
+      } else if (dateVal.toString().contains(' ')) {
+        timeStr = dateVal.toString().split(' ')[1];
+      }
+      
+      // Combine date and time
+      scheduledTime = '${dateStr}T${timeStr}';
+    }
 
     // 4. Parse Shift (shift or Turno or turno or Horario)
     final shiftVal = json['shift'] ?? json['Turno'] ?? json['turno'] ?? json['Horario'] ?? 'Día';

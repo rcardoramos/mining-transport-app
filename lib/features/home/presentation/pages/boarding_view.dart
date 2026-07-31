@@ -741,6 +741,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             shift: (trip.shift.isNotEmpty && trip.shift != 'Día')
                 ? trip.shift
                 : (_detailedTrip?.shift ?? trip.shift),
+            scheduledTime: _detailedTrip?.scheduledTime ?? trip.scheduledTime,
             passengerCount: resolvedPassengerCount,
             capacity: resolvedCapacity,
             stops: _detailedTrip?.stops ?? trip.stops,

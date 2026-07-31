@@ -11,6 +11,7 @@ import '../datasources/home_dashboard_remote_data_source.dart';
 import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
 import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
+import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 /// Implementación concreta del Repositorio de Home Dashboard.
 class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
@@ -53,7 +54,11 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           }
           try {
             final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
-            entity = entity.copyWith(capacity: tripDetail.capacity);
+            entity = entity.copyWith(
+              capacity: tripDetail.capacity,
+              scheduledTime: PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime,
+              shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
+            );
           } catch (_) {
             // Mantener la capacidad del modelo si hay error
           }
@@ -92,7 +97,11 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           }
           try {
             final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
-            entity = entity.copyWith(capacity: tripDetail.capacity);
+            entity = entity.copyWith(
+              capacity: tripDetail.capacity,
+              scheduledTime: PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime,
+              shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
+            );
           } catch (_) {
             // Mantener la capacidad del modelo si hay error
           }
