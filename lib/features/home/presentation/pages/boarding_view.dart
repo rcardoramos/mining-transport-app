@@ -733,13 +733,22 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         ? _detailedTrip!.capacity
         : ((trip?.capacity ?? 0) > 0 ? trip!.capacity : 40);
 
-    final resolvedTrip = _detailedTrip != null
-        ? _detailedTrip!.copyWith(
+    final resolvedTrip = trip != null
+        ? trip.copyWith(
+            route: (trip.route.isNotEmpty && trip.route != 'Ruta Sin Nombre')
+                ? trip.route
+                : (_detailedTrip?.route ?? trip.route),
+            shift: (trip.shift.isNotEmpty && trip.shift != 'Día')
+                ? trip.shift
+                : (_detailedTrip?.shift ?? trip.shift),
             passengerCount: resolvedPassengerCount,
             capacity: resolvedCapacity,
-            status: trip?.status ?? _detailedTrip!.status,
+            stops: _detailedTrip?.stops ?? trip.stops,
+            startedAt: _detailedTrip?.startedAt ?? trip.startedAt,
+            completedAt: _detailedTrip?.completedAt ?? trip.completedAt,
+            status: trip.status,
           )
-        : trip?.copyWith(
+        : _detailedTrip?.copyWith(
             passengerCount: resolvedPassengerCount,
             capacity: resolvedCapacity,
           );
