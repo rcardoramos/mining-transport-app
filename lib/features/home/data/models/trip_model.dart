@@ -44,7 +44,7 @@ class TripModel with _$TripModel {
     }
 
     // 3. Parse Scheduled Time (Combine Date from FechaServicio/scheduledTime and Time from HoraSalida/horaSalida)
-    final dateVal = json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
+    final dateVal = json['fechaProgramada'] ?? json['FechaProgramada'] ?? json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
     final timeVal = json['HoraSalida'] ?? json['horaSalida'] ?? json['HoraProgramada'] ?? json['horaProgramada'] ?? json['hora_salida'] ?? '';
 
     String scheduledTime = '';
@@ -72,9 +72,22 @@ class TripModel with _$TripModel {
     final shiftVal = json['shift'] ?? json['Turno'] ?? json['turno'] ?? json['Horario'] ?? 'Día';
     final shift = shiftVal.toString();
 
-    // 5. Parse Unit Code / Bus / Placa (unitCode or Placa or CodigoUnidad or unit_code)
-    final unitCodeVal = json['unitCode'] ?? json['Placa'] ?? json['CodigoUnidad'] ?? json['unit_code'] ?? 'BUS-01';
-    final unitCode = unitCodeVal.toString();
+    // 5. Parse Unit Code / Bus / Placa (unitCode or Placa or CodigoUnidad or unit_code or bus)
+    final busRaw = json['bus'] ?? json['Bus'];
+    String unitCode = 'BUS-01';
+    if (busRaw != null) {
+      if (busRaw is Map) {
+        final placaVal = busRaw['placa'] ?? busRaw['Placa'] ?? busRaw['codigo'] ?? busRaw['Codigo'] ?? busRaw['id'];
+        if (placaVal != null) {
+          unitCode = placaVal.toString();
+        }
+      } else {
+        unitCode = busRaw.toString();
+      }
+    } else {
+      final unitCodeVal = json['unitCode'] ?? json['Placa'] ?? json['CodigoUnidad'] ?? json['unit_code'] ?? 'BUS-01';
+      unitCode = unitCodeVal.toString();
+    }
 
     // 6. Parse Capacity (capacity, Capacidad, CapacidadMax, capacidadMax, capacidad, etc.)
     final capacityVal = json['capacity'] ??
@@ -101,7 +114,7 @@ class TripModel with _$TripModel {
     final status = statusVal.toString();
 
     // 9. Parse startedAt and completedAt (startedAt / FechaInicio / FechaApertura, completedAt / FechaFin / FechaCierre)
-    final startedAtVal = json['startedAt'] ?? json['FechaInicio'] ?? json['FechaApertura'] ?? json['started_at'];
+    final startedAtVal = json['startedAt'] ?? json['fechaInicio'] ?? json['FechaInicio'] ?? json['FechaApertura'] ?? json['started_at'];
     final startedAt = (startedAtVal == null || startedAtVal.toString().trim().toLowerCase() == 'null')
         ? null
         : startedAtVal.toString();
@@ -168,7 +181,7 @@ TripStatus _parseTripStatus(String statusStr) {
   if (clean == 'COMPLETED' || clean == 'FINALIZADO' || clean == 'C') {
     return TripStatus.completed;
   }
-  if (clean == 'INPROGRESS' || clean == 'ENPROGRESS' || clean == 'EN_CURSO') {
+  if (clean == 'INPROGRESS' || clean == 'ENPROGRESS' || clean == 'EN_CURSO' || clean == 'A') {
     return TripStatus.inProgress;
   }
   if (clean == 'TRAVELLING' || clean == 'TRANSITO' || clean == 'ENTRANSITO') {
@@ -180,7 +193,7 @@ TripStatus _parseTripStatus(String statusStr) {
   if (clean == 'READYTOSTART' || clean == 'PORINICIAR') {
     return TripStatus.readyToStart;
   }
-  if (clean == 'SCHEDULED' || clean == 'PROGRAMADO' || clean == 'A') {
+  if (clean == 'SCHEDULED' || clean == 'PROGRAMADO' || clean == 'P') {
     return TripStatus.scheduled;
   }
   

@@ -135,13 +135,21 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       if (currentData != null) {
         final updatedToday = currentData.todayTrips.map((t) {
           if (t.id == tripId) {
-            return t.copyWith(status: newStatus);
+            return t.copyWith(
+              status: newStatus,
+              startedAt: newStatus == TripStatus.inProgress ? DateTime.now() : t.startedAt,
+              completedAt: newStatus == TripStatus.completed ? DateTime.now() : t.completedAt,
+            );
           }
           return t;
         }).toList();
         final updatedPending = currentData.pendingTrips.map((t) {
           if (t.id == tripId) {
-            return t.copyWith(status: newStatus);
+            return t.copyWith(
+              status: newStatus,
+              startedAt: newStatus == TripStatus.inProgress ? DateTime.now() : t.startedAt,
+              completedAt: newStatus == TripStatus.completed ? DateTime.now() : t.completedAt,
+            );
           }
           return t;
         }).toList();

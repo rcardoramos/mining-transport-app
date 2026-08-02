@@ -91,6 +91,9 @@ class _LoggingInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     _logger.e('HTTP Error: ${err.response?.statusCode} ${err.requestOptions.uri}');
     _logger.e('HTTP Error Message: ${err.message}');
+    if (err.response?.data != null) {
+      _logger.e('HTTP Error Response Data: ${err.response?.data}');
+    }
     handler.next(err);
   }
 }

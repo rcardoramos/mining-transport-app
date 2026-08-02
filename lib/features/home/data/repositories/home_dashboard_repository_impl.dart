@@ -184,6 +184,18 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             passengerCount: 0,
             status: TripStatus.completed,
           ));
+        } else if (status == TripStatus.inProgress) {
+          return Success(TripEntity(
+            id: id,
+            route: '',
+            scheduledTime: DateTime.now(),
+            shift: '',
+            unitCode: '',
+            capacity: 40,
+            passengerCount: 0,
+            status: TripStatus.inProgress,
+            startedAt: DateTime.now(),
+          ));
         }
       }
       return FailureResult(UnknownFailure(e.toString()));

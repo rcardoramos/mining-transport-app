@@ -50,6 +50,14 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
 
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     return allTrips.where((trip) {
+      final statusUpper = trip.status.trim().toUpperCase();
+      final isTripActive = statusUpper == 'A' || 
+                           statusUpper == 'IN_PROGRESS' || 
+                           statusUpper == 'INPROGRESS' || 
+                           statusUpper == 'TRAVELLING' || 
+                           statusUpper == 'TRANSITO';
+      if (isTripActive) return true;
+
       final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
       if (tripDate == null) return false;
       final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
