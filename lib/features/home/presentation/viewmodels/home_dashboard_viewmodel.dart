@@ -240,8 +240,34 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     if (updatedTrip != null) {
       final currentData = state.data;
       if (currentData != null) {
-        final updatedToday = currentData.todayTrips.map<TripEntity>((t) => t.id == tripId ? updatedTrip : t).toList();
-        final updatedPending = currentData.pendingTrips.map<TripEntity>((t) => t.id == tripId ? updatedTrip : t).toList();
+        final updatedToday = currentData.todayTrips.map<TripEntity>((t) {
+          if (t.id == tripId) {
+            return t.copyWith(
+              passengerCount: updatedTrip.passengerCount,
+              status: updatedTrip.status,
+              startedAt: updatedTrip.startedAt ?? t.startedAt,
+              completedAt: updatedTrip.completedAt ?? t.completedAt,
+              stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
+                  ? updatedTrip.stops
+                  : t.stops,
+            );
+          }
+          return t;
+        }).toList();
+        final updatedPending = currentData.pendingTrips.map<TripEntity>((t) {
+          if (t.id == tripId) {
+            return t.copyWith(
+              passengerCount: updatedTrip.passengerCount,
+              status: updatedTrip.status,
+              startedAt: updatedTrip.startedAt ?? t.startedAt,
+              completedAt: updatedTrip.completedAt ?? t.completedAt,
+              stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
+                  ? updatedTrip.stops
+                  : t.stops,
+            );
+          }
+          return t;
+        }).toList();
         state = state.copyWith(
           data: currentData.copyWith(
             todayTrips: updatedToday,

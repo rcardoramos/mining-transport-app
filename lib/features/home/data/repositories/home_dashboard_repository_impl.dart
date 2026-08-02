@@ -56,7 +56,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
             entity = entity.copyWith(
               capacity: tripDetail.capacity,
-              scheduledTime: PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime,
+              scheduledTime: tripDetail.scheduledTime.isNotEmpty
+                  ? (PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime)
+                  : entity.scheduledTime,
               shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
             );
           } catch (_) {
@@ -99,7 +101,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
             entity = entity.copyWith(
               capacity: tripDetail.capacity,
-              scheduledTime: PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime,
+              scheduledTime: tripDetail.scheduledTime.isNotEmpty
+                  ? (PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime)
+                  : entity.scheduledTime,
               shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
             );
           } catch (_) {

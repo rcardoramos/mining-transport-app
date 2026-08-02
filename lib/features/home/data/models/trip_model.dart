@@ -47,7 +47,7 @@ class TripModel with _$TripModel {
     final dateVal = json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
     final timeVal = json['HoraSalida'] ?? json['horaSalida'] ?? json['HoraProgramada'] ?? json['horaProgramada'] ?? json['hora_salida'] ?? '';
 
-    String scheduledTime = DateTime.now().toUtc().toIso8601String();
+    String scheduledTime = '';
     if (dateVal.toString().isNotEmpty) {
       String dateStr = dateVal.toString().split('T')[0].split(' ')[0]; // yyyy-MM-dd or dd/MM/yyyy
       String timeStr = '00:00:00';
@@ -65,7 +65,7 @@ class TripModel with _$TripModel {
       }
       
       // Combine date and time
-      scheduledTime = '${dateStr}T${timeStr}';
+      scheduledTime = '${dateStr}T$timeStr';
     }
 
     // 4. Parse Shift (shift or Turno or turno or Horario)
@@ -150,7 +150,7 @@ class TripModel with _$TripModel {
     return TripEntity(
       id: id,
       route: route,
-      scheduledTime: PeruDateFormatter.parseFlexible(scheduledTime) ?? DateTime.now(),
+      scheduledTime: (scheduledTime.isNotEmpty) ? (PeruDateFormatter.parseFlexible(scheduledTime) ?? DateTime.now()) : DateTime.now(),
       shift: shift,
       unitCode: unitCode,
       capacity: capacity,
