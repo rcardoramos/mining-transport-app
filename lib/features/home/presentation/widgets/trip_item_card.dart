@@ -93,12 +93,23 @@ class TripItemCard extends StatelessWidget {
             ),
             DesignSpacing.spacerV12,
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildDetailColumn(Icons.access_time_outlined, 'Hora Prog.', _formatTime(trip.scheduledTime), isDark),
-                _buildDetailColumn(Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
-                _buildDetailColumn(Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),
-                _buildDetailColumn(Icons.people_alt_outlined, 'Capacidad', '${trip.capacity}', isDark),
+                Expanded(
+                  flex: 3,
+                  child: _buildDetailColumn(Icons.access_time_outlined, 'Hora Prog.', _formatTime(trip.scheduledTime), isDark),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _buildDetailColumn(Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
+                ),
+                Expanded(
+                  flex: 5,
+                  child: _buildDetailColumn(Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: _buildDetailColumn(Icons.people_alt_outlined, 'Capacidad', '${trip.capacity}', isDark),
+                ),
               ],
             ),
             
@@ -207,6 +218,8 @@ class TripItemCard extends StatelessWidget {
             DesignSpacing.spacerH4,
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: DesignTypography.caption.copyWith(
                 color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                 fontWeight: FontWeight.bold,
@@ -217,6 +230,8 @@ class TripItemCard extends StatelessWidget {
         DesignSpacing.spacerV4,
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: DesignTypography.bodyMedium.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
