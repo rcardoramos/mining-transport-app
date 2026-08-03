@@ -216,13 +216,15 @@ class TripItemCard extends StatelessWidget {
               color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
             ),
             DesignSpacing.spacerH4,
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: DesignTypography.caption.copyWith(
-                color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.caption.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
