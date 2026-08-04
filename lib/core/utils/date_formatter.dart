@@ -59,7 +59,7 @@ class PeruDateFormatter {
     int second = 0;
 
     // 1. Check if it matches ISO-8601: yyyy-MM-dd ...
-    final isoRegex = RegExp(r'^(\d{4})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?');
+    final isoRegex = RegExp(r'^(\d{4})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?');
     final isoMatch = isoRegex.firstMatch(clean);
     if (isoMatch != null) {
       year = int.parse(isoMatch.group(1)!);
@@ -70,7 +70,7 @@ class PeruDateFormatter {
       if (isoMatch.group(6) != null) second = int.parse(isoMatch.group(6)!);
     } else {
       // 2. Check if it matches Latin: dd/MM/yyyy ...
-      final latinRegex = RegExp(r'^(\d{2})[-/](\d{2})[-/](\d{4})(?:[ T](\d{2}):(\d{2}):(\d{2}))?');
+      final latinRegex = RegExp(r'^(\d{2})[-/](\d{2})[-/](\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?');
       final latinMatch = latinRegex.firstMatch(clean);
       if (latinMatch != null) {
         day = int.parse(latinMatch.group(1)!);

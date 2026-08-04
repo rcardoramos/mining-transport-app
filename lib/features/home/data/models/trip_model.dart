@@ -44,7 +44,7 @@ class TripModel with _$TripModel {
     }
 
     // 3. Parse Scheduled Time (Combine Date from FechaServicio/scheduledTime and Time from HoraSalida/horaSalida)
-    final dateVal = json['fechaProgramada'] ?? json['FechaProgramada'] ?? json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
+    final dateVal = json['fechaProgramado'] ?? json['FechaProgramado'] ?? json['fechaProgramada'] ?? json['FechaProgramada'] ?? json['scheduledTime'] ?? json['FechaHoraProgramada'] ?? json['FechaServicio'] ?? json['fechaServicio'] ?? json['fecha_servicio'] ?? '';
     final timeVal = json['HoraSalida'] ?? json['horaSalida'] ?? json['HoraProgramada'] ?? json['horaProgramada'] ?? json['hora_salida'] ?? '';
 
     String scheduledTime = '';
