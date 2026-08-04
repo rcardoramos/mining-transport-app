@@ -130,14 +130,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   bool _isDriverInRange(StopEntity stop) {
-    if (_currentPosition == null) return false;
-    final validator = GetIt.I<ValidateStopGeofencingUseCase>();
-    final result = validator.execute(
-      userLatitude: _currentPosition!.latitude,
-      userLongitude: _currentPosition!.longitude,
-      stop: stop,
-    );
-    return result.inRange;
+    // TEMPORAL: Retorna siempre true para deshabilitar la restricción del radio permitido
+    return true;
   }
 
   double _getDistanceToStop(StopEntity stop) {
