@@ -1326,7 +1326,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                               itemBuilder: (context, index) {
                                 final passenger = _passengersList[index];
                                 final timeStr =
-                                    '${passenger.boardedAt.hour.toString().padLeft(2, '0')}:${passenger.boardedAt.minute.toString().padLeft(2, '0')}';
+                                    PeruDateFormatter.formatTime(passenger.boardedAt);
                                 
                                 final isWarning = passenger.status != CollaboratorStatus.ok;
                                 String statusLabel = '';
