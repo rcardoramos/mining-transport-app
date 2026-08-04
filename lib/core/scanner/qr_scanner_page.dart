@@ -73,30 +73,12 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
                 return Stack(
                   children: [
                     // Capa translúcida exterior para centrar la atención en el recuadro
-                    ColorFiltered(
-                      colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(0.65),
-                        BlendMode.srcOut,
-                      ),
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.transparent,
-                            ),
-                          ),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: size,
-                              height: size,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                            ),
-                          ),
-                        ],
+                    CustomPaint(
+                      size: Size(width, height),
+                      painter: ScannerOverlayPainter(
+                        cutoutRect: Rect.fromLTWH(left, top, size, size),
+                        borderRadius: 24,
+                        overlayColor: Colors.black.withOpacity(0.65),
                       ),
                     ),
 
@@ -225,5 +207,43 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
         ],
       ),
     );
+  }
+}
+
+class ScannerOverlayPainter extends CustomPainter {
+  final Rect cutoutRect;
+  final double borderRadius;
+  final Color overlayColor;
+
+  ScannerOverlayPainter({
+    required this.cutoutRect,
+    required this.borderRadius,
+    required this.overlayColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = overlayColor
+      ..style = PaintingStyle.fill;
+
+    final outerPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final innerPath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        cutoutRect,
+        Radius.circular(borderRadius),
+      ));
+
+    // Path.combine con PathOperation.difference sustrae el rectángulo interior del exterior,
+    // garantizando un área de corte 100% transparente en cualquier dispositivo.
+    final path = Path.combine(PathOperation.difference, outerPath, innerPath);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) {
+    return oldDelegate.cutoutRect != cutoutRect ||
+           oldDelegate.borderRadius != borderRadius ||
+           oldDelegate.overlayColor != overlayColor;
   }
 }
