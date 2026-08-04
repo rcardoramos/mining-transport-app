@@ -118,10 +118,14 @@ class TripItemCard extends StatelessWidget {
               const DesignDivider(),
               DesignSpacing.spacerV16,
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDetailColumn(Icons.play_circle_outline_rounded, 'Hora Inicio', _formatTime(trip.startedAt), isDark),
-                  _buildDetailColumn(Icons.people_outline_rounded, 'Pasajeros', '${trip.passengerCount} / ${trip.capacity}', isDark),
+                  Expanded(
+                    child: _buildDetailColumn(Icons.play_circle_outline_rounded, 'Hora Inicio', _formatTime(trip.startedAt), isDark),
+                  ),
+                  DesignSpacing.spacerH16,
+                  Expanded(
+                    child: _buildDetailColumn(Icons.people_outline_rounded, 'Pasajeros', '${trip.passengerCount} / ${trip.capacity}', isDark),
+                  ),
                 ],
               ),
               DesignSpacing.spacerV16,

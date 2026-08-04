@@ -140,5 +140,21 @@ void main() {
       final model = TripModel.fromJson(json);
       expect(model.toEntity().status, TripStatus.inProgress);
     });
+
+    test('should prioritize completedAt over raw "A" status and map to TripStatus.completed', () {
+      final json = {
+        'id': 'TRIP-999',
+        'route': 'Test Route',
+        'fechaProgramada': '2026-08-02T15:00:00',
+        'shift': 'Día',
+        'bus': 'BUS-01',
+        'capacity': 40,
+        'passengerCount': 0,
+        'status': 'A',
+        'completedAt': '2026-08-02T16:00:00',
+      };
+      final model = TripModel.fromJson(json);
+      expect(model.toEntity().status, TripStatus.completed);
+    });
   });
 }

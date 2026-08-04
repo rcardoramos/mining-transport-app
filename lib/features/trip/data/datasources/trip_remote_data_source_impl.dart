@@ -80,7 +80,6 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
         'usuario': username,
         'token': token,
         'viajeId': int.tryParse(tripId) ?? 1,
-        'kmInicial': startKm,
       },
     );
 

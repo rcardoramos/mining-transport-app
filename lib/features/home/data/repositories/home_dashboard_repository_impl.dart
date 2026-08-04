@@ -1,4 +1,5 @@
 import 'package:mining_transport_app/core/utils/result.dart';
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import '../../domain/entities/driver_entity.dart';
@@ -198,8 +199,22 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           ));
         }
       }
-      return FailureResult(UnknownFailure(e.toString()));
+      return FailureResult(_parseRepositoryException(e));
     }
+  }
+
+  Failure _parseRepositoryException(dynamic e) {
+    if (e is DioException) {
+      final responseData = e.response?.data;
+      if (responseData is Map<String, dynamic>) {
+        final serverMessage = responseData['Message'] ?? responseData['message'];
+        if (serverMessage != null && serverMessage.toString().isNotEmpty) {
+          return ServerFailure(serverMessage.toString(), e.response?.statusCode, e);
+        }
+      }
+      return NetworkFailure(e.message ?? 'Error de conexión con el servidor', e);
+    }
+    return UnknownFailure(e.toString(), e);
   }
 
   @override
@@ -208,7 +223,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       final model = await _remoteDataSource.registerPassenger(id, dni, status?.name, category, registrationMethod, lat, lng, justification);
       return Success(model.toEntity());
     } catch (e) {
-      return FailureResult(UnknownFailure(e.toString()));
+      return FailureResult(_parseRepositoryException(e));
     }
   }
 
@@ -232,7 +247,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       if (e.toString().contains('not_found')) {
         return FailureResult(CollaboratorNotFoundFailure(e.toString()));
       }
-      return FailureResult(UnknownFailure(e.toString()));
+      return FailureResult(_parseRepositoryException(e));
     }
   }
 

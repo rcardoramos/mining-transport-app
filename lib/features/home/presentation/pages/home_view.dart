@@ -5,13 +5,14 @@ import 'package:mining_transport_app/features/auth/presentation/viewmodels/login
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
-import '../viewmodels/home_dashboard_viewmodel.dart';
-import '../widgets/greeting_header.dart';
-import '../widgets/driver_profile_card.dart';
-import '../widgets/trip_item_card.dart';
-import '../widgets/dashboard_stats_section.dart';
-import '../../domain/entities/home_dashboard_data.dart';
-import '../../domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
+import 'package:mining_transport_app/features/home/presentation/states/home_dashboard_state.dart';
+import 'package:mining_transport_app/features/home/presentation/widgets/greeting_header.dart';
+import 'package:mining_transport_app/features/home/presentation/widgets/driver_profile_card.dart';
+import 'package:mining_transport_app/features/home/presentation/widgets/trip_item_card.dart';
+import 'package:mining_transport_app/features/home/presentation/widgets/dashboard_stats_section.dart';
+import 'package:mining_transport_app/features/home/domain/entities/home_dashboard_data.dart';
+import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
 
 /// Vista principal de Dashboard (Home) del conductor con barra de navegación inferior.
 class HomeView extends ConsumerStatefulWidget {
@@ -72,6 +73,20 @@ class _HomeViewState extends ConsumerState<HomeView>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeDashboardViewModelProvider);
+
+    ref.listen<HomeDashboardState>(homeDashboardViewModelProvider, (previous, next) {
+      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+        if (next.data != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.errorMessage!),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    });
 
     return Scaffold(
       appBar: DesignAppBar(

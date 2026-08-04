@@ -152,10 +152,10 @@ class TripModel with _$TripModel {
 
     // Determine dynamic status
     TripStatus resolvedStatus = _parseTripStatus(status);
-    if (resolvedStatus == TripStatus.scheduled || resolvedStatus == TripStatus.readyToStart) {
-      if (parsedCompletedAt != null) {
-        resolvedStatus = TripStatus.completed;
-      } else if (parsedStartedAt != null) {
+    if (parsedCompletedAt != null) {
+      resolvedStatus = TripStatus.completed;
+    } else if (resolvedStatus == TripStatus.scheduled || resolvedStatus == TripStatus.readyToStart) {
+      if (parsedStartedAt != null) {
         resolvedStatus = TripStatus.inProgress;
       }
     }

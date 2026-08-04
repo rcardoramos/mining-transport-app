@@ -48,14 +48,20 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final list = wrapped['Data'] as List<dynamic>;
     final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
 
+    // Diagnostic logs to debug backend state
+    for (final t in allTrips) {
+      print('DIAGNOSTIC - Trip ID: ${t.id}, Route: ${t.route}, Status: ${t.status}, Scheduled: ${t.scheduledTime}, Started: ${t.startedAt}, Completed: ${t.completedAt}');
+    }
+
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     return allTrips.where((trip) {
       final statusUpper = trip.status.trim().toUpperCase();
-      final isTripActive = statusUpper == 'A' || 
+      final isTripActive = (statusUpper == 'A' || 
                            statusUpper == 'IN_PROGRESS' || 
                            statusUpper == 'INPROGRESS' || 
                            statusUpper == 'TRAVELLING' || 
-                           statusUpper == 'TRANSITO';
+                           statusUpper == 'TRANSITO') &&
+                          trip.completedAt == null;
       if (isTripActive) return true;
 
       final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);

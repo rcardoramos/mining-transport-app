@@ -36,20 +36,9 @@ class _TripListViewState extends ConsumerState<TripListView>
   // ── Apertura ───────────────────────────────────────────────────────────────
 
   Future<void> _handleOpenTrip(TripEntity trip) async {
-    final km = await showDialog<int>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => TripOpenDialog(
-        tripRoute: trip.route,
-        unitCode: trip.unitCode,
-      ),
-    );
-
-    if (km == null || !mounted) return;
-
     final success = await ref.read(tripViewModelProvider.notifier).openTrip(
           tripId: trip.id,
-          startKm: km,
+          startKm: 0,
         );
 
     if (!mounted) return;
