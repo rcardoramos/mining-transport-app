@@ -83,6 +83,12 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null) {
+                  final format = barcode.format;
+                  // Ignorar formatos que no sean PDF417 (DNI) ni QR (Fotocheck)
+                  // para evitar lecturas erróneas/corruptas de otros códigos (como el Code 39 vertical)
+                  if (format != BarcodeFormat.pdf417 && format != BarcodeFormat.qrCode) {
+                    continue;
+                  }
                   final String code = barcode.rawValue!.trim();
                   if (code.isNotEmpty) {
                     final cleanCode = _extractDni(code);
