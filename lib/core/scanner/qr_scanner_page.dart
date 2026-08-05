@@ -12,12 +12,7 @@ class QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProviderStateMixin {
-  final MobileScannerController controller = MobileScannerController(
-    formats: [
-      BarcodeFormat.pdf417,
-      BarcodeFormat.qrCode,
-    ],
-  );
+  final MobileScannerController controller = MobileScannerController();
   late AnimationController _animationController;
   late Animation<double> _animation;
 
