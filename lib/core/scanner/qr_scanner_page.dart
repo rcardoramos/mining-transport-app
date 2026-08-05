@@ -35,13 +35,36 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
   }
 
   String _extractDni(String rawCode) {
-    // Buscar la primera secuencia de 8 dígitos consecutivos (DNI estándar de Perú)
+    final clean = rawCode.trim();
+
+    // Caso 1: Es un código QR limpio de 8 dígitos (Fotocheck / Ingreso manual)
+    if (clean.length == 8 && RegExp(r'^\d{8}$').hasMatch(clean)) {
+      return clean;
+    }
+
+    // Caso 2: Es un código de barras de DNI peruano (PDF417)
+    // El PDF417 de la RENIEC suele medir más de 100 caracteres y empieza con el código de tipo de documento (ej: 01)
+    // seguido directamente por los 8 dígitos del DNI.
+    final match01 = RegExp(r'01(\d{8})').firstMatch(clean);
+    if (match01 != null) {
+      return match01.group(1)!;
+    }
+
+    // Caso 3: Respaldos de zona de lectura mecánica (MRZ I<PER76692170...)
+    final mrzRegex = RegExp(r'I<PER(\d{8})');
+    final mrzMatch = mrzRegex.firstMatch(clean);
+    if (mrzMatch != null) {
+      return mrzMatch.group(1)!;
+    }
+
+    // Caso 4: Caída general (primera secuencia de 8 dígitos consecutivos)
     final regex = RegExp(r'\d{8}');
-    final match = regex.firstMatch(rawCode);
+    final match = regex.firstMatch(clean);
     if (match != null) {
       return match.group(0)!;
     }
-    return rawCode;
+
+    return clean;
   }
 
   @override
