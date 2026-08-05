@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
@@ -155,6 +156,11 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     double? lat,
     double? lng,
     String? justification,
+    String? uidCliente,
+    String? nombreCompleto,
+    String? empresa,
+    int? paraderoId,
+    String? lugarSubida,
   ]) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
@@ -176,27 +182,35 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
                             ? 'CESADO'
                             : status.toUpperCase())))));
 
+    // Generar client UID único si no se provee
+    final clientUid = uidCliente ?? const Uuid().v4();
+
+    // Mapear nombres y empresas reales
+    final finalName = nombreCompleto ?? (isVisita ? 'VISITANTE EXTERNO' : 'COLABORADOR REGULAR');
+    final finalCompany = empresa ?? (isVisita ? 'Terceros' : 'MISKI MAYO');
+
     final body = {
       'usuario': username,
       'token': token,
       'viajeId': int.tryParse(id) ?? 1,
+      'uidCliente': clientUid,
+      'codigoUnico': 'EMP-$dni',
       'dni': dni,
+      'nombreCompleto': finalName,
+      'empresa': finalCompany,
       'tipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
       'estadoLaboral': mappedStatus,
       'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
       'observacion': justification,
+      'paraderoId': paraderoId ?? 1,
+      'lugarSubida': lugarSubida ?? '',
       'lat': lat ?? 0.0,
       'lng': lng ?? 0.0,
     };
 
     if (isVisita) {
-      body['nombreCompleto'] = 'VISITANTE EXTERNO';
-      body['empresa'] = 'Terceros';
       body['motivoVisita'] = 'Inspección';
       body['autorizadoPor'] = 'Supervisor';
-    } else {
-      body['nombreCompleto'] = 'COLABORADOR REGULAR';
-      body['empresa'] = 'MISKI MAYO';
     }
 
     final response = await _dioClient.dio.post(endpoint, data: body);

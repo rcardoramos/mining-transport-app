@@ -179,7 +179,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
   }
 
-  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification]) async {
+  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
     final isOnline = _ref.read(syncProvider).isOnline;
@@ -193,6 +193,11 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         'lat': lat,
         'lng': lng,
         'justification': justification,
+        'uidCliente': uidCliente,
+        'nombreCompleto': nombreCompleto,
+        'empresa': empresa,
+        'paraderoId': paraderoId,
+        'lugarSubida': lugarSubida,
       });
       await _ref.read(syncProvider.notifier).queueAction(
         actionType: 'BOARD_PASSENGER',
@@ -201,7 +206,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       
       final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
       if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
-        await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification);
+        await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida);
       }
 
       // Incrementar el aforo localmente en el State del ViewModel para visualización inmediata offline
@@ -233,7 +238,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return true;
     }
 
-    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification);
+    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida);
     
     if (result.isFailure) {
       state = state.copyWith(

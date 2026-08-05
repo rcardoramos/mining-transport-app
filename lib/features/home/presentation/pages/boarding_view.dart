@@ -345,7 +345,21 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       setState(() => _isRegistering = true);
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
-          .registerPassenger(trip.id, dni, CollaboratorStatus.ok, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, null);
+          .registerPassenger(
+            trip.id,
+            dni,
+            CollaboratorStatus.ok,
+            validation.category,
+            customMethod,
+            _currentPosition?.latitude,
+            _currentPosition?.longitude,
+            null,
+            null,
+            validation.fullName,
+            validation.category,
+            int.tryParse(activeStop.id) ?? 1,
+            activeStop.name,
+          );
       setState(() => _isRegistering = false);
 
       if (mounted) {
@@ -545,7 +559,21 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           setState(() => _isRegistering = true);
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
-              .registerPassenger(trip.id, dni, nextStatus, validation.category, customMethod, _currentPosition?.latitude, _currentPosition?.longitude, null);
+              .registerPassenger(
+                trip.id,
+                dni,
+                nextStatus,
+                validation.category,
+                customMethod,
+                _currentPosition?.latitude,
+                _currentPosition?.longitude,
+                null,
+                null,
+                validation.fullName,
+                validation.category,
+                int.tryParse(activeStop.id) ?? 1,
+                activeStop.name,
+              );
           setState(() => _isRegistering = false);
 
           if (mounted) {

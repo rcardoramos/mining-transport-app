@@ -306,7 +306,7 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification]) async {
+  Future<TripModel> registerPassenger(String id, String dni, [String? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida]) async {
     await Future.delayed(const Duration(milliseconds: 300));
 
     // Determinar la categoría (si es proporcionada, la usamos; si no, la deducimos del DNI)
