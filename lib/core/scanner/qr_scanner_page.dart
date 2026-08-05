@@ -12,7 +12,13 @@ class QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProviderStateMixin {
-  final MobileScannerController controller = MobileScannerController();
+  final MobileScannerController controller = MobileScannerController(
+    formats: [
+      BarcodeFormat.qrCode,
+      BarcodeFormat.pdf417,
+    ],
+    detectionSpeed: DetectionSpeed.unrestricted,
+  );
   late AnimationController _animationController;
   late Animation<double> _animation;
 
@@ -34,6 +40,16 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
     super.dispose();
   }
 
+  String _extractDni(String rawCode) {
+    // Buscar la primera secuencia de 8 dígitos consecutivos (DNI estándar de Perú)
+    final regex = RegExp(r'\d{8}');
+    final match = regex.firstMatch(rawCode);
+    if (match != null) {
+      return match.group(0)!;
+    }
+    return rawCode;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -52,7 +68,8 @@ class _QrScannerPageState extends State<QrScannerPage> with SingleTickerProvider
                 if (barcode.rawValue != null) {
                   final String code = barcode.rawValue!.trim();
                   if (code.isNotEmpty) {
-                    Navigator.pop(context, code);
+                    final cleanCode = _extractDni(code);
+                    Navigator.pop(context, cleanCode);
                     break;
                   }
                 }
