@@ -15,10 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-PassengerModel _$PassengerModelFromJson(Map<String, dynamic> json) {
-  return _PassengerModel.fromJson(json);
-}
-
 /// @nodoc
 mixin _$PassengerModel {
   String get dni => throw _privateConstructorUsedError;
@@ -28,9 +24,6 @@ mixin _$PassengerModel {
   String get status => throw _privateConstructorUsedError;
   String? get seatNumber => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError;
-
-  /// Serializes this PassengerModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of PassengerModel
   /// with the given fields replaced by the non-null parameter values.
@@ -194,7 +187,7 @@ class __$$PassengerModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$PassengerModelImpl implements _PassengerModel {
   const _$PassengerModelImpl({
     required this.dni,
@@ -205,9 +198,6 @@ class _$PassengerModelImpl implements _PassengerModel {
     this.seatNumber,
     this.category = 'Miski Mayo',
   });
-
-  factory _$PassengerModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PassengerModelImplFromJson(json);
 
   @override
   final String dni;
@@ -249,7 +239,6 @@ class _$PassengerModelImpl implements _PassengerModel {
                 other.category == category));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
@@ -272,11 +261,6 @@ class _$PassengerModelImpl implements _PassengerModel {
         this,
         _$identity,
       );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$PassengerModelImplToJson(this);
-  }
 }
 
 abstract class _PassengerModel implements PassengerModel {
@@ -289,9 +273,6 @@ abstract class _PassengerModel implements PassengerModel {
     final String? seatNumber,
     final String category,
   }) = _$PassengerModelImpl;
-
-  factory _PassengerModel.fromJson(Map<String, dynamic> json) =
-      _$PassengerModelImpl.fromJson;
 
   @override
   String get dni;

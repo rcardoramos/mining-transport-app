@@ -25,6 +25,8 @@ mixin _$CollaboratorEntity {
   String get fullName => throw _privateConstructorUsedError;
   CollaboratorStatus get status => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError;
+  String? get puesto => throw _privateConstructorUsedError;
+  String? get unidad => throw _privateConstructorUsedError;
 
   /// Serializes this CollaboratorEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -48,6 +50,8 @@ abstract class $CollaboratorEntityCopyWith<$Res> {
     String fullName,
     CollaboratorStatus status,
     String category,
+    String? puesto,
+    String? unidad,
   });
 }
 
@@ -70,6 +74,8 @@ class _$CollaboratorEntityCopyWithImpl<$Res, $Val extends CollaboratorEntity>
     Object? fullName = null,
     Object? status = null,
     Object? category = null,
+    Object? puesto = freezed,
+    Object? unidad = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -89,6 +95,14 @@ class _$CollaboratorEntityCopyWithImpl<$Res, $Val extends CollaboratorEntity>
                 ? _value.category
                 : category // ignore: cast_nullable_to_non_nullable
                       as String,
+            puesto: freezed == puesto
+                ? _value.puesto
+                : puesto // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            unidad: freezed == unidad
+                ? _value.unidad
+                : unidad // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -109,6 +123,8 @@ abstract class _$$CollaboratorEntityImplCopyWith<$Res>
     String fullName,
     CollaboratorStatus status,
     String category,
+    String? puesto,
+    String? unidad,
   });
 }
 
@@ -130,6 +146,8 @@ class __$$CollaboratorEntityImplCopyWithImpl<$Res>
     Object? fullName = null,
     Object? status = null,
     Object? category = null,
+    Object? puesto = freezed,
+    Object? unidad = freezed,
   }) {
     return _then(
       _$CollaboratorEntityImpl(
@@ -149,6 +167,14 @@ class __$$CollaboratorEntityImplCopyWithImpl<$Res>
             ? _value.category
             : category // ignore: cast_nullable_to_non_nullable
                   as String,
+        puesto: freezed == puesto
+            ? _value.puesto
+            : puesto // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        unidad: freezed == unidad
+            ? _value.unidad
+            : unidad // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -162,6 +188,8 @@ class _$CollaboratorEntityImpl implements _CollaboratorEntity {
     required this.fullName,
     required this.status,
     this.category = 'Miski Mayo',
+    this.puesto,
+    this.unidad,
   });
 
   factory _$CollaboratorEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -176,10 +204,14 @@ class _$CollaboratorEntityImpl implements _CollaboratorEntity {
   @override
   @JsonKey()
   final String category;
+  @override
+  final String? puesto;
+  @override
+  final String? unidad;
 
   @override
   String toString() {
-    return 'CollaboratorEntity(dni: $dni, fullName: $fullName, status: $status, category: $category)';
+    return 'CollaboratorEntity(dni: $dni, fullName: $fullName, status: $status, category: $category, puesto: $puesto, unidad: $unidad)';
   }
 
   @override
@@ -192,12 +224,15 @@ class _$CollaboratorEntityImpl implements _CollaboratorEntity {
                 other.fullName == fullName) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.category, category) ||
-                other.category == category));
+                other.category == category) &&
+            (identical(other.puesto, puesto) || other.puesto == puesto) &&
+            (identical(other.unidad, unidad) || other.unidad == unidad));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, dni, fullName, status, category);
+  int get hashCode =>
+      Object.hash(runtimeType, dni, fullName, status, category, puesto, unidad);
 
   /// Create a copy of CollaboratorEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -222,6 +257,8 @@ abstract class _CollaboratorEntity implements CollaboratorEntity {
     required final String fullName,
     required final CollaboratorStatus status,
     final String category,
+    final String? puesto,
+    final String? unidad,
   }) = _$CollaboratorEntityImpl;
 
   factory _CollaboratorEntity.fromJson(Map<String, dynamic> json) =
@@ -235,6 +272,10 @@ abstract class _CollaboratorEntity implements CollaboratorEntity {
   CollaboratorStatus get status;
   @override
   String get category;
+  @override
+  String? get puesto;
+  @override
+  String? get unidad;
 
   /// Create a copy of CollaboratorEntity
   /// with the given fields replaced by the non-null parameter values.

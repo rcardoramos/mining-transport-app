@@ -2,7 +2,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 
 part 'collaborator_model.freezed.dart';
-part 'collaborator_model.g.dart';
 
 @freezed
 class CollaboratorModel with _$CollaboratorModel {
@@ -11,6 +10,8 @@ class CollaboratorModel with _$CollaboratorModel {
     required String fullName,
     required String status,
     @Default('Miski Mayo') String category,
+    String? puesto,
+    String? unidad,
   }) = _CollaboratorModel;
 
   factory CollaboratorModel.fromJson(Map<String, dynamic> json) {
@@ -26,11 +27,19 @@ class CollaboratorModel with _$CollaboratorModel {
     final categoryVal = json['category'] ?? json['Empresa'] ?? json['categoria'] ?? 'Miski Mayo';
     final category = categoryVal.toString();
 
+    final puestoVal = json['puesto'] ?? json['Puesto'];
+    final puesto = puestoVal?.toString();
+
+    final unidadVal = json['unidad'] ?? json['Unidad'];
+    final unidad = unidadVal?.toString();
+
     return CollaboratorModel(
       dni: dni,
       fullName: fullName,
       status: status,
       category: category,
+      puesto: puesto,
+      unidad: unidad,
     );
   }
 }
@@ -42,6 +51,8 @@ extension CollaboratorModelMapper on CollaboratorModel {
       fullName: fullName,
       status: _parseCollaboratorStatus(status),
       category: category,
+      puesto: puesto,
+      unidad: unidad,
     );
   }
 }

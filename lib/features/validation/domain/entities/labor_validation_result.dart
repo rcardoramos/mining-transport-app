@@ -25,6 +25,8 @@ class LaborValidationResult with _$LaborValidationResult {
     required DateTime? inductionExpirationDate,
     required bool hasSecurityBlock,
     required String? errorMessage,
+    String? puesto,
+    String? unidad,
   }) = _LaborValidationResult;
 }
 

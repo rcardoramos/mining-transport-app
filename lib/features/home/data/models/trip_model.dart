@@ -4,7 +4,6 @@ import '../../domain/entities/trip_entity.dart';
 import 'stop_model.dart';
 
 part 'trip_model.freezed.dart';
-part 'trip_model.g.dart';
 
 @freezed
 class TripModel with _$TripModel {

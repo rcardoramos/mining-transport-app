@@ -23,6 +23,8 @@ class RegisterPassengerUseCase {
     String? empresa,
     int? paraderoId,
     String? lugarSubida,
+    String? puesto,
+    String? unidad,
   ]) {
     return _repository.registerPassenger(
       tripId,
@@ -38,6 +40,8 @@ class RegisterPassengerUseCase {
       empresa,
       paraderoId,
       lugarSubida,
+      puesto,
+      unidad,
     );
   }
 }

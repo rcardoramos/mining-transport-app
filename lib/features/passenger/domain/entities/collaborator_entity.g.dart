@@ -13,6 +13,8 @@ _$CollaboratorEntityImpl _$$CollaboratorEntityImplFromJson(
   fullName: json['fullName'] as String,
   status: $enumDecode(_$CollaboratorStatusEnumMap, json['status']),
   category: json['category'] as String? ?? 'Miski Mayo',
+  puesto: json['puesto'] as String?,
+  unidad: json['unidad'] as String?,
 );
 
 Map<String, dynamic> _$$CollaboratorEntityImplToJson(
@@ -22,6 +24,8 @@ Map<String, dynamic> _$$CollaboratorEntityImplToJson(
   'fullName': instance.fullName,
   'status': _$CollaboratorStatusEnumMap[instance.status]!,
   'category': instance.category,
+  'puesto': instance.puesto,
+  'unidad': instance.unidad,
 };
 
 const _$CollaboratorStatusEnumMap = {

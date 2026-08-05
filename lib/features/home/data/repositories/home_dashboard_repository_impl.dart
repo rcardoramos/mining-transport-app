@@ -218,9 +218,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   }
 
   @override
-  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida]) async {
+  Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida, String? puesto, String? unidad]) async {
     try {
-      final model = await _remoteDataSource.registerPassenger(id, dni, status?.name, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida);
+      final model = await _remoteDataSource.registerPassenger(id, dni, status?.name, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida, puesto, unidad);
       return Success(model.toEntity());
     } catch (e) {
       return FailureResult(_parseRepositoryException(e));

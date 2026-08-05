@@ -15,10 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-TripModel _$TripModelFromJson(Map<String, dynamic> json) {
-  return _TripModel.fromJson(json);
-}
-
 /// @nodoc
 mixin _$TripModel {
   String get id => throw _privateConstructorUsedError;
@@ -32,9 +28,6 @@ mixin _$TripModel {
   String? get startedAt => throw _privateConstructorUsedError;
   String? get completedAt => throw _privateConstructorUsedError;
   List<StopModel>? get stops => throw _privateConstructorUsedError;
-
-  /// Serializes this TripModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of TripModel
   /// with the given fields replaced by the non-null parameter values.
@@ -244,7 +237,7 @@ class __$$TripModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$TripModelImpl extends _TripModel {
   const _$TripModelImpl({
     required this.id,
@@ -260,9 +253,6 @@ class _$TripModelImpl extends _TripModel {
     final List<StopModel>? stops,
   }) : _stops = stops,
        super._();
-
-  factory _$TripModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TripModelImplFromJson(json);
 
   @override
   final String id;
@@ -323,7 +313,6 @@ class _$TripModelImpl extends _TripModel {
             const DeepCollectionEquality().equals(other._stops, _stops));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
@@ -347,11 +336,6 @@ class _$TripModelImpl extends _TripModel {
   @pragma('vm:prefer-inline')
   _$$TripModelImplCopyWith<_$TripModelImpl> get copyWith =>
       __$$TripModelImplCopyWithImpl<_$TripModelImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TripModelImplToJson(this);
-  }
 }
 
 abstract class _TripModel extends TripModel {
@@ -369,9 +353,6 @@ abstract class _TripModel extends TripModel {
     final List<StopModel>? stops,
   }) = _$TripModelImpl;
   const _TripModel._() : super._();
-
-  factory _TripModel.fromJson(Map<String, dynamic> json) =
-      _$TripModelImpl.fromJson;
 
   @override
   String get id;

@@ -25,6 +25,8 @@ mixin _$LaborValidationResult {
   DateTime? get inductionExpirationDate => throw _privateConstructorUsedError;
   bool get hasSecurityBlock => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
+  String? get puesto => throw _privateConstructorUsedError;
+  String? get unidad => throw _privateConstructorUsedError;
 
   /// Create a copy of LaborValidationResult
   /// with the given fields replaced by the non-null parameter values.
@@ -49,6 +51,8 @@ abstract class $LaborValidationResultCopyWith<$Res> {
     DateTime? inductionExpirationDate,
     bool hasSecurityBlock,
     String? errorMessage,
+    String? puesto,
+    String? unidad,
   });
 }
 
@@ -78,6 +82,8 @@ class _$LaborValidationResultCopyWithImpl<
     Object? inductionExpirationDate = freezed,
     Object? hasSecurityBlock = null,
     Object? errorMessage = freezed,
+    Object? puesto = freezed,
+    Object? unidad = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -113,6 +119,14 @@ class _$LaborValidationResultCopyWithImpl<
                 ? _value.errorMessage
                 : errorMessage // ignore: cast_nullable_to_non_nullable
                       as String?,
+            puesto: freezed == puesto
+                ? _value.puesto
+                : puesto // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            unidad: freezed == unidad
+                ? _value.unidad
+                : unidad // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -137,6 +151,8 @@ abstract class _$$LaborValidationResultImplCopyWith<$Res>
     DateTime? inductionExpirationDate,
     bool hasSecurityBlock,
     String? errorMessage,
+    String? puesto,
+    String? unidad,
   });
 }
 
@@ -163,6 +179,8 @@ class __$$LaborValidationResultImplCopyWithImpl<$Res>
     Object? inductionExpirationDate = freezed,
     Object? hasSecurityBlock = null,
     Object? errorMessage = freezed,
+    Object? puesto = freezed,
+    Object? unidad = freezed,
   }) {
     return _then(
       _$LaborValidationResultImpl(
@@ -198,6 +216,14 @@ class __$$LaborValidationResultImplCopyWithImpl<$Res>
             ? _value.errorMessage
             : errorMessage // ignore: cast_nullable_to_non_nullable
                   as String?,
+        puesto: freezed == puesto
+            ? _value.puesto
+            : puesto // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        unidad: freezed == unidad
+            ? _value.unidad
+            : unidad // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -215,6 +241,8 @@ class _$LaborValidationResultImpl implements _LaborValidationResult {
     required this.inductionExpirationDate,
     required this.hasSecurityBlock,
     required this.errorMessage,
+    this.puesto,
+    this.unidad,
   });
 
   @override
@@ -233,10 +261,14 @@ class _$LaborValidationResultImpl implements _LaborValidationResult {
   final bool hasSecurityBlock;
   @override
   final String? errorMessage;
+  @override
+  final String? puesto;
+  @override
+  final String? unidad;
 
   @override
   String toString() {
-    return 'LaborValidationResult(dni: $dni, fullName: $fullName, status: $status, category: $category, emoExpirationDate: $emoExpirationDate, inductionExpirationDate: $inductionExpirationDate, hasSecurityBlock: $hasSecurityBlock, errorMessage: $errorMessage)';
+    return 'LaborValidationResult(dni: $dni, fullName: $fullName, status: $status, category: $category, emoExpirationDate: $emoExpirationDate, inductionExpirationDate: $inductionExpirationDate, hasSecurityBlock: $hasSecurityBlock, errorMessage: $errorMessage, puesto: $puesto, unidad: $unidad)';
   }
 
   @override
@@ -260,7 +292,9 @@ class _$LaborValidationResultImpl implements _LaborValidationResult {
             (identical(other.hasSecurityBlock, hasSecurityBlock) ||
                 other.hasSecurityBlock == hasSecurityBlock) &&
             (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage));
+                other.errorMessage == errorMessage) &&
+            (identical(other.puesto, puesto) || other.puesto == puesto) &&
+            (identical(other.unidad, unidad) || other.unidad == unidad));
   }
 
   @override
@@ -274,6 +308,8 @@ class _$LaborValidationResultImpl implements _LaborValidationResult {
     inductionExpirationDate,
     hasSecurityBlock,
     errorMessage,
+    puesto,
+    unidad,
   );
 
   /// Create a copy of LaborValidationResult
@@ -299,6 +335,8 @@ abstract class _LaborValidationResult implements LaborValidationResult {
     required final DateTime? inductionExpirationDate,
     required final bool hasSecurityBlock,
     required final String? errorMessage,
+    final String? puesto,
+    final String? unidad,
   }) = _$LaborValidationResultImpl;
 
   @override
@@ -317,6 +355,10 @@ abstract class _LaborValidationResult implements LaborValidationResult {
   bool get hasSecurityBlock;
   @override
   String? get errorMessage;
+  @override
+  String? get puesto;
+  @override
+  String? get unidad;
 
   /// Create a copy of LaborValidationResult
   /// with the given fields replaced by the non-null parameter values.

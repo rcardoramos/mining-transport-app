@@ -3,7 +3,6 @@ import 'package:mining_transport_app/core/database/app_database.dart' as db;
 import 'package:mining_transport_app/features/auth/domain/entities/user_entity.dart';
 
 part 'user_model.freezed.dart';
-part 'user_model.g.dart';
 
 @freezed
 class UserModel with _$UserModel {
@@ -16,6 +15,16 @@ class UserModel with _$UserModel {
   }) = _UserModel;
 
   const UserModel._();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'fullName': fullName,
+      'role': role,
+      'token': token,
+    };
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final idVal = json['id'] ?? json['Id'] ?? '';

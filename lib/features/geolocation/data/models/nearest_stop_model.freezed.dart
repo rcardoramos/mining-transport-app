@@ -15,10 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-NearestStopModel _$NearestStopModelFromJson(Map<String, dynamic> json) {
-  return _NearestStopModel.fromJson(json);
-}
-
 /// @nodoc
 mixin _$NearestStopModel {
   @JsonKey(name: 'ParaderoId')
@@ -27,9 +23,6 @@ mixin _$NearestStopModel {
   String get nombre => throw _privateConstructorUsedError;
   @JsonKey(name: 'DistanciaMetros')
   double get distanciaMetros => throw _privateConstructorUsedError;
-
-  /// Serializes this NearestStopModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of NearestStopModel
   /// with the given fields replaced by the non-null parameter values.
@@ -145,16 +138,13 @@ class __$$NearestStopModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$NearestStopModelImpl extends _NearestStopModel {
   const _$NearestStopModelImpl({
     @JsonKey(name: 'ParaderoId') required this.paraderoId,
     @JsonKey(name: 'Nombre') required this.nombre,
     @JsonKey(name: 'DistanciaMetros') required this.distanciaMetros,
   }) : super._();
-
-  factory _$NearestStopModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$NearestStopModelImplFromJson(json);
 
   @override
   @JsonKey(name: 'ParaderoId')
@@ -183,7 +173,6 @@ class _$NearestStopModelImpl extends _NearestStopModel {
                 other.distanciaMetros == distanciaMetros));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, paraderoId, nombre, distanciaMetros);
@@ -198,11 +187,6 @@ class _$NearestStopModelImpl extends _NearestStopModel {
         this,
         _$identity,
       );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$NearestStopModelImplToJson(this);
-  }
 }
 
 abstract class _NearestStopModel extends NearestStopModel {
@@ -212,9 +196,6 @@ abstract class _NearestStopModel extends NearestStopModel {
     @JsonKey(name: 'DistanciaMetros') required final double distanciaMetros,
   }) = _$NearestStopModelImpl;
   const _NearestStopModel._() : super._();
-
-  factory _NearestStopModel.fromJson(Map<String, dynamic> json) =
-      _$NearestStopModelImpl.fromJson;
 
   @override
   @JsonKey(name: 'ParaderoId')

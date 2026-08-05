@@ -132,7 +132,8 @@ class __$$LoginResponseImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$LoginResponseImpl implements _LoginResponse {
   const _$LoginResponseImpl({required this.token, required this.user});
 

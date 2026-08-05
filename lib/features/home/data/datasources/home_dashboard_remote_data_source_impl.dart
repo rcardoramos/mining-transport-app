@@ -161,6 +161,8 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     String? empresa,
     int? paraderoId,
     String? lugarSubida,
+    String? puesto,
+    String? unidad,
   ]) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
@@ -188,6 +190,10 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     // Mapear nombres y empresas reales
     final finalName = nombreCompleto ?? (isVisita ? 'VISITANTE EXTERNO' : 'COLABORADOR REGULAR');
     final finalCompany = empresa ?? (isVisita ? 'Terceros' : 'MISKI MAYO');
+
+    // Mapear puesto y unidad por defecto si es colaborador y vienen vacíos
+    final finalPuesto = isVisita ? null : (puesto ?? 'Operario de Planta');
+    final finalUnidad = isVisita ? null : (unidad ?? 'Fosfatos');
 
     final body = {
       'usuario': username,
@@ -223,6 +229,15 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       'Lng': lng ?? 0.0,
     };
 
+    if (finalPuesto != null) {
+      body['puesto'] = finalPuesto;
+      body['Puesto'] = finalPuesto;
+    }
+    if (finalUnidad != null) {
+      body['unidad'] = finalUnidad;
+      body['Unidad'] = finalUnidad;
+    }
+
     if (isVisita) {
       body['motivoVisita'] = 'Inspección';
       body['autorizadoPor'] = 'Supervisor';
@@ -230,7 +245,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
 
     final response = await _dioClient.dio.post(endpoint, data: body);
     final wrapped = response.data as Map<String, dynamic>;
-    return TripModel.fromJson(wrapped['Data'] as Map<String, dynamic>);
+    
+    // El backend no devuelve un objeto Viaje (TripModel) completo, sino un resumen de aforo:
+    // { Success: true, Message: "OK", Data: { Mensaje: "OK", Capacidad: 25, Ocupados: 1, ... } }
+    final dataMap = wrapped['Data'] as Map<String, dynamic>? ?? {};
+    final ocupados = dataMap['Ocupados'] as int? ?? (dataMap['ocupados'] as int? ?? 0);
+    final capacidad = dataMap['Capacidad'] as int? ?? (dataMap['capacidad'] as int? ?? 25);
+
+    return TripModel(
+      id: id,
+      route: '',
+      scheduledTime: DateTime.now().toIso8601String(),
+      shift: '',
+      unitCode: '',
+      capacity: capacidad,
+      passengerCount: ocupados,
+      status: 'A',
+    );
   }
 
   @override

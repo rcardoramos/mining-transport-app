@@ -15,10 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-StopModel _$StopModelFromJson(Map<String, dynamic> json) {
-  return _StopModel.fromJson(json);
-}
-
 /// @nodoc
 mixin _$StopModel {
   String get id => throw _privateConstructorUsedError;
@@ -28,9 +24,6 @@ mixin _$StopModel {
   double get radioPermitido => throw _privateConstructorUsedError;
   int get orden => throw _privateConstructorUsedError;
   bool get completado => throw _privateConstructorUsedError;
-
-  /// Serializes this StopModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of StopModel
   /// with the given fields replaced by the non-null parameter values.
@@ -192,7 +185,7 @@ class __$$StopModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$StopModelImpl extends _StopModel {
   const _$StopModelImpl({
     required this.id,
@@ -203,9 +196,6 @@ class _$StopModelImpl extends _StopModel {
     required this.orden,
     this.completado = false,
   }) : super._();
-
-  factory _$StopModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$StopModelImplFromJson(json);
 
   @override
   final String id;
@@ -245,7 +235,6 @@ class _$StopModelImpl extends _StopModel {
                 other.completado == completado));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
@@ -265,11 +254,6 @@ class _$StopModelImpl extends _StopModel {
   @pragma('vm:prefer-inline')
   _$$StopModelImplCopyWith<_$StopModelImpl> get copyWith =>
       __$$StopModelImplCopyWithImpl<_$StopModelImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$StopModelImplToJson(this);
-  }
 }
 
 abstract class _StopModel extends StopModel {
@@ -283,9 +267,6 @@ abstract class _StopModel extends StopModel {
     final bool completado,
   }) = _$StopModelImpl;
   const _StopModel._() : super._();
-
-  factory _StopModel.fromJson(Map<String, dynamic> json) =
-      _$StopModelImpl.fromJson;
 
   @override
   String get id;

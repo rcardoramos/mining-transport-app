@@ -61,6 +61,8 @@ class ValidationRepositoryImpl implements ValidationRepository {
             inductionExpirationDate: futureDate,
             hasSecurityBlock: false,
             errorMessage: _getErrorMessage(mappedStatus),
+            puesto: collaborator.puesto,
+            unidad: collaborator.unidad,
           );
 
           return Success(validationResult);

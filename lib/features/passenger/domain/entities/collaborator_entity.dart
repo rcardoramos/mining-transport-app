@@ -13,6 +13,8 @@ class CollaboratorEntity with _$CollaboratorEntity {
     required String fullName,
     required CollaboratorStatus status,
     @Default('Miski Mayo') String category,
+    String? puesto,
+    String? unidad,
   }) = _CollaboratorEntity;
 
   factory CollaboratorEntity.fromJson(Map<String, dynamic> json) =>

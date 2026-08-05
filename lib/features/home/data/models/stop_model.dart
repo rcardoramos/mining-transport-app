@@ -2,7 +2,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../domain/entities/stop_entity.dart';
 
 part 'stop_model.freezed.dart';
-part 'stop_model.g.dart';
 
 @freezed
 class StopModel with _$StopModel {

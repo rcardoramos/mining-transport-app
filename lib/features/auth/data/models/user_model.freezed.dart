@@ -15,10 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-UserModel _$UserModelFromJson(Map<String, dynamic> json) {
-  return _UserModel.fromJson(json);
-}
-
 /// @nodoc
 mixin _$UserModel {
   String get id => throw _privateConstructorUsedError;
@@ -26,9 +22,6 @@ mixin _$UserModel {
   String get fullName => throw _privateConstructorUsedError;
   String get role => throw _privateConstructorUsedError;
   String? get token => throw _privateConstructorUsedError;
-
-  /// Serializes this UserModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -166,7 +159,7 @@ class __$$UserModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
 class _$UserModelImpl extends _UserModel {
   const _$UserModelImpl({
     required this.id,
@@ -175,9 +168,6 @@ class _$UserModelImpl extends _UserModel {
     required this.role,
     this.token,
   }) : super._();
-
-  factory _$UserModelImpl.fromJson(Map<String, dynamic> json) =>
-      _$$UserModelImplFromJson(json);
 
   @override
   final String id;
@@ -209,7 +199,6 @@ class _$UserModelImpl extends _UserModel {
             (identical(other.token, token) || other.token == token));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
       Object.hash(runtimeType, id, username, fullName, role, token);
@@ -221,11 +210,6 @@ class _$UserModelImpl extends _UserModel {
   @pragma('vm:prefer-inline')
   _$$UserModelImplCopyWith<_$UserModelImpl> get copyWith =>
       __$$UserModelImplCopyWithImpl<_$UserModelImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$UserModelImplToJson(this);
-  }
 }
 
 abstract class _UserModel extends UserModel {
@@ -237,9 +221,6 @@ abstract class _UserModel extends UserModel {
     final String? token,
   }) = _$UserModelImpl;
   const _UserModel._() : super._();
-
-  factory _UserModel.fromJson(Map<String, dynamic> json) =
-      _$UserModelImpl.fromJson;
 
   @override
   String get id;

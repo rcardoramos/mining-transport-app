@@ -359,6 +359,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             validation.category,
             int.tryParse(activeStop.id) ?? 1,
             activeStop.name,
+            validation.puesto,
+            validation.unidad,
           );
       setState(() => _isRegistering = false);
 
@@ -573,6 +575,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 validation.category,
                 int.tryParse(activeStop.id) ?? 1,
                 activeStop.name,
+                validation.puesto,
+                validation.unidad,
               );
           setState(() => _isRegistering = false);
 

@@ -179,7 +179,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     await _fetchData();
   }
 
-  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida]) async {
+  Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida, String? puesto, String? unidad]) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
     
     final isOnline = _ref.read(syncProvider).isOnline;
@@ -198,6 +198,8 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         'empresa': empresa,
         'paraderoId': paraderoId,
         'lugarSubida': lugarSubida,
+        'puesto': puesto,
+        'unidad': unidad,
       });
       await _ref.read(syncProvider.notifier).queueAction(
         actionType: 'BOARD_PASSENGER',
@@ -206,7 +208,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       
       final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
       if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
-        await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida);
+        await remoteDataSource.registerPassenger(tripId, dni, status?.name, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida, puesto, unidad);
       }
 
       // Incrementar el aforo localmente en el State del ViewModel para visualización inmediata offline
@@ -238,7 +240,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return true;
     }
 
-    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida);
+    final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida, puesto, unidad);
     
     if (result.isFailure) {
       state = state.copyWith(

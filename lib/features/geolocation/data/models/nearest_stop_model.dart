@@ -2,7 +2,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mining_transport_app/features/geolocation/domain/entities/nearest_stop_entity.dart';
 
 part 'nearest_stop_model.freezed.dart';
-part 'nearest_stop_model.g.dart';
 
 @freezed
 class NearestStopModel with _$NearestStopModel {

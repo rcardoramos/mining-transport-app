@@ -6,6 +6,7 @@ part 'login_response.g.dart';
 
 @freezed
 class LoginResponse with _$LoginResponse {
+  @JsonSerializable(explicitToJson: true)
   const factory LoginResponse({
     required String token,
     required UserModel user,

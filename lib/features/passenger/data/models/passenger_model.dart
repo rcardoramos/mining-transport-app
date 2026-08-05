@@ -4,7 +4,6 @@ import 'package:mining_transport_app/features/passenger/domain/entities/collabor
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 part 'passenger_model.freezed.dart';
-part 'passenger_model.g.dart';
 
 /// Modelo de datos para [PassengerEntity], compatible con JSON y Freezed.
 @freezed
