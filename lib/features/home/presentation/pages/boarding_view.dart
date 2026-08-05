@@ -237,6 +237,17 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
   }
 
   Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+    final normalizedDni = dni.trim();
+
+    if (trip.status == TripStatus.completed || trip.status == TripStatus.cancelled) {
+      await _showBoardingBlockedDialog(
+        title: 'Viaje cerrado',
+        content:
+            'Este viaje ya está finalizado y no admite nuevas marcaciones.\n\nAbre o selecciona un viaje activo para registrar pasajeros.',
+      );
+      return;
+    }
+
     final activeStop = _getActiveStop(trip);
     if (activeStop == null || !_isDriverInRange(activeStop)) {
       if (mounted) {
@@ -264,9 +275,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     // 1. Verificar duplicidad de pasajero
-    final isDuplicate = _passengersList.any((p) => p.dni.trim() == dni.trim());
+    final isDuplicate = _passengersList.any(
+      (p) => p.dni.trim() == normalizedDni,
+    );
     if (isDuplicate) {
-      await _showDuplicateBoardingDialog(dni);
+      await _showDuplicateBoardingDialog(normalizedDni);
       return;
     }
 
@@ -293,7 +306,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     setState(() => _isRegistering = true);
     final isOnline = ref.read(syncProvider).isOnline;
     final validateUseCase = GetIt.I<ValidateLaborRulesUseCase>();
-    final result = await validateUseCase.execute(dni, isOnline);
+    final result = await validateUseCase.execute(normalizedDni, isOnline);
     
     setState(() => _isRegistering = false);
 
@@ -307,7 +320,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             context: context,
             builder: (ctx) => DesignDialog(
               title: 'Colaborador No Encontrado',
-              content: 'El DNI $dni no se encuentra registrado en el padrón del sistema.\nNo se permite su embarque.',
+              content: 'El DNI $normalizedDni no se encuentra registrado en el padrón del sistema.\nNo se permite su embarque.',
               confirmLabel: 'Entendido',
               onConfirm: () {},
             ),
@@ -320,7 +333,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     final validation = result.successOrNull!;
-    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(dni);
+    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(normalizedDni);
     final prefix = isScan ? 'qr_scan' : 'manual';
     
     // Si hay un paradero activo, incluimos su nombre en el método de registro
@@ -337,7 +350,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           .read(homeDashboardViewModelProvider.notifier)
           .registerPassenger(
             trip.id,
-            dni,
+            normalizedDni,
             CollaboratorStatus.ok,
             validation.category,
             customMethod,
@@ -359,17 +372,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
           _loadPassengers();
         } else {
-          final error = ref.read(homeDashboardViewModelProvider).errorMessage;
-          if ((error ?? '').toUpperCase().contains('DUPLICADO')) {
-            await _loadPassengers();
-            ref.read(homeDashboardViewModelProvider.notifier).clearError();
-            await _showDuplicateBoardingDialog(dni);
-          } else {
-            DesignSnackbar.showError(
-              context,
-              _friendlyRegisterError(error),
-            );
-          }
+          await _handleRegisterFailure(normalizedDni);
         }
       }
     } else if (validation.status == LaborValidationStatus.blockedSecurity) {
@@ -563,7 +566,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               .read(homeDashboardViewModelProvider.notifier)
               .registerPassenger(
                 trip.id,
-                dni,
+                normalizedDni,
                 nextStatus,
                 validation.category,
                 customMethod,
@@ -585,17 +588,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
               _loadPassengers();
             } else {
-              final error = ref.read(homeDashboardViewModelProvider).errorMessage;
-              if ((error ?? '').toUpperCase().contains('DUPLICADO')) {
-                await _loadPassengers();
-                ref.read(homeDashboardViewModelProvider.notifier).clearError();
-                await _showDuplicateBoardingDialog(dni);
-              } else {
-                DesignSnackbar.showError(
-                  context,
-                  _friendlyRegisterError(error),
-                );
-              }
+              await _handleRegisterFailure(normalizedDni);
             }
           }
         }
@@ -631,6 +624,46 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       return 'El colaborador ya se encuentra registrado a bordo en este viaje.';
     }
     return msg;
+  }
+
+  Future<void> _handleRegisterFailure(String dni) async {
+    final error = ref.read(homeDashboardViewModelProvider).errorMessage;
+    ref.read(homeDashboardViewModelProvider.notifier).clearError();
+    await _loadPassengers();
+    if (!mounted) return;
+
+    final upper = (error ?? '').toUpperCase();
+    if (upper.contains('DUPLICADO')) {
+      await _showDuplicateBoardingDialog(dni);
+      return;
+    }
+    if (upper.contains('CERRADO') || upper.contains('NO ADMITE')) {
+      await _showBoardingBlockedDialog(
+        title: 'Viaje cerrado',
+        content:
+            'Este viaje ya está finalizado y no admite nuevas marcaciones.\n\nAbre o selecciona un viaje activo para registrar pasajeros.',
+      );
+      return;
+    }
+
+    DesignSnackbar.showError(context, _friendlyRegisterError(error));
+  }
+
+  Future<void> _showBoardingBlockedDialog({
+    required String title,
+    required String content,
+  }) async {
+    GetIt.I<AudioService>().playAlertSound();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => DesignDialog(
+        title: title,
+        content: content,
+        confirmLabel: 'Entendido',
+        onConfirm: () {},
+      ),
+    );
   }
 
   /// Modal de error para doble embarque (lista local o respuesta DUPLICADO del backend).
@@ -808,7 +841,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             stops: _detailedTrip?.stops ?? trip.stops,
             startedAt: _detailedTrip?.startedAt ?? trip.startedAt,
             completedAt: _detailedTrip?.completedAt ?? trip.completedAt,
-            status: trip.status,
+            // Preferir estado del detalle remoto (p. ej. COMPLETED) sobre el del dashboard.
+            status: _detailedTrip?.status ?? trip.status,
           )
         : _detailedTrip?.copyWith(
             passengerCount: resolvedPassengerCount,

@@ -6,7 +6,6 @@ import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
-import 'package:mining_transport_app/features/home/presentation/states/home_dashboard_state.dart';
 import 'package:mining_transport_app/features/home/presentation/widgets/greeting_header.dart';
 import 'package:mining_transport_app/features/home/presentation/widgets/driver_profile_card.dart';
 import 'package:mining_transport_app/features/home/presentation/widgets/trip_item_card.dart';
@@ -73,24 +72,6 @@ class _HomeViewState extends ConsumerState<HomeView>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeDashboardViewModelProvider);
-
-    ref.listen<HomeDashboardState>(homeDashboardViewModelProvider, (previous, next) {
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
-        // Los duplicados se informan con modal en BoardingView, no con snackbar global.
-        if (next.errorMessage!.toUpperCase().contains('DUPLICADO')) {
-          return;
-        }
-        if (next.data != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.errorMessage!),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    });
 
     return Scaffold(
       appBar: DesignAppBar(

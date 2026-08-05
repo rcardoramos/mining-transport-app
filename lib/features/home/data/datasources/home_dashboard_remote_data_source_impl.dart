@@ -16,6 +16,11 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   final DioClient _dioClient;
   final SecureStorage _secureStorage;
 
+  /// Caché del catálogo maestro de paraderos (ParaderoId real del backend).
+  /// Viaje/Obtener a veces envía un `id` de relación distinto al ParaderoId de catálogo;
+  /// Registrar con ese id inventado provoca HTTP 500.
+  List<_CatalogParadero>? _paraderoCatalog;
+
   HomeDashboardRemoteDataSourceImpl(this._dioClient, this._secureStorage);
 
   @override
@@ -197,6 +202,13 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final finalPuesto = isVisita ? null : (puesto?.trim().isNotEmpty == true ? puesto : 'Operario de Planta');
     final finalUnidad = isVisita ? null : (unidad?.trim().isNotEmpty == true ? unidad : 'Fosfatos');
 
+    final resolvedParaderoId = await _resolveCatalogParaderoId(
+      requestedId: paraderoId,
+      name: lugarSubida,
+      lat: lat,
+      lng: lng,
+    );
+
     final body = <String, dynamic>{
       'usuario': username,
       'token': token,
@@ -211,7 +223,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       'estadoLaboral': mappedStatus,
       'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
       'observacion': justification,
-      'paraderoId': paraderoId ?? 1,
+      'paraderoId': resolvedParaderoId,
       'lugarSubida': lugarSubida ?? '',
       'lat': lat ?? 0.0,
       'lng': lng ?? 0.0,
@@ -271,6 +283,96 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     if (raw == '01' || raw == '1') return 'MISKI MAYO';
     if (RegExp(r'^\d+$').hasMatch(raw)) return 'MISKI MAYO';
     return raw;
+  }
+
+  Future<void> _ensureParaderoCatalog() async {
+    if (_paraderoCatalog != null) return;
+
+    try {
+      final username = await _secureStorage.getUsername() ?? '';
+      final token = await _secureStorage.getToken() ?? '';
+      final response = await _dioClient.dio.post(
+        'api/Catalogo/Bootstrap',
+        data: {
+          'usuario': username,
+          'token': token,
+        },
+      );
+      final wrapped = response.data as Map<String, dynamic>;
+      final data = wrapped['Data'];
+      final list = data is Map<String, dynamic>
+          ? (data['Paraderos'] as List<dynamic>? ?? const [])
+          : const <dynamic>[];
+
+      _paraderoCatalog = list
+          .whereType<Map>()
+          .map((raw) {
+            final map = Map<String, dynamic>.from(raw);
+            final id = int.tryParse('${map['ParaderoId'] ?? map['paraderoId'] ?? map['id'] ?? ''}');
+            if (id == null) return null;
+            return _CatalogParadero(
+              id: id,
+              name: '${map['Nombre'] ?? map['nombre'] ?? ''}'.trim(),
+              lat: double.tryParse('${map['Latitud'] ?? map['latitud'] ?? 0}') ?? 0,
+              lng: double.tryParse('${map['Longitud'] ?? map['longitud'] ?? 0}') ?? 0,
+            );
+          })
+          .whereType<_CatalogParadero>()
+          .toList();
+    } catch (_) {
+      _paraderoCatalog = const [];
+    }
+  }
+
+  /// Resuelve el ParaderoId real del catálogo.
+  ///
+  /// `Viaje/Obtener.ParaderosAutorizados[].id` puede ser un id de relación
+  /// (ej. 11) distinto al ParaderoId maestro (ej. 5 = PARADERO TEST1).
+  Future<int> _resolveCatalogParaderoId({
+    int? requestedId,
+    String? name,
+    double? lat,
+    double? lng,
+  }) async {
+    await _ensureParaderoCatalog();
+    final catalog = _paraderoCatalog ?? const <_CatalogParadero>[];
+    if (catalog.isEmpty) {
+      return requestedId ?? 1;
+    }
+
+    if (requestedId != null && catalog.any((p) => p.id == requestedId)) {
+      return requestedId;
+    }
+
+    final normalizedName = (name ?? '').trim().toLowerCase();
+    if (normalizedName.isNotEmpty) {
+      final byName = catalog.where((p) => p.name.toLowerCase() == normalizedName);
+      if (byName.isNotEmpty) return byName.first.id;
+
+      final byContains = catalog.where(
+        (p) =>
+            p.name.toLowerCase().contains(normalizedName) ||
+            normalizedName.contains(p.name.toLowerCase()),
+      );
+      if (byContains.isNotEmpty) return byContains.first.id;
+    }
+
+    if (lat != null && lng != null && (lat != 0.0 || lng != 0.0)) {
+      _CatalogParadero? nearest;
+      var bestDistance = double.infinity;
+      for (final p in catalog) {
+        final dLat = p.lat - lat;
+        final dLng = p.lng - lng;
+        final distance = dLat * dLat + dLng * dLng;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          nearest = p;
+        }
+      }
+      if (nearest != null) return nearest.id;
+    }
+
+    return requestedId ?? catalog.first.id;
   }
 
   @override
@@ -333,4 +435,18 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final wrapped = response.data as Map<String, dynamic>;
     return TripModel.fromJson(wrapped['Data'] as Map<String, dynamic>);
   }
+}
+
+class _CatalogParadero {
+  final int id;
+  final String name;
+  final double lat;
+  final double lng;
+
+  const _CatalogParadero({
+    required this.id,
+    required this.name,
+    required this.lat,
+    required this.lng,
+  });
 }
