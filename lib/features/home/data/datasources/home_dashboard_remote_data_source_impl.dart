@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:dio/dio.dart';
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
@@ -187,55 +188,40 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     // Generar client UID único si no se provee
     final clientUid = uidCliente ?? const Uuid().v4();
 
-    // Mapear nombres y empresas reales
+    // Mapear nombres y empresas reales.
+    // Validar suele devolver Empresa como código ("01") o vacío; Registrar espera el nombre.
     final finalName = nombreCompleto ?? (isVisita ? 'VISITANTE EXTERNO' : 'COLABORADOR REGULAR');
-    final finalCompany = empresa ?? (isVisita ? 'Terceros' : 'MISKI MAYO');
+    final finalCompany = _normalizeEmpresa(empresa, isVisita: isVisita);
 
     // Mapear puesto y unidad por defecto si es colaborador y vienen vacíos
-    final finalPuesto = isVisita ? null : (puesto ?? 'Operario de Planta');
-    final finalUnidad = isVisita ? null : (unidad ?? 'Fosfatos');
+    final finalPuesto = isVisita ? null : (puesto?.trim().isNotEmpty == true ? puesto : 'Operario de Planta');
+    final finalUnidad = isVisita ? null : (unidad?.trim().isNotEmpty == true ? unidad : 'Fosfatos');
 
-    final body = {
+    final body = <String, dynamic>{
       'usuario': username,
       'token': token,
       'viajeId': int.tryParse(id) ?? 1,
-      'ViajeId': int.tryParse(id) ?? 1,
-      'iajeId': int.tryParse(id) ?? 1, // Variación por typo de backend (iajeId en vez de viajeId)
       'dni': dni,
-      'Dni': dni,
       'uidCliente': clientUid,
-      'UidCliente': clientUid,
-      'codigoUnico': 'EMP-$dni',
-      'CodigoUnico': 'EMP-$dni',
+      // No inventar codigoUnico (ej. EMP-{dni}): el backend responde HTTP 500.
+      // Si Validar llega a exponer el código real, se podrá reenviar aquí.
       'nombreCompleto': finalName,
-      'NombreCompleto': finalName,
       'empresa': finalCompany,
-      'Empresa': finalCompany,
       'tipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
-      'TipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
       'estadoLaboral': mappedStatus,
-      'EstadoLaboral': mappedStatus,
       'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
-      'Resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
       'observacion': justification,
-      'Observacion': justification,
       'paraderoId': paraderoId ?? 1,
-      'ParaderoId': paraderoId ?? 1,
       'lugarSubida': lugarSubida ?? '',
-      'LugarSubida': lugarSubida ?? '',
       'lat': lat ?? 0.0,
-      'Lat': lat ?? 0.0,
       'lng': lng ?? 0.0,
-      'Lng': lng ?? 0.0,
     };
 
     if (finalPuesto != null) {
       body['puesto'] = finalPuesto;
-      body['Puesto'] = finalPuesto;
     }
     if (finalUnidad != null) {
       body['unidad'] = finalUnidad;
-      body['Unidad'] = finalUnidad;
     }
 
     if (isVisita) {
@@ -245,12 +231,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
 
     final response = await _dioClient.dio.post(endpoint, data: body);
     final wrapped = response.data as Map<String, dynamic>;
-    
+
+    if (wrapped['Success'] == false) {
+      final message = (wrapped['Message'] ?? wrapped['message'] ?? 'Ocurrió un error al registrar el pasajero.').toString();
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        message: message,
+      );
+    }
+
     // El backend no devuelve un objeto Viaje (TripModel) completo, sino un resumen de aforo:
     // { Success: true, Message: "OK", Data: { Mensaje: "OK", Capacidad: 25, Ocupados: 1, ... } }
-    final dataMap = wrapped['Data'] as Map<String, dynamic>? ?? {};
-    final ocupados = dataMap['Ocupados'] as int? ?? (dataMap['ocupados'] as int? ?? 0);
-    final capacidad = dataMap['Capacidad'] as int? ?? (dataMap['capacidad'] as int? ?? 25);
+    final rawData = wrapped['Data'];
+    final dataMap = rawData is Map<String, dynamic> ? rawData : <String, dynamic>{};
+    final ocupados = int.tryParse('${dataMap['Ocupados'] ?? dataMap['ocupados'] ?? 0}') ?? 0;
+    final capacidad = int.tryParse('${dataMap['Capacidad'] ?? dataMap['capacidad'] ?? 25}') ?? 25;
 
     return TripModel(
       id: id,
@@ -262,6 +259,18 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       passengerCount: ocupados,
       status: 'A',
     );
+  }
+
+  /// Normaliza el campo Empresa de Validar al valor que espera Registrar.
+  static String _normalizeEmpresa(String? empresa, {required bool isVisita}) {
+    final raw = (empresa ?? '').trim();
+    if (raw.isEmpty) {
+      return isVisita ? 'Terceros' : 'MISKI MAYO';
+    }
+    // Códigos corporativos frecuentes en Validar
+    if (raw == '01' || raw == '1') return 'MISKI MAYO';
+    if (RegExp(r'^\d+$').hasMatch(raw)) return 'MISKI MAYO';
+    return raw;
   }
 
   @override

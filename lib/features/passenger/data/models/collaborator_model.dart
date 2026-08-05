@@ -25,7 +25,7 @@ class CollaboratorModel with _$CollaboratorModel {
     final status = statusVal.toString();
 
     final categoryVal = json['category'] ?? json['Empresa'] ?? json['categoria'] ?? 'Miski Mayo';
-    final category = categoryVal.toString();
+    final category = _normalizeCategory(categoryVal.toString());
 
     final puestoVal = json['puesto'] ?? json['Puesto'];
     final puesto = puestoVal?.toString();
@@ -55,6 +55,15 @@ extension CollaboratorModelMapper on CollaboratorModel {
       unidad: unidad,
     );
   }
+}
+
+/// Normaliza códigos de empresa del backend (ej. "01") a categorías de UI/negocio.
+String _normalizeCategory(String raw) {
+  final clean = raw.trim();
+  if (clean.isEmpty) return 'Miski Mayo';
+  if (clean == '01' || clean == '1') return 'Miski Mayo';
+  if (RegExp(r'^\d+$').hasMatch(clean)) return 'Miski Mayo';
+  return clean;
 }
 
 CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {

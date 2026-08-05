@@ -25,7 +25,12 @@ class PassengerModel with _$PassengerModel {
     final fullNameVal = json['fullName'] ?? json['NombreCompleto'] ?? '';
     final fullName = fullNameVal.toString();
 
-    final boardedAtVal = json['boardedAt'] ?? json['FechaEmbarque'] ?? json['boarded_at'] ?? DateTime.now().toUtc().toIso8601String();
+    final boardedAtVal = json['boardedAt'] ??
+        json['FechaEmbarque'] ??
+        json['HoraSubida'] ??
+        json['horaSubida'] ??
+        json['boarded_at'] ??
+        DateTime.now().toUtc().toIso8601String();
     final boardedAt = boardedAtVal.toString();
 
     final registrationMethodVal = json['registrationMethod'] ?? json['MetodoRegistro'] ?? json['registration_method'] ?? 'qr';

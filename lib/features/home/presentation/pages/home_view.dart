@@ -76,6 +76,10 @@ class _HomeViewState extends ConsumerState<HomeView>
 
     ref.listen<HomeDashboardState>(homeDashboardViewModelProvider, (previous, next) {
       if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+        // Los duplicados se informan con modal en BoardingView, no con snackbar global.
+        if (next.errorMessage!.toUpperCase().contains('DUPLICADO')) {
+          return;
+        }
         if (next.data != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

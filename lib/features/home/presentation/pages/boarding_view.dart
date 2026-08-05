@@ -266,17 +266,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     // 1. Verificar duplicidad de pasajero
     final isDuplicate = _passengersList.any((p) => p.dni.trim() == dni.trim());
     if (isDuplicate) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (ctx) => DesignDialog(
-            title: 'Alerta de Duplicidad',
-            content: 'El colaborador con DNI $dni ya se encuentra registrado a bordo en este viaje.\n\nNo se permite el doble embarque.',
-            confirmLabel: 'Entendido',
-            onConfirm: () {},
-          ),
-        );
-      }
+      await _showDuplicateBoardingDialog(dni);
       return;
     }
 
@@ -369,7 +359,17 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
           _loadPassengers();
         } else {
-          DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
+          final error = ref.read(homeDashboardViewModelProvider).errorMessage;
+          if ((error ?? '').toUpperCase().contains('DUPLICADO')) {
+            await _loadPassengers();
+            ref.read(homeDashboardViewModelProvider.notifier).clearError();
+            await _showDuplicateBoardingDialog(dni);
+          } else {
+            DesignSnackbar.showError(
+              context,
+              _friendlyRegisterError(error),
+            );
+          }
         }
       }
     } else if (validation.status == LaborValidationStatus.blockedSecurity) {
@@ -585,7 +585,17 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
               _loadPassengers();
             } else {
-              DesignSnackbar.showError(context, 'Fallo al registrar pasajero.');
+              final error = ref.read(homeDashboardViewModelProvider).errorMessage;
+              if ((error ?? '').toUpperCase().contains('DUPLICADO')) {
+                await _loadPassengers();
+                ref.read(homeDashboardViewModelProvider.notifier).clearError();
+                await _showDuplicateBoardingDialog(dni);
+              } else {
+                DesignSnackbar.showError(
+                  context,
+                  _friendlyRegisterError(error),
+                );
+              }
             }
           }
         }
@@ -612,6 +622,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       _isRegistering = false;
     });
     _dniController.clear();
+  }
+
+  String _friendlyRegisterError(String? error) {
+    final msg = (error ?? '').trim();
+    if (msg.isEmpty) return 'Fallo al registrar pasajero.';
+    if (msg.toUpperCase().contains('DUPLICADO')) {
+      return 'El colaborador ya se encuentra registrado a bordo en este viaje.';
+    }
+    return msg;
+  }
+
+  /// Modal de error para doble embarque (lista local o respuesta DUPLICADO del backend).
+  Future<void> _showDuplicateBoardingDialog(String dni) async {
+    GetIt.I<AudioService>().playAlertSound();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => DesignDialog(
+        title: 'Alerta de Duplicidad',
+        content:
+            'El colaborador con DNI $dni ya se encuentra registrado a bordo en este viaje.\n\nNo se permite el doble embarque.',
+        confirmLabel: 'Entendido',
+        onConfirm: () {},
+      ),
+    );
   }
 
   void _onGuardarLista() {

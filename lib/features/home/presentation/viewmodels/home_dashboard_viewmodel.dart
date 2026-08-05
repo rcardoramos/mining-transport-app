@@ -243,9 +243,19 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     final result = await _registerPassengerUseCase.execute(tripId, dni, status, category, registrationMethod, lat, lng, justification, uidCliente, nombreCompleto, empresa, paraderoId, lugarSubida, puesto, unidad);
     
     if (result.isFailure) {
+      final failureMessage = result.failureOrNull?.message ?? 'Fallo al registrar pasajero';
+      // Si el backend indica duplicado, refrescar lista y tratarlo como caso conocido
+      // (el pasajero ya quedó a bordo en un intento previo).
+      if (failureMessage.toUpperCase().contains('DUPLICADO')) {
+        state = state.copyWith(
+          isRefreshing: false,
+          errorMessage: 'DUPLICADO',
+        );
+        return false;
+      }
       state = state.copyWith(
         isRefreshing: false,
-        errorMessage: result.failureOrNull?.message ?? 'Fallo al registrar pasajero',
+        errorMessage: failureMessage,
       );
       return false;
     }
@@ -337,6 +347,12 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     }
     
     return true;
+  }
+
+  void clearError() {
+    if (state.errorMessage != null) {
+      state = state.copyWith(errorMessage: null);
+    }
   }
 }
 
