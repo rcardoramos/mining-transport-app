@@ -242,6 +242,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<CollaboratorEntity, Failure>> checkCollaborator(String dni) async {
     try {
       final model = await _remoteDataSource.checkCollaborator(dni);
+      if (model.fullName.trim().isEmpty) {
+        return FailureResult(const CollaboratorNotFoundFailure('Colaborador no encontrado'));
+      }
       return Success(model.toEntity());
     } catch (e) {
       if (e.toString().contains('not_found')) {
