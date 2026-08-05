@@ -66,6 +66,10 @@ class TripModel with _$TripModel {
       
       // Combine date and time
       scheduledTime = '${dateStr}T$timeStr';
+      // Strip any timezone indicators (Z, z, or offsets) from the scheduled wall-clock time
+      scheduledTime = scheduledTime
+          .replaceAll(RegExp(r'[Zz]$'), '')
+          .replaceAll(RegExp(r'[+-]\d{2}:?\d{2}$'), '');
     }
 
     // 4. Parse Shift (shift or Turno or turno or Horario)
