@@ -1,7 +1,9 @@
 import 'package:uuid/uuid.dart';
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
+import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
@@ -122,34 +124,169 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   Future<TripModel> updateTripStatus(String id, String status) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
+    final normalized = status.trim().toLowerCase();
 
-    if (status == 'completed') {
-      final response = await _dioClient.dio.post(
-        'api/Viaje/Cerrar',
-        data: {
-          'usuario': username,
-          'token': token,
-          'viajeId': int.tryParse(id) ?? 1,
-          'paraderoCierreId': 1,
-          'lat': 0.0,
-          'lng': 0.0,
-        },
-      );
-      final wrapped = response.data as Map<String, dynamic>;
-      return TripModel.fromJson(wrapped['Data'] as Map<String, dynamic>);
-    } else {
-      // Aperturar / Iniciar viaje en tránsito
-      final response = await _dioClient.dio.post(
-        'api/Viaje/Aperturar',
-        data: {
-          'usuario': username,
-          'token': token,
-          'viajeId': int.tryParse(id) ?? 1,
-        },
-      );
-      final wrapped = response.data as Map<String, dynamic>;
-      return TripModel.fromJson(wrapped['Data'] as Map<String, dynamic>);
+    if (normalized == 'completed') {
+      return _closeTripRemote(id: id, username: username, token: token);
     }
+
+    if (normalized == 'travelling' || normalized == 'transito' || normalized == 'en_transito') {
+      // "Iniciar viaje" es un estado local de tránsito: no volver a llamar Aperturar
+      // (el viaje ya fue aperturado). Re-aperturar con payload incompleto deja el
+      // viaje en un estado que luego hace fallar Viaje/Cerrar en el backend.
+      return TripModel(
+        id: id,
+        route: '',
+        scheduledTime: DateTime.now().toIso8601String(),
+        shift: '',
+        unitCode: '',
+        capacity: 40,
+        passengerCount: 0,
+        status: 'TRAVELLING',
+        startedAt: DateTime.now().toIso8601String(),
+      );
+    }
+
+    // Aperturar viaje (inProgress / scheduled → activo)
+    final response = await _dioClient.dio.post(
+      'api/Viaje/Aperturar',
+      data: {
+        'usuario': username,
+        'token': token,
+        'viajeId': int.tryParse(id) ?? 1,
+      },
+    );
+    final wrapped = response.data as Map<String, dynamic>;
+    if (wrapped['Success'] == false) {
+      final message = (wrapped['Message'] ?? wrapped['message'] ?? 'Error al aperturar el viaje.').toString();
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        message: message,
+      );
+    }
+    return _tripFromCloseOrOpenData(id, wrapped['Data'], fallbackStatus: 'A');
+  }
+
+  Future<TripModel> _closeTripRemote({
+    required String id,
+    required String username,
+    required String token,
+  }) async {
+    double lat = 0.0;
+    double lng = 0.0;
+    String? stopName;
+    int? requestedParaderoId;
+
+    try {
+      final detailResponse = await _dioClient.dio.post(
+        'api/Viaje/Obtener',
+        data: {
+          'usuario': username,
+          'token': token,
+          'viajeId': int.tryParse(id) ?? 1,
+        },
+      );
+      final detailWrapped = detailResponse.data as Map<String, dynamic>;
+      final detailData = detailWrapped['Data'];
+      if (detailData is Map<String, dynamic>) {
+        final stops = detailData['ParaderosAutorizados'] ?? detailData['paraderos'];
+        if (stops is List && stops.isNotEmpty) {
+          final sorted = [...stops.whereType<Map>()];
+          sorted.sort((a, b) {
+            final oa = int.tryParse('${a['orden'] ?? a['Orden'] ?? 0}') ?? 0;
+            final ob = int.tryParse('${b['orden'] ?? b['Orden'] ?? 0}') ?? 0;
+            return oa.compareTo(ob);
+          });
+          final last = Map<String, dynamic>.from(sorted.last);
+          requestedParaderoId = int.tryParse('${last['id'] ?? last['Id'] ?? last['paraderoId'] ?? last['ParaderoId'] ?? ''}');
+          stopName = '${last['nombre'] ?? last['Nombre'] ?? ''}'.trim();
+          lat = double.tryParse('${last['latitud'] ?? last['Latitud'] ?? 0}') ?? 0;
+          lng = double.tryParse('${last['longitud'] ?? last['Longitud'] ?? 0}') ?? 0;
+        }
+      }
+    } catch (_) {
+      // Si falla el detalle, seguimos con resolución por catálogo/GPS.
+    }
+
+    // Solo usar GPS si no hay coordenadas del paradero de cierre.
+    // GpsService por defecto simula Lima; sobrescribir el paradero real provoca HTTP 500.
+    if (lat == 0.0 && lng == 0.0) {
+      try {
+        if (GetIt.I.isRegistered<GpsService>()) {
+          final pos = GetIt.I<GpsService>().currentPosition;
+          if (pos.latitude != 0.0 || pos.longitude != 0.0) {
+            lat = pos.latitude;
+            lng = pos.longitude;
+          }
+        }
+      } catch (_) {}
+    }
+
+    final paraderoCierreId = await _resolveCatalogParaderoId(
+      requestedId: requestedParaderoId,
+      name: stopName,
+      lat: lat,
+      lng: lng,
+    );
+
+    // Contrato observado en staging: además de paradero/coords, el backend
+    // acepta odometroFinal (Postman no lo documenta, pero cierra el viaje).
+    final response = await _dioClient.dio.post(
+      'api/Viaje/Cerrar',
+      data: {
+        'usuario': username,
+        'token': token,
+        'viajeId': int.tryParse(id) ?? 1,
+        'paraderoCierreId': paraderoCierreId,
+        'odometroFinal': 0,
+        'lat': lat,
+        'lng': lng,
+      },
+    );
+    final wrapped = response.data as Map<String, dynamic>;
+    if (wrapped['Success'] == false) {
+      final message = (wrapped['Message'] ?? wrapped['message'] ?? 'Ocurrió un error al cerrar el viaje.').toString();
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        message: message,
+      );
+    }
+
+    return _tripFromCloseOrOpenData(id, wrapped['Data'], fallbackStatus: 'COMPLETED');
+  }
+
+  TripModel _tripFromCloseOrOpenData(
+    String id,
+    dynamic rawData, {
+    required String fallbackStatus,
+  }) {
+    if (rawData is Map<String, dynamic>) {
+      // Algunos endpoints solo devuelven { ViajeId }.
+      if (rawData.containsKey('ViajeId') || rawData.containsKey('viajeId') || rawData.containsKey('id')) {
+        try {
+          return TripModel.fromJson(rawData);
+        } catch (_) {
+          // Continuar con modelo mínimo.
+        }
+      }
+    }
+    return TripModel(
+      id: id,
+      route: '',
+      scheduledTime: DateTime.now().toIso8601String(),
+      shift: '',
+      unitCode: '',
+      capacity: 40,
+      passengerCount: 0,
+      status: fallbackStatus,
+      completedAt: fallbackStatus.toUpperCase().contains('COMPLETE')
+          ? DateTime.now().toIso8601String()
+          : null,
+    );
   }
 
   @override

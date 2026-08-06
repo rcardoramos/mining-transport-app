@@ -707,10 +707,21 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     if (confirmed != true || !mounted) return;
 
-    // Cambiar estado a "en tránsito"
+    setState(() => _isRegistering = true);
+    // Cambiar estado a "en tránsito" (solo local; no re-aperturar en backend)
     await ref
         .read(homeDashboardViewModelProvider.notifier)
         .updateTripStatus(trip.id, TripStatus.travelling);
+    setState(() => _isRegistering = false);
+
+    if (!mounted) return;
+
+    final error = ref.read(homeDashboardViewModelProvider).errorMessage;
+    if (error != null && error.trim().isNotEmpty) {
+      ref.read(homeDashboardViewModelProvider.notifier).clearError();
+      DesignSnackbar.showError(context, error);
+      return;
+    }
 
     await _loadTripDetail();
 
@@ -740,10 +751,26 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     if (confirmed != true || !mounted) return;
 
-    // Cambiar estado a "finalizado"
+    setState(() => _isRegistering = true);
     await ref
         .read(homeDashboardViewModelProvider.notifier)
         .updateTripStatus(trip.id, TripStatus.completed);
+    setState(() => _isRegistering = false);
+
+    if (!mounted) return;
+
+    final error = ref.read(homeDashboardViewModelProvider).errorMessage;
+    if (error != null && error.trim().isNotEmpty) {
+      ref.read(homeDashboardViewModelProvider.notifier).clearError();
+      final upper = error.toUpperCase();
+      if (upper.contains('YA SE ENCUENTRA CERRADO') || upper.contains('YA ESTA CERRADO') || upper.contains('YA ESTÁ CERRADO')) {
+        DesignSnackbar.showSuccess(context, 'El viaje ya estaba cerrado.');
+        context.pop();
+        return;
+      }
+      DesignSnackbar.showError(context, error);
+      return;
+    }
 
     await _loadTripDetail();
 
