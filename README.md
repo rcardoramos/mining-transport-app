@@ -8,9 +8,18 @@ El sistema permite a los conductores controlar los abordajes de colaboradores en
 
 ## 🚀 Guía de Arranque por Entorno
 
-El proyecto utiliza configuración dinámica basada en argumentos de compilación. Para definir el entorno de ejecución, utiliza el parámetro `--dart-define=ENV=...` al ejecutar la aplicación.
+El proyecto utiliza configuración en compile-time con `--dart-define` (nativo de Flutter; **no** requiere `flutter_dotenv`).
 
-### 1. Entorno de Desarrollo (DEV)
+| Define | Uso | Sensible |
+|--------|-----|----------|
+| `ENV` | `dev` \| `staging` \| `prod` | No |
+| `API_BASE_URL` | Override opcional de la URL base del API | No (URL pública). Si se omite, se usan los defaults de `EnvConfig`. |
+
+> **Seguridad:** no coloques passwords, client secrets ni API keys privadas en `dart-define`, JSON de config ni assets. Esos valores terminan en el binario y pueden extraerse. Los tokens de sesión se obtienen del Login y viven en `flutter_secure_storage`.
+
+### Opción A — `--dart-define` (recomendada / actual)
+
+#### 1. Entorno de Desarrollo (DEV)
 Este modo utiliza un **simulador de datos local completo (Mocks)**. Permite probar la aplicación de forma ágil sin depender de un servidor backend activo o de un GPS físico.
 * **Bypass de Login**: Cualquier credencial es válida y simulará el perfil del conductor.
 * **Simulador de GPS**: Permite forzar estar "Dentro" o "Fuera" de rango de los paraderos activos.
@@ -19,17 +28,33 @@ Este modo utiliza un **simulador de datos local completo (Mocks)**. Permite prob
 flutter run --dart-define=ENV=dev
 ```
 
-### 2. Entorno de Staging (Pruebas con APIs)
+#### 2. Entorno de Staging (Pruebas con APIs)
 Este entorno conecta el dispositivo con el servidor de pruebas / pre-producción del cliente para verificar integraciones, geolocalización y sincronización.
 ```bash
 flutter run --dart-define=ENV=staging
 ```
 
-### 3. Entorno de Producción (PROD)
+#### 3. Entorno de Producción (PROD)
 Este entorno compila la aplicación apuntando directamente a las APIs finales del cliente. Cuenta con restricciones de seguridad de producción, validaciones estrictas y deshabilita todo componente simulado.
 ```bash
 flutter run --dart-define=ENV=prod
 ```
+
+Override explícito de URL (opcional, útil en CI):
+```bash
+flutter run --dart-define=ENV=staging --dart-define=API_BASE_URL=http://40.75.87.68/wsadryanbus/
+```
+
+### Opción B — `--dart-define-from-file`
+
+1. Copia el ejemplo: `cp config/staging.example.json config/staging.json`
+2. Ajusta `API_BASE_URL` si corresponde (los `config/*.json` están en `.gitignore`).
+3. Ejecuta:
+```bash
+flutter run --dart-define-from-file=config/staging.json
+```
+
+Plantillas versionadas: `config/*.example.json`.
 
 ---
 

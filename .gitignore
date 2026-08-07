@@ -39,6 +39,15 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# Local dart-define config files (keep *.example.json tracked)
+/config/*.json
+!/config/*.example.json
+
+# Local environment files (not used by default; ignore if created)
+.env
+.env.*
+!.env.example
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

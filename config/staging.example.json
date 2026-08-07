@@ -1,0 +1,4 @@
+{
+  "ENV": "staging",
+  "API_BASE_URL": "http://40.75.87.68/wsadryanbus/"
+}
