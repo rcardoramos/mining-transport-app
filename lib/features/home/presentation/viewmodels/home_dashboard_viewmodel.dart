@@ -94,10 +94,14 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       return;
     }
 
-    final driver = driverRes.successOrNull as DriverEntity;
+    final driverRaw = driverRes.successOrNull as DriverEntity;
     final todayTrips = (todayRes.successOrNull as List).cast<TripEntity>();
     final pendingTrips = (pendingRes.successOrNull as List).cast<TripEntity>();
     final summary = summaryRes.successOrNull as DashboardSummaryEntity;
+
+    // getDriverInfo no recibe todayTripsCount del backend (queda en 0);
+    // alinear el contador "Viajes Hoy" con la lista real de viajes del día.
+    final driver = driverRaw.copyWith(todayTripsCount: todayTrips.length);
 
     state = state.copyWith(
       isLoading: false,

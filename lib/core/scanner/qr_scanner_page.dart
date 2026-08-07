@@ -5,7 +5,7 @@ import 'package:mining_transport_app/shared/design_system/design_system.dart';
 /// Pantalla de escaneo de códigos QR y códigos de barras (DNI/Fotocheck).
 ///
 /// Mitiga lecturas erróneas del DNI peruano (PDF417 / Code39) exigiendo
-/// consenso entre varios frames y confirmación del operador antes de continuar.
+/// consenso entre varios frames antes de devolver el DNI.
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
 
@@ -170,70 +170,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     await controller.stop();
 
     if (!mounted) return;
-
-    final confirmed = await _confirmDni(bestDni);
-    if (!mounted) return;
-
-    if (confirmed == true) {
-      Navigator.pop(context, bestDni);
-      return;
-    }
-
-    // Reintentar: limpiar votos y reactivar cámara.
-    _dniVotes.clear();
-    _leadingCandidate = null;
-    _leadingVotes = 0;
-    _isHandling = false;
-    if (mounted) setState(() {});
-    await controller.start();
-  }
-
-  Future<bool?> _confirmDni(String dni) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark
-        ? DesignColors.primaryDark
-        : DesignColors.primaryLight;
-
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Confirmar DNI'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Se leyó el siguiente número. Verifícalo con el documento antes de continuar.',
-                style: DesignTypography.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  dni,
-                  style: DesignTypography.headline.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                    color: primaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Reintentar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Confirmar'),
-            ),
-          ],
-        );
-      },
-    );
+    Navigator.pop(context, bestDni);
   }
 
   @override
