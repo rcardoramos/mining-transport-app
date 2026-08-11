@@ -62,21 +62,34 @@ class _QrScannerPageState extends State<QrScannerPage>
     super.dispose();
   }
 
-  /// Extrae un DNI de 8 dígitos según el formato del código leído.
+  /// Extrae un identificador usable según el formato del código leído.
+  ///
+  /// - DNI (PDF417 / 8 dígitos): sin cambios respecto al flujo actual.
+  /// - Fotocheck (Code39 / Code128): código de empleado numérico (p. ej. 6 dígitos).
   ///
   /// Devuelve `null` si el payload no es confiable (evita aceptar basura).
   String? _extractDni(String rawCode, BarcodeFormat format) {
     final clean = rawCode.trim();
     if (clean.isEmpty) return null;
 
-    // Caso 1: QR / Code39 / Code128 limpio de 8 dígitos (fotocheck o CUI lineal)
     final digitsOnly = clean.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Caso 1: QR / Code39 / Code128 limpio de 8 dígitos (DNI lineal o CUI)
     if (format == BarcodeFormat.qrCode ||
         format == BarcodeFormat.code39 ||
         format == BarcodeFormat.code128) {
       if (RegExp(r'^\d{8}$').hasMatch(clean)) return clean;
       // Code39 a veces viene con asteriscos u otros separadores.
       if (RegExp(r'^\d{8}$').hasMatch(digitsOnly)) return digitsOnly;
+
+      // Fotocheck corporativo: barras 1D con código de empleado (no DNI).
+      // Ejemplo real: "213309" (6 dígitos). No aplicar a PDF417.
+      if (format == BarcodeFormat.code39 || format == BarcodeFormat.code128) {
+        if (RegExp(r'^\d{4,10}$').hasMatch(clean)) return clean;
+        if (clean.length <= 16 && RegExp(r'^\d{4,10}$').hasMatch(digitsOnly)) {
+          return digitsOnly;
+        }
+      }
     }
 
     // Caso 2: PDF417 RENIEC — empieza con tipo doc "01" + DNI (8 dígitos).
@@ -258,7 +271,7 @@ class _QrScannerPageState extends State<QrScannerPage>
                       top: top - 96,
                       child: Center(
                         child: Text(
-                          'Enfoca el código PDF417 o el código de barras del DNI / fotocheck. Evita reflejos.',
+                          'Enfoca el PDF417 del DNI o el código de barras del fotocheck. Evita reflejos.',
                           textAlign: TextAlign.center,
                           style: DesignTypography.bodyMedium.copyWith(
                             color: Colors.white,

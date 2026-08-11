@@ -537,14 +537,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   Future<CollaboratorModel> checkCollaborator(String dni) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
+    final identifier = dni.trim();
+    final isDni = RegExp(r'^\d{8}$').hasMatch(identifier);
+
+    // DNI: campo dni. Fotocheck (código de empleado): campo codigo del contrato API.
+    final body = <String, dynamic>{
+      'usuario': username,
+      'token': token,
+    };
+    if (isDni) {
+      body['dni'] = identifier;
+    } else {
+      body['codigo'] = identifier;
+    }
 
     final response = await _dioClient.dio.post(
       'api/Pasajero/Validar',
-      data: {
-        'usuario': username,
-        'token': token,
-        'dni': dni,
-      },
+      data: body,
     );
 
     final wrapped = response.data as Map<String, dynamic>;

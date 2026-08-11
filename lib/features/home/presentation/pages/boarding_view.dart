@@ -333,8 +333,24 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
 
     final validation = result.successOrNull!;
-    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444'].contains(normalizedDni);
-    final prefix = isScan ? 'qr_scan' : 'manual';
+    // Validar puede devolver el DNI real cuando se escaneó código de fotocheck.
+    final resolvedDni =
+        validation.dni.trim().isNotEmpty ? validation.dni.trim() : normalizedDni;
+
+    // Revalidar duplicado con el DNI canónico (fotocheck ≠ DNI).
+    if (resolvedDni != normalizedDni &&
+        _passengersList.any((p) => p.dni.trim() == resolvedDni)) {
+      await _showDuplicateBoardingDialog(resolvedDni);
+      return;
+    }
+
+    final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444']
+            .contains(normalizedDni) ||
+        !RegExp(r'^\d{8}$').hasMatch(normalizedDni) ||
+        normalizedDni != resolvedDni;
+    final prefix = isScan
+        ? (RegExp(r'^\d{8}$').hasMatch(normalizedDni) ? 'qr_scan' : 'barcode_scan')
+        : 'manual';
     
     // Si hay un paradero activo, incluimos su nombre en el método de registro
     final customMethod = '${prefix}_transit:${activeStop.name}';
@@ -350,7 +366,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           .read(homeDashboardViewModelProvider.notifier)
           .registerPassenger(
             trip.id,
-            normalizedDni,
+            resolvedDni,
             CollaboratorStatus.ok,
             validation.category,
             customMethod,
@@ -372,7 +388,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
           _loadPassengers();
         } else {
-          await _handleRegisterFailure(normalizedDni);
+          await _handleRegisterFailure(resolvedDni);
         }
       }
     } else if (validation.status == LaborValidationStatus.blockedSecurity) {
@@ -566,7 +582,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               .read(homeDashboardViewModelProvider.notifier)
               .registerPassenger(
                 trip.id,
-                normalizedDni,
+                resolvedDni,
                 nextStatus,
                 validation.category,
                 customMethod,
@@ -588,7 +604,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
               _loadPassengers();
             } else {
-              await _handleRegisterFailure(normalizedDni);
+              await _handleRegisterFailure(resolvedDni);
             }
           }
         }
