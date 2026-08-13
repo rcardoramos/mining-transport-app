@@ -64,21 +64,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
 
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     return allTrips.where((trip) {
-      final statusUpper = trip.status.trim().toUpperCase();
-      final isTripActive = (statusUpper == 'A' || 
-                           statusUpper == 'IN_PROGRESS' || 
-                           statusUpper == 'INPROGRESS' || 
-                           statusUpper == 'TRAVELLING' || 
-                           statusUpper == 'TRANSITO') &&
-                          trip.completedAt == null;
+      final statusUpper = trip.status.trim().toUpperCase().replaceAll('_', '');
+      final finished = _isTripFinished(trip);
+
+      // Viajes abiertos / en tránsito siempre van en "Hoy".
+      final isTripActive = !finished &&
+          (statusUpper == 'A' ||
+              statusUpper == 'INPROGRESS' ||
+              statusUpper == 'TRAVELLING' ||
+              statusUpper == 'TRANSITO' ||
+              statusUpper == 'ENTRANSITO');
       if (isTripActive) return true;
 
-      final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
-      if (tripDate == null) return false;
-      final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
-      return tripPeru.year == nowPeru.year &&
-             tripPeru.month == nowPeru.month &&
-             tripPeru.day == nowPeru.day;
+      // Programados o cerrados hoy (por fecha de servicio / apertura / cierre real).
+      return _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.scheduledTime), nowPeru) ||
+          _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.startedAt), nowPeru) ||
+          (_isRealTimestamp(trip.completedAt) &&
+              _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.completedAt), nowPeru));
     }).toList();
   }
 
@@ -101,13 +103,47 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
 
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
-    final todayEnd = DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 23, 59, 59).add(const Duration(hours: 5));
+    final todayDay = DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day);
+
     return allTrips.where((trip) {
+      // Solo estados cerrados/cancelados (Historial: "C"). No usar FechaCierre sola:
+      // .NET a menudo envía 0001-01-01 y eso borraba los pendientes válidos.
+      if (_isTripFinished(trip)) return false;
+
       final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
       if (tripDate == null) return false;
-      final statusUpper = trip.status.trim().toUpperCase();
-      return tripDate.isAfter(todayEnd) && statusUpper != 'COMPLETED' && statusUpper != 'CANCELLED';
+      final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
+      final tripDay = DateTime.utc(tripPeru.year, tripPeru.month, tripPeru.day);
+      // Pendiente = día de servicio (Perú) estrictamente posterior a hoy.
+      return tripDay.isAfter(todayDay);
     }).toList();
+  }
+
+  /// Viajes cerrados/cancelados. Backend Historial: A=abierto, C=cerrado, P/PROGRAMMED=programado.
+  static bool _isTripFinished(TripModel trip) {
+    final s = trip.status.trim().toUpperCase().replaceAll('_', '');
+    return s == 'C' ||
+        s == 'COMPLETED' ||
+        s == 'FINALIZADO' ||
+        s == 'CANCELLED' ||
+        s == 'CANCELADO';
+  }
+
+  static bool _isRealTimestamp(String? raw) {
+    if (raw == null) return false;
+    final clean = raw.trim();
+    if (clean.isEmpty || clean.toLowerCase() == 'null') return false;
+    final parsed = PeruDateFormatter.parseFlexible(clean);
+    // Ignorar defaults .NET (0001-01-01) u otras fechas inválidas de negocio.
+    return parsed != null && parsed.year >= 2000;
+  }
+
+  static bool _isSamePeruDay(DateTime? date, DateTime nowPeru) {
+    if (date == null) return false;
+    final peru = date.toUtc().subtract(const Duration(hours: 5));
+    return peru.year == nowPeru.year &&
+        peru.month == nowPeru.month &&
+        peru.day == nowPeru.day;
   }
 
   @override
@@ -538,18 +574,17 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
     final identifier = dni.trim();
-    final isDni = RegExp(r'^\d{8}$').hasMatch(identifier);
+    final isEightDigitDni = RegExp(r'^\d{8}$').hasMatch(identifier);
 
-    // DNI: campo dni. Fotocheck (código de empleado): campo codigo del contrato API.
+    // Contrato verificado en Postman: el backend resuelve DNI o código de
+    // fotocheck (ej. "208303" → Dni real "74999568") cuando el valor va en `dni`.
+    // Si no es DNI de 8 dígitos, también enviamos `codigo` por compatibilidad.
     final body = <String, dynamic>{
       'usuario': username,
       'token': token,
+      'dni': identifier,
+      'codigo': isEightDigitDni ? null : identifier,
     };
-    if (isDni) {
-      body['dni'] = identifier;
-    } else {
-      body['codigo'] = identifier;
-    }
 
     final response = await _dioClient.dio.post(
       'api/Pasajero/Validar',

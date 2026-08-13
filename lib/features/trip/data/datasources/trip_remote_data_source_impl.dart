@@ -33,12 +33,21 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
 
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     return allTrips.where((trip) {
-      final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
-      if (tripDate == null) return false;
-      final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
-      return tripPeru.year == nowPeru.year &&
-             tripPeru.month == nowPeru.month &&
-             tripPeru.day == nowPeru.day;
+      final statusUpper = trip.status.trim().toUpperCase().replaceAll('_', '');
+      final finished = _isTripFinished(trip);
+
+      final isTripActive = !finished &&
+          (statusUpper == 'A' ||
+              statusUpper == 'INPROGRESS' ||
+              statusUpper == 'TRAVELLING' ||
+              statusUpper == 'TRANSITO' ||
+              statusUpper == 'ENTRANSITO');
+      if (isTripActive) return true;
+
+      return _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.scheduledTime), nowPeru) ||
+          _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.startedAt), nowPeru) ||
+          (_isRealTimestamp(trip.completedAt) &&
+              _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.completedAt), nowPeru));
     }).toList();
   }
 
@@ -61,13 +70,44 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
     final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
 
     final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
-    final todayEnd = DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day, 23, 59, 59).add(const Duration(hours: 5));
+    final todayDay = DateTime.utc(nowPeru.year, nowPeru.month, nowPeru.day);
+
     return allTrips.where((trip) {
+      // Solo estados cerrados/cancelados (Historial: "C"). No usar FechaCierre sola:
+      // .NET a menudo envía 0001-01-01 y eso borraba los pendientes válidos.
+      if (_isTripFinished(trip)) return false;
+
       final tripDate = PeruDateFormatter.parseFlexible(trip.scheduledTime);
       if (tripDate == null) return false;
-      final statusUpper = trip.status.trim().toUpperCase();
-      return tripDate.isAfter(todayEnd) && statusUpper != 'COMPLETED' && statusUpper != 'CANCELLED';
+      final tripPeru = tripDate.toUtc().subtract(const Duration(hours: 5));
+      final tripDay = DateTime.utc(tripPeru.year, tripPeru.month, tripPeru.day);
+      return tripDay.isAfter(todayDay);
     }).toList();
+  }
+
+  static bool _isTripFinished(TripModel trip) {
+    final s = trip.status.trim().toUpperCase().replaceAll('_', '');
+    return s == 'C' ||
+        s == 'COMPLETED' ||
+        s == 'FINALIZADO' ||
+        s == 'CANCELLED' ||
+        s == 'CANCELADO';
+  }
+
+  static bool _isRealTimestamp(String? raw) {
+    if (raw == null) return false;
+    final clean = raw.trim();
+    if (clean.isEmpty || clean.toLowerCase() == 'null') return false;
+    final parsed = PeruDateFormatter.parseFlexible(clean);
+    return parsed != null && parsed.year >= 2000;
+  }
+
+  static bool _isSamePeruDay(DateTime? date, DateTime nowPeru) {
+    if (date == null) return false;
+    final peru = date.toUtc().subtract(const Duration(hours: 5));
+    return peru.year == nowPeru.year &&
+        peru.month == nowPeru.month &&
+        peru.day == nowPeru.day;
   }
 
   @override
