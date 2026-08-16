@@ -158,9 +158,13 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       }
       return Success(entity);
     } catch (e) {
-      // Si el servidor retorna 409 Conflict significa que el viaje ya fue aperturado/iniciado/cerrado.
-      // Lo tratamos como un éxito implícito en la aplicación móvil.
+      // 409: a veces el viaje ya está en ese estado (éxito idempotente).
+      // Pero "Ya tiene un viaje abierto..." significa OTRO viaje bloquea la apertura.
       if (e.toString().contains('409')) {
+        if (status == TripStatus.inProgress &&
+            _isAnotherOpenTripConflict(e)) {
+          return FailureResult(_parseRepositoryException(e));
+        }
         if (status == TripStatus.travelling) {
           await GetIt.I<SecureStorage>().saveTripTravelling(id, true);
           return Success(TripEntity(
@@ -201,6 +205,14 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       }
       return FailureResult(_parseRepositoryException(e));
     }
+  }
+
+  bool _isAnotherOpenTripConflict(Object e) {
+    final failure = _parseRepositoryException(e);
+    final msg = failure.message.toLowerCase();
+    return msg.contains('viaje abierto') ||
+        msg.contains('cierrelo antes') ||
+        msg.contains('ciérrelo antes');
   }
 
   Failure _parseRepositoryException(dynamic e) {

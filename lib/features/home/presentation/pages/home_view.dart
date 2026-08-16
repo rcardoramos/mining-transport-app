@@ -73,6 +73,16 @@ class _HomeViewState extends ConsumerState<HomeView>
   Widget build(BuildContext context) {
     final state = ref.watch(homeDashboardViewModelProvider);
 
+    ref.listen(homeDashboardViewModelProvider, (previous, next) {
+      final error = next.errorMessage;
+      if (error == null || error.isEmpty) return;
+      if (previous?.errorMessage == error) return;
+      // Error parcial (p. ej. aperturar): hay datos, mostrar snackbar.
+      if (next.data != null) {
+        DesignSnackbar.showError(context, error);
+      }
+    });
+
     return Scaffold(
       appBar: DesignAppBar(
         title: _getAppBarTitle(),

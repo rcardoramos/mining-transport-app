@@ -153,14 +153,20 @@ class TripModel with _$TripModel {
     final parsedStartedAt = PeruDateFormatter.parseFlexible(startedAt);
     final parsedCompletedAt = PeruDateFormatter.parseFlexible(completedAt);
 
-    // Determine dynamic status
+    // Priorizar Estado del API (A/C/P). No forzar "cerrado" solo por FechaCierre:
+    // el backend a veces deja FechaCierre en viajes aún abiertos (Estado A).
     TripStatus resolvedStatus = _parseTripStatus(status);
-    if (parsedCompletedAt != null) {
+    final isExplicitlyOpen = resolvedStatus == TripStatus.inProgress;
+    final isExplicitlyClosed = resolvedStatus == TripStatus.completed ||
+        resolvedStatus == TripStatus.cancelled;
+
+    if (!isExplicitlyOpen && !isExplicitlyClosed && parsedCompletedAt != null) {
       resolvedStatus = TripStatus.completed;
-    } else if (resolvedStatus == TripStatus.scheduled || resolvedStatus == TripStatus.readyToStart) {
-      if (parsedStartedAt != null) {
-        resolvedStatus = TripStatus.inProgress;
-      }
+    } else if (!isExplicitlyClosed &&
+        (resolvedStatus == TripStatus.scheduled ||
+            resolvedStatus == TripStatus.readyToStart) &&
+        parsedStartedAt != null) {
+      resolvedStatus = TripStatus.inProgress;
     }
 
     return TripEntity(
@@ -173,7 +179,8 @@ class TripModel with _$TripModel {
       passengerCount: passengerCount,
       status: resolvedStatus,
       startedAt: parsedStartedAt,
-      completedAt: parsedCompletedAt,
+      completedAt:
+          resolvedStatus == TripStatus.inProgress ? null : parsedCompletedAt,
       stops: stops?.map((s) => s.toEntity()).toList(),
     );
   }
