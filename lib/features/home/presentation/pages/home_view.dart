@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -813,9 +814,11 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   void _showEmbarqueSimulator(TripEntity trip) async {
     await context.push('/dashboard/boarding/${trip.id}');
-    if (mounted) {
-      ref.read(homeDashboardViewModelProvider.notifier).loadDashboard();
-    }
+    if (!mounted) return;
+    // Actualiza aforo/capacidad (Viaje/Obtener) sin skeleton.
+    unawaited(
+      ref.read(homeDashboardViewModelProvider.notifier).syncDashboardInBackground(),
+    );
   }
 
   void _showResumenDialog(TripEntity trip) {

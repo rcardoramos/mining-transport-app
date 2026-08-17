@@ -4,15 +4,16 @@ import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import '../../domain/entities/driver_entity.dart';
 import '../../domain/entities/trip_entity.dart';
+import '../../domain/entities/trip_close_context.dart';
 import '../../domain/entities/dashboard_summary_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../../domain/repositories/home_dashboard_repository.dart';
 import '../datasources/home_dashboard_remote_data_source.dart';
+import '../models/trip_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
 import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
-import 'package:mining_transport_app/core/utils/date_formatter.dart';
 
 /// Implementación concreta del Repositorio de Home Dashboard.
 class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
@@ -34,41 +35,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getTodayTrips() async {
     try {
       final models = await _remoteDataSource.getTodayTrips();
-      final entities = <TripEntity>[];
-      final secureStorage = GetIt.I<SecureStorage>();
-      for (final m in models) {
-        var entity = m.toEntity();
-        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
-          final isTravelling = await secureStorage.isTripTravelling(entity.id);
-          if (isTravelling) {
-            entity = entity.copyWith(status: TripStatus.travelling);
-          }
-        }
-        
-        // Obtener el conteo real de pasajeros y capacidad real a bordo para evitar descuadres en el dashboard
-        if (entity.status != TripStatus.cancelled) {
-          try {
-            final passengers = await _remoteDataSource.getPassengersOnBoard(entity.id);
-            entity = entity.copyWith(passengerCount: passengers.length);
-          } catch (_) {
-            // Mantener el conteo del modelo si hay error
-          }
-          try {
-            final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
-            entity = entity.copyWith(
-              capacity: tripDetail.capacity,
-              scheduledTime: tripDetail.scheduledTime.isNotEmpty
-                  ? (PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime)
-                  : entity.scheduledTime,
-              shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
-            );
-          } catch (_) {
-            // Mantener la capacidad del modelo si hay error
-          }
-        }
-        
-        entities.add(entity);
-      }
+      final entities = await _mapTripsWithLocalTravellingFlag(models);
       return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
@@ -79,64 +46,67 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getPendingTrips() async {
     try {
       final models = await _remoteDataSource.getPendingTrips();
-      final entities = <TripEntity>[];
-      final secureStorage = GetIt.I<SecureStorage>();
-      for (final m in models) {
-        var entity = m.toEntity();
-        if (entity.status != TripStatus.completed && entity.status != TripStatus.cancelled) {
-          final isTravelling = await secureStorage.isTripTravelling(entity.id);
-          if (isTravelling) {
-            entity = entity.copyWith(status: TripStatus.travelling);
-          }
-        }
-        
-        // Obtener el conteo real de pasajeros y capacidad real a bordo para evitar descuadres en el dashboard
-        if (entity.status != TripStatus.cancelled) {
-          try {
-            final passengers = await _remoteDataSource.getPassengersOnBoard(entity.id);
-            entity = entity.copyWith(passengerCount: passengers.length);
-          } catch (_) {
-            // Mantener el conteo del modelo si hay error
-          }
-          try {
-            final tripDetail = await GetIt.I<TripRemoteDataSource>().getTripDetail(entity.id);
-            entity = entity.copyWith(
-              capacity: tripDetail.capacity,
-              scheduledTime: tripDetail.scheduledTime.isNotEmpty
-                  ? (PeruDateFormatter.parseFlexible(tripDetail.scheduledTime) ?? entity.scheduledTime)
-                  : entity.scheduledTime,
-              shift: tripDetail.shift.isNotEmpty ? tripDetail.shift : entity.shift,
-            );
-          } catch (_) {
-            // Mantener la capacidad del modelo si hay error
-          }
-        }
-        
-        entities.add(entity);
-      }
+      final entities = await _mapTripsWithLocalTravellingFlag(models);
       return Success(entities);
     } catch (e) {
       return FailureResult(UnknownFailure(e.toString()));
     }
   }
 
+  /// Historial suele omitir aforo/capacidad. Para viajes abiertos pedimos
+  /// `Viaje/Obtener` en paralelo (1 call/viaje; sin Pasajero/Lista).
+  Future<List<TripEntity>> _mapTripsWithLocalTravellingFlag(
+    List<TripModel> models,
+  ) async {
+    final secureStorage = GetIt.I<SecureStorage>();
+    final tripRemote = GetIt.I<TripRemoteDataSource>();
+
+    return Future.wait(models.map((m) async {
+      var entity = m.toEntity();
+      final isOpen = entity.status != TripStatus.completed &&
+          entity.status != TripStatus.cancelled;
+
+      if (isOpen) {
+        final isTravelling = await secureStorage.isTripTravelling(entity.id);
+        if (isTravelling) {
+          entity = entity.copyWith(status: TripStatus.travelling);
+        }
+
+        try {
+          final detailEntity = (await tripRemote.getTripDetail(entity.id)).toEntity();
+          entity = entity.copyWith(
+            passengerCount: detailEntity.passengerCount,
+            capacity: detailEntity.capacity > 0
+                ? detailEntity.capacity
+                : entity.capacity,
+            scheduledTime: detailEntity.scheduledTime,
+            shift: detailEntity.shift.isNotEmpty
+                ? detailEntity.shift
+                : entity.shift,
+            route: detailEntity.route.isNotEmpty
+                ? detailEntity.route
+                : entity.route,
+            unitCode: detailEntity.unitCode.isNotEmpty
+                ? detailEntity.unitCode
+                : entity.unitCode,
+            stops: (detailEntity.stops != null &&
+                    detailEntity.stops!.isNotEmpty)
+                ? detailEntity.stops
+                : entity.stops,
+          );
+        } catch (_) {
+          // Mantener datos de Historial si Obtener falla.
+        }
+      }
+
+      return entity;
+    }));
+  }
+
   @override
   Future<Result<DashboardSummaryEntity, Failure>> getDashboardSummary() async {
     try {
-      final tripsResult = await getTodayTrips();
-      if (tripsResult.isSuccess) {
-        final trips = tripsResult.successOrNull ?? [];
-        final completed = trips.where((t) => t.status == TripStatus.completed).length;
-        final passengers = trips
-            .where((t) => t.status == TripStatus.completed)
-            .fold(0, (sum, t) => sum + t.passengerCount);
-            
-        return Success(DashboardSummaryEntity(
-          completedTrips: completed,
-          passengersTransported: passengers,
-          observationsRegistered: 0,
-        ));
-      }
+      // No re-llamar Historial: el ViewModel calcula el summary sobre todayTrips.
       final model = await _remoteDataSource.getDashboardSummary();
       return Success(model.toEntity());
     } catch (e) {
@@ -145,9 +115,20 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
   }
 
   @override
-  Future<Result<TripEntity, Failure>> updateTripStatus(String id, TripStatus status) async {
+  Future<Result<TripEntity, Failure>> updateTripStatus(
+    String id,
+    TripStatus status, {
+    TripCloseContext? closeContext,
+  }) async {
     try {
-      final model = await _remoteDataSource.updateTripStatus(id, status.name);
+      final model = await _remoteDataSource.updateTripStatus(
+        id,
+        status.name,
+        closeParaderoId: closeContext?.paraderoId,
+        closeParaderoName: closeContext?.paraderoName,
+        closeLat: closeContext?.lat,
+        closeLng: closeContext?.lng,
+      );
       var entity = model.toEntity();
       if (status == TripStatus.travelling) {
         await GetIt.I<SecureStorage>().saveTripTravelling(id, true);

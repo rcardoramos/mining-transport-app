@@ -13,6 +13,7 @@ import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/features/sync/presentation/widgets/connectivity_bar.dart';
 import '../viewmodels/home_dashboard_viewmodel.dart';
 import '../../domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/trip_close_context.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import '../../domain/entities/stop_entity.dart';
@@ -783,7 +784,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       return;
     }
 
-    await _loadTripDetail();
+    // No volver a llamar Viaje/Obtener: solo marcar tránsito en el detalle local.
+    if (_detailedTrip != null) {
+      setState(() {
+        _detailedTrip = _detailedTrip!.copyWith(status: TripStatus.travelling);
+      });
+    }
 
     if (mounted) {
       DesignSnackbar.showSuccess(
@@ -868,10 +874,24 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     if (confirmed != true || !mounted) return;
 
+    final activeStop = _getActiveStop(trip);
+    final closeContext = activeStop == null
+        ? null
+        : TripCloseContext(
+            paraderoId: int.tryParse(activeStop.id),
+            paraderoName: activeStop.name,
+            lat: activeStop.latitude,
+            lng: activeStop.longitude,
+          );
+
     setState(() => _isRegistering = true);
     await ref
         .read(homeDashboardViewModelProvider.notifier)
-        .updateTripStatus(trip.id, TripStatus.completed);
+        .updateTripStatus(
+          trip.id,
+          TripStatus.completed,
+          closeContext: closeContext,
+        );
     setState(() => _isRegistering = false);
 
     if (!mounted) return;
@@ -889,12 +909,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       return;
     }
 
-    await _loadTripDetail();
-
     if (mounted) {
       DesignSnackbar.showSuccess(
           context, '¡Viaje finalizado con éxito!');
-      // Regresar al Dashboard
+      // Regresar al Dashboard (estado ya parchado; sin Obtener ni skeleton).
       context.pop();
     }
   }

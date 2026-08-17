@@ -187,13 +187,28 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> updateTripStatus(String id, String status) async {
+  Future<TripModel> updateTripStatus(
+    String id,
+    String status, {
+    int? closeParaderoId,
+    String? closeParaderoName,
+    double? closeLat,
+    double? closeLng,
+  }) async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
     final normalized = status.trim().toLowerCase();
 
     if (normalized == 'completed') {
-      return _closeTripRemote(id: id, username: username, token: token);
+      return _closeTripRemote(
+        id: id,
+        username: username,
+        token: token,
+        closeParaderoId: closeParaderoId,
+        closeParaderoName: closeParaderoName,
+        closeLat: closeLat,
+        closeLng: closeLng,
+      );
     }
 
     if (normalized == 'travelling' || normalized == 'transito' || normalized == 'en_transito') {
@@ -239,41 +254,54 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     required String id,
     required String username,
     required String token,
+    int? closeParaderoId,
+    String? closeParaderoName,
+    double? closeLat,
+    double? closeLng,
   }) async {
-    double lat = 0.0;
-    double lng = 0.0;
-    String? stopName;
-    int? requestedParaderoId;
+    double lat = closeLat ?? 0.0;
+    double lng = closeLng ?? 0.0;
+    String? stopName = closeParaderoName;
+    int? requestedParaderoId = closeParaderoId;
 
-    try {
-      final detailResponse = await _dioClient.dio.post(
-        'api/Viaje/Obtener',
-        data: {
-          'usuario': username,
-          'token': token,
-          'viajeId': int.tryParse(id) ?? 1,
-        },
-      );
-      final detailWrapped = detailResponse.data as Map<String, dynamic>;
-      final detailData = detailWrapped['Data'];
-      if (detailData is Map<String, dynamic>) {
-        final stops = detailData['ParaderosAutorizados'] ?? detailData['paraderos'];
-        if (stops is List && stops.isNotEmpty) {
-          final sorted = [...stops.whereType<Map>()];
-          sorted.sort((a, b) {
-            final oa = int.tryParse('${a['orden'] ?? a['Orden'] ?? 0}') ?? 0;
-            final ob = int.tryParse('${b['orden'] ?? b['Orden'] ?? 0}') ?? 0;
-            return oa.compareTo(ob);
-          });
-          final last = Map<String, dynamic>.from(sorted.last);
-          requestedParaderoId = int.tryParse('${last['id'] ?? last['Id'] ?? last['paraderoId'] ?? last['ParaderoId'] ?? ''}');
-          stopName = '${last['nombre'] ?? last['Nombre'] ?? ''}'.trim();
-          lat = double.tryParse('${last['latitud'] ?? last['Latitud'] ?? 0}') ?? 0;
-          lng = double.tryParse('${last['longitud'] ?? last['Longitud'] ?? 0}') ?? 0;
+    final hasCloseContext = requestedParaderoId != null ||
+        (stopName != null && stopName.trim().isNotEmpty) ||
+        (lat != 0.0 || lng != 0.0);
+
+    // Si Embarque ya aportó el paradero, evitamos Viaje/Obtener en el hot path.
+    if (!hasCloseContext) {
+      try {
+        final detailResponse = await _dioClient.dio.post(
+          'api/Viaje/Obtener',
+          data: {
+            'usuario': username,
+            'token': token,
+            'viajeId': int.tryParse(id) ?? 1,
+          },
+        );
+        final detailWrapped = detailResponse.data as Map<String, dynamic>;
+        final detailData = detailWrapped['Data'];
+        if (detailData is Map<String, dynamic>) {
+          final stops = detailData['ParaderosAutorizados'] ?? detailData['paraderos'];
+          if (stops is List && stops.isNotEmpty) {
+            final sorted = [...stops.whereType<Map>()];
+            sorted.sort((a, b) {
+              final oa = int.tryParse('${a['orden'] ?? a['Orden'] ?? 0}') ?? 0;
+              final ob = int.tryParse('${b['orden'] ?? b['Orden'] ?? 0}') ?? 0;
+              return oa.compareTo(ob);
+            });
+            final last = Map<String, dynamic>.from(sorted.last);
+            requestedParaderoId = int.tryParse(
+              '${last['id'] ?? last['Id'] ?? last['paraderoId'] ?? last['ParaderoId'] ?? ''}',
+            );
+            stopName = '${last['nombre'] ?? last['Nombre'] ?? ''}'.trim();
+            lat = double.tryParse('${last['latitud'] ?? last['Latitud'] ?? 0}') ?? 0;
+            lng = double.tryParse('${last['longitud'] ?? last['Longitud'] ?? 0}') ?? 0;
+          }
         }
+      } catch (_) {
+        // Si falla el detalle, seguimos con resolución por catálogo/GPS.
       }
-    } catch (_) {
-      // Si falla el detalle, seguimos con resolución por catálogo/GPS.
     }
 
     // Solo usar GPS si no hay coordenadas del paradero de cierre.

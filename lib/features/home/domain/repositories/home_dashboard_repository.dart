@@ -1,6 +1,7 @@
 import 'package:mining_transport_app/core/utils/result.dart';
 import '../entities/driver_entity.dart';
 import '../entities/trip_entity.dart';
+import '../entities/trip_close_context.dart';
 import '../entities/dashboard_summary_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
@@ -11,7 +12,11 @@ abstract class HomeDashboardRepository {
   Future<Result<List<TripEntity>, Failure>> getTodayTrips();
   Future<Result<List<TripEntity>, Failure>> getPendingTrips();
   Future<Result<DashboardSummaryEntity, Failure>> getDashboardSummary();
-  Future<Result<TripEntity, Failure>> updateTripStatus(String id, TripStatus status);
+  Future<Result<TripEntity, Failure>> updateTripStatus(
+    String id,
+    TripStatus status, {
+    TripCloseContext? closeContext,
+  });
   Future<Result<TripEntity, Failure>> registerPassenger(String id, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida, String? puesto, String? unidad]);
   /// Devuelve la lista de pasajeros registrados a bordo de un viaje.
   Future<Result<List<PassengerEntity>, Failure>> getPassengersOnBoard(String tripId);

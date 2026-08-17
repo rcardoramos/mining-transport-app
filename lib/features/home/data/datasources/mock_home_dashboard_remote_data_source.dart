@@ -252,7 +252,14 @@ class MockHomeDashboardRemoteDataSource implements HomeDashboardRemoteDataSource
   }
 
   @override
-  Future<TripModel> updateTripStatus(String id, String status) async {
+  Future<TripModel> updateTripStatus(
+    String id,
+    String status, {
+    int? closeParaderoId,
+    String? closeParaderoName,
+    double? closeLat,
+    double? closeLng,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     
     // Buscar en hoy
