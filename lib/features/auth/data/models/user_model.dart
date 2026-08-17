@@ -12,6 +12,7 @@ class UserModel with _$UserModel {
     required String fullName,
     required String role,
     String? token,
+    String? driverId,
   }) = _UserModel;
 
   const UserModel._();
@@ -23,6 +24,7 @@ class UserModel with _$UserModel {
       'fullName': fullName,
       'role': role,
       'token': token,
+      'driverId': driverId,
     };
   }
 
@@ -33,7 +35,8 @@ class UserModel with _$UserModel {
     final usernameVal = json['username'] ?? json['Username'] ?? '';
     final username = usernameVal.toString();
 
-    final fullNameVal = json['fullName'] ?? json['FullName'] ?? json['NombreCompleto'] ?? '';
+    final fullNameVal =
+        json['fullName'] ?? json['FullName'] ?? json['NombreCompleto'] ?? '';
     final fullName = fullNameVal.toString();
 
     final roleVal = json['role'] ?? json['Role'] ?? 'DRIVER';
@@ -42,48 +45,57 @@ class UserModel with _$UserModel {
     final tokenVal = json['token'] ?? json['Token'];
     final token = tokenVal?.toString();
 
+    final driverRaw = json['driverId'] ??
+        json['DriverId'] ??
+        json['choferId'] ??
+        json['ChoferId'];
+    final driverId = driverRaw?.toString().trim();
+    final normalizedDriverId =
+        (driverId == null || driverId.isEmpty) ? null : driverId;
+
     return UserModel(
       id: id,
       username: username,
       fullName: fullName,
       role: role,
       token: token,
+      driverId: normalizedDriverId,
     );
   }
 
-  /// Convierte un [UserEntity] de dominio a este [UserModel] de datos.
   factory UserModel.fromEntity(UserEntity entity) => UserModel(
         id: entity.id,
         username: entity.username,
         fullName: entity.fullName,
         role: entity.role,
         token: entity.token,
+        driverId: entity.driverId,
       );
 
-  /// Convierte este [UserModel] de datos a la entidad inmutable [UserEntity].
   UserEntity toEntity() => UserEntity(
         id: id,
         username: username,
         fullName: fullName,
         role: role,
         token: token,
+        driverId: driverId,
       );
 
-  /// Convierte la clase de datos generada por Drift ([db.User]) a este [UserModel].
   factory UserModel.fromDrift(db.User user) => UserModel(
         id: user.id,
         username: user.username,
         fullName: user.fullName,
         role: user.role,
         token: user.token,
+        driverId: user.driverId,
       );
 
-  /// Convierte este [UserModel] a la clase de datos de base de datos relacional ([db.User]).
   db.User toDrift() => db.User(
         id: id,
         username: username,
         fullName: fullName,
         role: role,
         token: token,
+        driverId: driverId,
       );
 }

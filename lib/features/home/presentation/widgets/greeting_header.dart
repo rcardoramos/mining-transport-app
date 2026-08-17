@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/core/utils/person_name_formatter.dart';
 
 /// Cabecera con saludo dinámico y fecha actual formateada en español.
 class GreetingHeader extends StatelessWidget {
@@ -32,6 +33,7 @@ class GreetingHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final shortName = PersonNameFormatter.shortDisplayName(driverName);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +49,7 @@ class GreetingHeader extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                driverName,
+                shortName,
                 style: DesignTypography.headline.copyWith(
                   color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
                   fontWeight: FontWeight.bold,

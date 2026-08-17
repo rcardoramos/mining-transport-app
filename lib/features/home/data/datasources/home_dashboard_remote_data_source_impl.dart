@@ -5,6 +5,7 @@ import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
 import '../models/trip_model.dart';
@@ -28,11 +29,23 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   @override
   Future<DriverModel> getDriverInfo() async {
     final username = await _secureStorage.getUsername() ?? 'Chofer';
-    // Nota: Si el backend tiene un endpoint de perfil de conductor se puede invocar aquí.
-    // De lo contrario, se reconstruye a partir de la sesión local.
+    var name = username;
+    var id = 'DRV-998';
+    try {
+      final localUser = await GetIt.I<AuthLocalDataSource>().getUser();
+      if (localUser != null) {
+        id = localUser.id;
+        if (localUser.fullName.trim().isNotEmpty) {
+          name = localUser.fullName.trim();
+        } else if (localUser.username.trim().isNotEmpty) {
+          name = localUser.username.trim();
+        }
+      }
+    } catch (_) {}
+
     return DriverModel(
-      id: 'DRV-998',
-      name: username,
+      id: id,
+      name: name,
       code: 'COD-48102',
       status: 'active',
       todayTripsCount: 0,
@@ -43,6 +56,11 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   Future<List<TripModel>> getTodayTrips() async {
     final username = await _secureStorage.getUsername() ?? '';
     final token = await _secureStorage.getToken() ?? '';
+    final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    final day =
+        '${nowPeru.year.toString().padLeft(4, '0')}-'
+        '${nowPeru.month.toString().padLeft(2, '0')}-'
+        '${nowPeru.day.toString().padLeft(2, '0')}';
 
     final response = await _dioClient.dio.post(
       'api/Viaje/Historial',
@@ -50,34 +68,46 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
         'usuario': username,
         'token': token,
         'estado': null,
+        'desde': day,
+        'hasta': day,
       },
     );
 
     final wrapped = response.data as Map<String, dynamic>;
-    final list = wrapped['Data'] as List<dynamic>;
-    final allTrips = list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
+    final list = (wrapped['Data'] as List<dynamic>?) ?? const [];
+    final allTrips =
+        list.map((item) => TripModel.fromJson(item as Map<String, dynamic>)).toList();
 
     // Diagnostic logs to debug backend state
     for (final t in allTrips) {
       print('DIAGNOSTIC - Trip ID: ${t.id}, Route: ${t.route}, Status: ${t.status}, Scheduled: ${t.scheduledTime}, Started: ${t.startedAt}, Completed: ${t.completedAt}');
     }
 
-    final nowPeru = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     return allTrips.where((trip) {
       final statusUpper = trip.status.trim().toUpperCase().replaceAll('_', '');
       final finished = _isTripFinished(trip);
 
-      // Viajes abiertos / en tránsito siempre van en "Hoy".
-      final isTripActive = !finished &&
+      // Abiertos / programados / en tránsito del día van en "Hoy".
+      final isOpenOrProgrammed = !finished &&
           (statusUpper == 'A' ||
+              statusUpper == 'P' ||
+              statusUpper == 'PROGRAMADO' ||
+              statusUpper == 'SCHEDULED' ||
               statusUpper == 'INPROGRESS' ||
               statusUpper == 'TRAVELLING' ||
               statusUpper == 'TRANSITO' ||
               statusUpper == 'ENTRANSITO');
-      if (isTripActive) return true;
+      if (isOpenOrProgrammed) {
+        final scheduled = PeruDateFormatter.parseFlexible(trip.scheduledTime);
+        if (scheduled == null) return true;
+        return _isSamePeruDay(scheduled, nowPeru) ||
+            _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.startedAt), nowPeru);
+      }
 
-      // Programados o cerrados hoy (por fecha de servicio / apertura / cierre real).
-      return _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.scheduledTime), nowPeru) ||
+      final scheduled = PeruDateFormatter.parseFlexible(trip.scheduledTime);
+      if (scheduled == null && !finished) return true;
+
+      return _isSamePeruDay(scheduled, nowPeru) ||
           _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.startedAt), nowPeru) ||
           (_isRealTimestamp(trip.completedAt) &&
               _isSamePeruDay(PeruDateFormatter.parseFlexible(trip.completedAt), nowPeru));

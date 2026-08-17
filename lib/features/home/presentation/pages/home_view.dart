@@ -332,7 +332,10 @@ class _HomeViewState extends ConsumerState<HomeView>
     final completedTrips = [
       ...data.todayTrips,
       ...data.pendingTrips,
-    ].where((t) => t.status == TripStatus.completed).toList();
+    ].where((t) =>
+        t.status == TripStatus.completed ||
+        t.status == TripStatus.inProgress ||
+        t.status == TripStatus.travelling).toList();
 
     if (completedTrips.isEmpty) {
       return Padding(

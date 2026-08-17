@@ -10,8 +10,13 @@ class PdfService {
     required TripEntity trip,
     required List<PassengerEntity> passengers,
     required String driverName,
+    String? tripStatusLabel,
+    DateTime? generatedAt,
   }) async {
     final pdf = pw.Document();
+    final status = tripStatusLabel ??
+        (trip.status == TripStatus.completed ? 'FINALIZADO' : 'EN CURSO');
+    final generated = generatedAt ?? DateTime.now();
 
     pdf.addPage(
       pw.MultiPage(
@@ -58,15 +63,21 @@ class PdfService {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
+                  _buildMetaRow('Viaje:', trip.id),
                   _buildMetaRow('Ruta:', trip.route),
                   _buildMetaRow('Fecha:', PeruDateFormatter.formatDate(trip.scheduledTime)),
                   _buildMetaRow('Servicio:', 'Operativo'),
                   _buildMetaRow('Horario:', '${trip.shift} ${PeruDateFormatter.formatTime(trip.scheduledTime)}'),
                   _buildMetaRow('Placa:', trip.unitCode),
-                  _buildMetaRow('Capacidad:', '${trip.passengerCount} de ${trip.capacity} pax'),
+                  _buildMetaRow('Capacidad:', '${passengers.length} de ${trip.capacity} pax'),
                   _buildMetaRow('Chofer:', driverName),
+                  _buildMetaRow('Estado:', status),
                   _buildMetaRow('Apertura:', PeruDateFormatter.formatTime12(trip.startedAt)),
                   _buildMetaRow('Cierre:', PeruDateFormatter.formatTime12(trip.completedAt)),
+                  _buildMetaRow(
+                    'Generado:',
+                    '${PeruDateFormatter.formatDate(generated)} ${PeruDateFormatter.formatTime(generated)}',
+                  ),
                 ],
               ),
             ),

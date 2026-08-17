@@ -27,39 +27,56 @@ class UnresolvedChoferIdResolver implements ChoferIdResolver {
   }
 }
 
-/// Construye detalles de paraderos solo si hay relación Ruta → Paradero.
+/// Construye detalles de paraderos.
+///
+/// 1) Si el catálogo relaciona paraderos con la ruta (`rutaId`), los usa.
+/// 2) Si no hay relación (caso staging actual), acepta selección manual.
 class TripStopDetailsBuilder {
   const TripStopDetailsBuilder();
 
   Result<List<CreateTripStopDetail>, Failure> build({
     required int routeId,
     required List<CatalogStop> stops,
+    List<int> manualStopIds = const [],
   }) {
     final forRoute = stops
         .where((s) => s.routeId != null && s.routeId == routeId)
         .toList()
       ..sort((a, b) => a.order.compareTo(b.order));
 
-    if (forRoute.isEmpty) {
+    if (forRoute.isNotEmpty) {
+      return Success(
+        forRoute
+            .map(
+              (s) => CreateTripStopDetail(
+                paraderoId: s.id,
+                orden: s.order > 0 ? s.order : forRoute.indexOf(s) + 1,
+              ),
+            )
+            .toList(),
+      );
+    }
+
+    if (manualStopIds.isEmpty) {
       return const FailureResult(
         ValidationFailure(
-          'No se puede crear el viaje: el catálogo de paraderos no relaciona '
-          'paraderos con la ruta seleccionada (falta rutaId). '
-          'No se enviarán paraderos arbitrarios.',
+          'Seleccione al menos un paradero para el viaje.',
         ),
       );
     }
 
-    return Success(
-      forRoute
-          .map(
-            (s) => CreateTripStopDetail(
-              paraderoId: s.id,
-              orden: s.order > 0 ? s.order : forRoute.indexOf(s) + 1,
-            ),
-          )
-          .toList(),
-    );
+    final catalogIds = stops.map((s) => s.id).toSet();
+    final details = <CreateTripStopDetail>[];
+    for (var i = 0; i < manualStopIds.length; i++) {
+      final id = manualStopIds[i];
+      if (!catalogIds.contains(id)) {
+        return const FailureResult(
+          ValidationFailure('El paradero seleccionado no es válido.'),
+        );
+      }
+      details.add(CreateTripStopDetail(paraderoId: id, orden: i + 1));
+    }
+    return Success(details);
   }
 }
 
@@ -84,6 +101,7 @@ class CreateTripUseCase {
     required int scheduleId,
     required int busId,
     required DateTime serviceDate,
+    List<int> manualStopIds = const [],
   }) async {
     if (routeId <= 0 || serviceId <= 0 || scheduleId <= 0 || busId <= 0) {
       return const FailureResult(
@@ -115,6 +133,7 @@ class CreateTripUseCase {
     final stopsResult = _stopDetailsBuilder.build(
       routeId: routeId,
       stops: catalogs.stops,
+      manualStopIds: manualStopIds,
     );
     if (stopsResult.isFailure) {
       return FailureResult(stopsResult.failureOrNull!);

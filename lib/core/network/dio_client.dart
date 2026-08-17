@@ -75,7 +75,10 @@ class _LoggingInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     _logger.d('HTTP Request: ${options.method} ${options.uri}');
     if (options.data != null) {
-      _logger.d('HTTP Request Body: ${options.data}');
+      final body = options.data.toString();
+      _logger.d(
+        'HTTP Request Body: ${body.length > 500 ? '${body.substring(0, 500)}…' : body}',
+      );
     }
     handler.next(options);
   }
@@ -83,7 +86,13 @@ class _LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     _logger.d('HTTP Response: ${response.statusCode} ${response.requestOptions.uri}');
-    _logger.d('HTTP Response Data: ${response.data}');
+    final data = response.data?.toString() ?? '';
+    // Bootstrap/Historial pueden ser muy grandes; no loguear el payload completo.
+    if (data.length <= 800) {
+      _logger.d('HTTP Response Data: $data');
+    } else {
+      _logger.d('HTTP Response Data: (${data.length} chars) ${data.substring(0, 400)}…');
+    }
     handler.next(response);
   }
 

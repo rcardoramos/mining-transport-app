@@ -113,7 +113,7 @@ Descarga de manera agrupada todos los maestros necesarios para la persistencia l
 Crea un viaje (colección Postman App Móvil). Ver también `docs/architecture/create-trip-contract-gaps.md`
 por las brechas de `estado`/`fechaApertura`, `choferId` y paraderos por ruta.
 
-* **Request Body** (campos que envía la app; `estado` y `fechaApertura` se omiten a propósito):
+* **Request Body** (app; staging exige `estado` + `fechaApertura`):
 ```json
 {
   "usuario": "pbeltran",
@@ -125,6 +125,8 @@ por las brechas de `estado`/`fechaApertura`, `choferId` y paraderos por ruta.
   "horarioId": 2,
   "fechaProgramado": "2026-08-15T14:00:00",
   "capacidad": 40,
+  "estado": "P",
+  "fechaApertura": "2026-08-15T14:00:00",
   "detalles": [
     { "paraderoId": 5, "orden": 1 }
   ]

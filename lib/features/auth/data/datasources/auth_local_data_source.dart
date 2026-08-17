@@ -80,13 +80,69 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveUser(UserModel user) async {
     await _database.into(_database.users).insertOnConflictUpdate(user.toDrift());
+    // Backup: Crear viaje / hidratación si Drift queda incompleto tras migrar.
+    if (user.driverId != null && user.driverId!.trim().isNotEmpty) {
+      await _secureStorage.saveDriverId(user.driverId!.trim());
+    }
+    if (user.fullName.trim().isNotEmpty) {
+      await _secureStorage.saveFullName(user.fullName.trim());
+    }
+    if (user.username.trim().isNotEmpty) {
+      await _secureStorage.saveUsername(user.username.trim());
+    }
   }
 
   @override
   Future<UserModel?> getUser() async {
-    final userRow = await _database.select(_database.users).getSingleOrNull();
-    if (userRow == null) return null;
-    return UserModel.fromDrift(userRow);
+    UserModel? user;
+    try {
+      final userRow = await _database.select(_database.users).getSingleOrNull();
+      if (userRow != null) {
+        user = UserModel.fromDrift(userRow);
+      }
+    } catch (_) {
+      user = null;
+    }
+
+    final storedDriverId = await _secureStorage.getDriverId();
+    final storedFullName = await _secureStorage.getFullName();
+    final storedUsername = await _secureStorage.getUsername();
+
+    if (user == null) {
+      if ((storedUsername == null || storedUsername.isEmpty) &&
+          (storedDriverId == null || storedDriverId.isEmpty)) {
+        return null;
+      }
+      return UserModel(
+        id: storedUsername ?? 'session',
+        username: storedUsername ?? '',
+        fullName: storedFullName ?? storedUsername ?? '',
+        role: 'DRIVER',
+        driverId: storedDriverId,
+      );
+    }
+
+    final needsHydration =
+        (user.driverId == null || user.driverId!.trim().isEmpty) ||
+            user.fullName.trim().isEmpty;
+    if (!needsHydration) return user;
+
+    final hydrated = user.copyWith(
+      driverId: (user.driverId == null || user.driverId!.trim().isEmpty)
+          ? storedDriverId
+          : user.driverId,
+      fullName: user.fullName.trim().isEmpty
+          ? (storedFullName ?? user.username)
+          : user.fullName,
+    );
+
+    try {
+      await _database
+          .into(_database.users)
+          .insertOnConflictUpdate(hydrated.toDrift());
+    } catch (_) {}
+
+    return hydrated;
   }
 
   @override
@@ -99,5 +155,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     await deleteToken();
     await deleteRefreshToken();
     await deleteUser();
+    await _secureStorage.deleteDriverId();
+    await _secureStorage.deleteFullName();
   }
 }

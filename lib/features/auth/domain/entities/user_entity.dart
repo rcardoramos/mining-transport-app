@@ -11,6 +11,8 @@ class UserEntity with _$UserEntity {
     required String fullName,
     required String role,
     String? token,
+    /// Código de chofer del backend (`User.driverId` en Login). Es el `choferId` de Crear.
+    String? driverId,
   }) = _UserEntity;
 
   factory UserEntity.fromJson(Map<String, dynamic> json) => _$UserEntityFromJson(json);

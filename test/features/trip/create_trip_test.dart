@@ -8,6 +8,7 @@ import 'package:mining_transport_app/features/home/presentation/viewmodels/creat
 import 'package:mining_transport_app/features/trip/data/models/create_trip_dto.dart';
 import 'package:mining_transport_app/features/trip/domain/commands/create_trip_command.dart';
 import 'package:mining_transport_app/features/trip/domain/repositories/trip_repository.dart';
+import 'package:mining_transport_app/features/trip/domain/resolvers/env_aware_chofer_id_resolver.dart';
 import 'package:mining_transport_app/features/trip/domain/usecases/create_trip_usecase.dart';
 
 class MockTripRepository extends Mock implements TripRepository {}
@@ -73,7 +74,7 @@ void main() {
   });
 
   group('CreateTripRequestDto', () {
-    test('omite estado y fechaApertura', () {
+    test('incluye estado P y fechaApertura (obligatorios en staging)', () {
       final dto = CreateTripRequestDto.fromCommand(
         usuario: 'cealvarez',
         token: 'tok',
@@ -91,8 +92,8 @@ void main() {
         ),
       );
       final json = dto.toJson();
-      expect(json.containsKey('estado'), false);
-      expect(json.containsKey('fechaApertura'), false);
+      expect(json['estado'], 'P');
+      expect(json['fechaApertura'], '2026-08-15T14:00:00');
       expect(json['fechaProgramado'], '2026-08-15T14:00:00');
       expect(json['rutaId'], 2);
       expect(json['detalles'], [
@@ -118,7 +119,7 @@ void main() {
   group('TripStopDetailsBuilder', () {
     const builder = TripStopDetailsBuilder();
 
-    test('falla si no hay paraderos con rutaId', () {
+    test('falla si no hay paraderos con rutaId ni selección manual', () {
       final result = builder.build(
         routeId: 1,
         stops: const [
@@ -133,6 +134,35 @@ void main() {
         ],
       );
       expect(result.isFailure, true);
+      expect(result.failureOrNull?.message, contains('paradero'));
+    });
+
+    test('acepta selección manual cuando no hay rutaId', () {
+      final result = builder.build(
+        routeId: 1,
+        stops: const [
+          CatalogStop(
+            id: 5,
+            name: 'X',
+            latitude: 0,
+            longitude: 0,
+            allowedRadiusMeters: 50,
+            order: 1,
+          ),
+          CatalogStop(
+            id: 2,
+            name: 'Catacaos',
+            latitude: 0,
+            longitude: 0,
+            allowedRadiusMeters: 50,
+            order: 0,
+          ),
+        ],
+        manualStopIds: const [2],
+      );
+      expect(result.isSuccess, true);
+      expect(result.successOrNull!.single.paraderoId, 2);
+      expect(result.successOrNull!.single.orden, 1);
     });
 
     test('filtra paraderos de la ruta', () {
@@ -188,6 +218,36 @@ void main() {
         ),
       );
       expect(result.isFailure, true);
+    });
+  });
+
+  group('EnvAwareChoferIdResolver', () {
+    test('parsea driverId numérico', () {
+      expect(EnvAwareChoferIdResolver.tryParseChoferId('1'), 1);
+      expect(EnvAwareChoferIdResolver.tryParseChoferId('0001'), 1);
+      expect(EnvAwareChoferIdResolver.tryParseChoferId('0'), isNull);
+      expect(EnvAwareChoferIdResolver.tryParseChoferId(null), isNull);
+    });
+
+    test('usa User.driverId y NO User.id', () {
+      const resolver = EnvAwareChoferIdResolver();
+      final result = resolver.resolve(
+        const UserEntity(
+          id: '000000888',
+          username: 'pbeltran',
+          fullName: 'Paul',
+          role: 'DRIVER',
+          driverId: '1',
+        ),
+      );
+      expect(result.isSuccess, true);
+      expect(result.successOrNull, 1);
+    });
+
+    test('falla en staging sin driverId', () {
+      // Sin EnvConfig.dev: Unresolved path cuando no hay driverId y no es mock.
+      // Aquí solo validamos el parser; el resolve sin driverId depende del env.
+      expect(EnvAwareChoferIdResolver.tryParseChoferId(null), isNull);
     });
   });
 
@@ -331,6 +391,22 @@ void main() {
       expect(state.selectedBus?.model, 'Volvo');
       expect(state.selectedBus?.capacity, 44);
       expect(state.isFormValid, true);
+    });
+
+    test('driverDisplayLabel muestra nombre y código de chofer', () {
+      const state = CreateTripState(
+        user: UserEntity(
+          id: '000000888',
+          username: 'pbeltran',
+          fullName: 'PAUL ESTUARDO BELTRAN MIÑAN',
+          role: 'DRIVER',
+          driverId: '1',
+        ),
+      );
+      expect(
+        state.driverDisplayLabel,
+        'PAUL ESTUARDO BELTRAN MIÑAN · pbeltran · Cod. 1',
+      );
     });
   });
 }

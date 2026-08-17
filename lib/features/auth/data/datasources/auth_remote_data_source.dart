@@ -68,6 +68,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               username: request.username,
               fullName: 'Ricardo Ramos (Simulado)',
               role: 'DRIVER',
+              driverId: '1',
             ),
           );
         }

@@ -26,6 +26,8 @@ import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_
 import 'package:flutter/foundation.dart';
 import 'package:mining_transport_app/core/scanner/qr_scanner_page.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
+import 'package:mining_transport_app/features/manifest/domain/usecases/generate_manifest_usecase.dart';
+import 'package:mining_transport_app/features/manifest/presentation/viewmodels/manifest_generation_viewmodel.dart';
 import 'package:mining_transport_app/core/utils/result.dart';
 
 /// Pantalla de Embarque de Pasajeros.
@@ -99,19 +101,49 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     }
   }
 
-  Future<void> _loadPassengers() async {
-    setState(() => _isLoadingPassengers = true);
+  Future<void> _loadPassengers({bool showLoading = true}) async {
+    if (showLoading && mounted) {
+      setState(() => _isLoadingPassengers = true);
+    }
     final useCase = GetIt.I<GetPassengersOnBoardUseCase>();
     final result = await useCase.call(widget.tripId);
     if (mounted) {
       setState(() {
-        _isLoadingPassengers = false;
+        if (showLoading) _isLoadingPassengers = false;
         result.fold(
           onSuccess: (data) => _passengersList = data,
-          onFailure: (f) => _passengersList = [],
+          onFailure: (f) {
+            if (showLoading) _passengersList = [];
+          },
         );
       });
     }
+  }
+
+  void _appendPassengerOptimistic({
+    required String dni,
+    required String fullName,
+    required CollaboratorStatus status,
+    required String category,
+    required String registrationMethod,
+  }) {
+    final exists = _passengersList.any((p) => p.dni.trim() == dni.trim());
+    if (exists) return;
+    setState(() {
+      _passengersList = [
+        PassengerEntity(
+          dni: dni,
+          fullName: fullName,
+          boardedAt: DateTime.now(),
+          registrationMethod: registrationMethod,
+          status: status,
+          category: category,
+        ),
+        ..._passengersList,
+      ];
+    });
+    // Sincronizar lista en segundo plano sin bloquear el siguiente escaneo.
+    unawaited(_loadPassengers(showLoading: false));
   }
 
   @override
@@ -386,7 +418,13 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       if (mounted) {
         if (success) {
           DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
-          _loadPassengers();
+          _appendPassengerOptimistic(
+            dni: resolvedDni,
+            fullName: validation.fullName,
+            status: CollaboratorStatus.ok,
+            category: validation.category,
+            registrationMethod: prefix,
+          );
         } else {
           await _handleRegisterFailure(resolvedDni);
         }
@@ -602,7 +640,13 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           if (mounted) {
             if (success) {
               DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
-              _loadPassengers();
+              _appendPassengerOptimistic(
+                dni: resolvedDni,
+                fullName: validation.fullName,
+                status: nextStatus,
+                category: validation.category,
+                registrationMethod: prefix,
+              );
             } else {
               await _handleRegisterFailure(resolvedDni);
             }
@@ -744,6 +788,63 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (mounted) {
       DesignSnackbar.showSuccess(
           context, '¡Viaje iniciado! El bus está en tránsito.');
+    }
+  }
+
+  Future<void> _generarManifiesto(TripEntity trip) async {
+    if (!GenerateManifestUseCase.canGenerateForStatus(trip.status)) {
+      DesignSnackbar.showWarning(
+        context,
+        'El manifiesto solo está disponible con el viaje en curso o finalizado.',
+      );
+      return;
+    }
+
+    if (_passengersList.isEmpty && trip.passengerCount <= 0) {
+      DesignSnackbar.showWarning(
+        context,
+        'Aún no existen pasajeros registrados para generar el manifiesto.',
+      );
+      return;
+    }
+
+    final driverName =
+        ref.read(homeDashboardViewModelProvider).data?.driver.name ?? 'Chofer';
+
+    final result = await ref
+        .read(manifestGenerationViewModelProvider.notifier)
+        .generate(
+          trip: trip,
+          driverName: driverName,
+          localPassengersFallback: _passengersList,
+        );
+
+    if (!mounted) return;
+
+    if (result == null) {
+      final error = ref.read(manifestGenerationViewModelProvider).errorMessage ??
+          'No pudimos generar el manifiesto. Inténtelo nuevamente.';
+      final retry = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => DesignDialog(
+          title: 'Error al generar manifiesto',
+          content: error,
+          confirmLabel: 'Reintentar',
+          cancelLabel: 'Cerrar',
+          onConfirm: () {},
+          onCancel: () {},
+        ),
+      );
+      if (retry == true && mounted) {
+        await _generarManifiesto(trip);
+      }
+      return;
+    }
+
+    // Preview reutilizando la pantalla de manifiesto existente (datos frescos al abrir).
+    await context.push('/dashboard/manifest/${trip.id}');
+    if (mounted) {
+      await _loadPassengers();
     }
   }
 
@@ -925,23 +1026,48 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           onPressed: () => context.pop(),
         ),
       ),
-      // ── Botón fijo de control de viaje ─────────────────────────────────────
+      // ── Acciones: manifiesto (secundario) + control de viaje (principal) ──
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: DesignButton.primary(
-            text: activeTrip.status == TripStatus.travelling ? 'Finalizar Viaje' : 'Iniciar Viaje',
-            onTap: _isRegistering ? null : () {
-              if (activeTrip.status == TripStatus.travelling) {
-                _finalizarViaje(activeTrip);
-              } else {
-                _iniciarViaje(activeTrip);
-              }
-            },
-            icon: activeTrip.status == TripStatus.travelling
-                ? Icons.check_circle_rounded
-                : Icons.directions_bus_filled_rounded,
-            fullWidth: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (GenerateManifestUseCase.canGenerateForStatus(activeTrip.status))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: DesignButton.outlined(
+                    text: ref.watch(manifestGenerationViewModelProvider).isGenerating
+                        ? 'Generando manifiesto...'
+                        : 'Generar manifiesto',
+                    icon: Icons.picture_as_pdf_rounded,
+                    isLoading: ref.watch(manifestGenerationViewModelProvider).isGenerating,
+                    onTap: (_isRegistering ||
+                            ref.watch(manifestGenerationViewModelProvider).isGenerating)
+                        ? null
+                        : () => _generarManifiesto(activeTrip),
+                    fullWidth: true,
+                  ),
+                ),
+              DesignButton.primary(
+                text: activeTrip.status == TripStatus.travelling
+                    ? 'Finalizar Viaje'
+                    : 'Iniciar Viaje',
+                onTap: _isRegistering
+                    ? null
+                    : () {
+                        if (activeTrip.status == TripStatus.travelling) {
+                          _finalizarViaje(activeTrip);
+                        } else {
+                          _iniciarViaje(activeTrip);
+                        }
+                      },
+                icon: activeTrip.status == TripStatus.travelling
+                    ? Icons.check_circle_rounded
+                    : Icons.directions_bus_filled_rounded,
+                fullWidth: true,
+              ),
+            ],
           ),
         ),
       ),

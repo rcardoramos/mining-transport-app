@@ -4,15 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/passenger_entity.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
-import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
+import 'package:mining_transport_app/features/manifest/domain/repositories/manifest_repository.dart';
+import 'package:mining_transport_app/features/manifest/domain/usecases/generate_manifest_usecase.dart';
+import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:printing/printing.dart';
 import 'package:mining_transport_app/core/pdf/pdf_service.dart';
 
-/// Vista de Detalle de Manifiesto de Pasajeros para un Viaje Finalizado.
+/// Vista de Detalle de Manifiesto (viaje en curso o finalizado).
 class ManifestDetailView extends ConsumerStatefulWidget {
   final String tripId;
 
@@ -25,6 +28,7 @@ class ManifestDetailView extends ConsumerStatefulWidget {
 class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
   List<PassengerEntity> _passengersList = [];
   bool _isLoadingPassengers = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -35,17 +39,40 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
   }
 
   Future<void> _loadPassengers() async {
-    setState(() => _isLoadingPassengers = true);
-    final useCase = GetIt.I<GetPassengersOnBoardUseCase>();
-    final result = await useCase.call(widget.tripId);
-    if (mounted) {
-      setState(() {
-        _isLoadingPassengers = false;
-        result.fold(
-          onSuccess: (data) => _passengersList = data,
-          onFailure: (f) => _passengersList = [],
-        );
-      });
+    setState(() {
+      _isLoadingPassengers = true;
+      _loadError = null;
+    });
+
+    final result = await GetIt.I<ManifestRepository>().fetchManifest(
+      widget.tripId,
+      isOnline: ref.read(syncProvider).isOnline,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isLoadingPassengers = false;
+      if (result.isFailure) {
+        _passengersList = [];
+        _loadError = result.failureOrNull?.message ??
+            'No pudimos generar el manifiesto. Inténtelo nuevamente.';
+      } else {
+        _passengersList = result.successOrNull?.passengers ?? [];
+      }
+    });
+  }
+
+  String _statusLabel(TripEntity trip) {
+    switch (trip.status) {
+      case TripStatus.completed:
+        return 'FINALIZADO';
+      case TripStatus.travelling:
+      case TripStatus.inProgress:
+        return 'EN CURSO';
+      case TripStatus.cancelled:
+        return 'CANCELADO';
+      default:
+        return trip.status.name.toUpperCase();
     }
   }
 
@@ -121,7 +148,27 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
       return;
     }
 
-    final driverName = data?.driver.name ?? 'Ricardo Ramos';
+    if (_passengersList.isEmpty) {
+      DesignSnackbar.showWarning(
+        context,
+        'Aún no existen pasajeros registrados para generar el manifiesto.',
+      );
+      return;
+    }
+
+    if (!GenerateManifestUseCase.canGenerateForStatus(trip.status)) {
+      DesignSnackbar.showWarning(
+        context,
+        'El manifiesto solo está disponible con el viaje en curso o finalizado.',
+      );
+      return;
+    }
+
+    final driverName = data?.driver.name ?? 'Chofer';
+    final status = _statusLabel(trip);
+    final now = DateTime.now();
+    final fileBase =
+        'manifiesto_viaje_${trip.id}_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
 
     showModalBottomSheet(
       context: context,
@@ -161,17 +208,20 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                   onTap: () async {
                     Navigator.pop(context);
                     try {
-                      final pdfService = PdfService();
+                      final pdfService = GetIt.I<PdfService>();
                       final pdfBytes = await pdfService.generateManifestPdf(
                         trip: trip!,
                         passengers: _passengersList,
                         driverName: driverName,
+                        tripStatusLabel: status,
+                        generatedAt: now,
                       );
                       await Printing.layoutPdf(
                         onLayout: (format) async => pdfBytes,
-                        name: 'manifiesto_${trip.id}',
+                        name: fileBase,
                       );
                     } catch (e) {
+                      GetIt.I<AppLogger>().e('Error imprimiendo manifiesto', e);
                       if (context.mounted) {
                         DesignSnackbar.showError(context, 'Error al abrir diálogo de impresión.');
                       }
@@ -186,17 +236,20 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                   onTap: () async {
                     Navigator.pop(context);
                     try {
-                      final pdfService = PdfService();
+                      final pdfService = GetIt.I<PdfService>();
                       final pdfBytes = await pdfService.generateManifestPdf(
                         trip: trip!,
                         passengers: _passengersList,
                         driverName: driverName,
+                        tripStatusLabel: status,
+                        generatedAt: now,
                       );
                       await Printing.sharePdf(
                         bytes: pdfBytes,
-                        filename: 'manifiesto_${trip.id}.pdf',
+                        filename: '$fileBase.pdf',
                       );
                     } catch (e) {
+                      GetIt.I<AppLogger>().e('Error compartiendo manifiesto', e);
                       if (context.mounted) {
                         DesignSnackbar.showError(context, 'Error al compartir el PDF.');
                       }
@@ -228,7 +281,7 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
       } catch (_) {}
     }
 
-    final driverName = data?.driver.name ?? 'Ricardo Ramos';
+    final driverName = data?.driver.name ?? 'Chofer';
 
     if (trip == null) {
       return Scaffold(
@@ -254,9 +307,22 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Actualizar',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _isLoadingPassengers ? null : _loadPassengers,
+          ),
+        ],
       ),
       body: _isLoadingPassengers
           ? const Center(child: DesignCircularLoader())
+          : _loadError != null
+              ? DesignErrorState(
+                  title: 'Error al cargar manifiesto',
+                  description: _loadError!,
+                  onRetry: _loadPassengers,
+                )
           : SingleChildScrollView(
               padding: DesignSpacing.allM,
               child: Column(
@@ -302,6 +368,13 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                           ),
                           textAlign: TextAlign.center,
                         ),
+                        DesignSpacing.spacerV8,
+                        DesignBadge(
+                          label: 'Estado: ${_statusLabel(trip)}',
+                          color: trip.status == TripStatus.completed
+                              ? colors.success
+                              : colors.info,
+                        ),
                         DesignSpacing.spacerV16,
                         const DesignDivider(),
                         DesignSpacing.spacerV16,
@@ -313,12 +386,13 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             1: FlexColumnWidth(1.8),
                           },
                           children: [
+                            _buildTableRow('Viaje:', trip.id, isDark),
                             _buildTableRow('Ruta:', trip.route, isDark),
                             _buildTableRow('Fecha:', _formatDate(trip.scheduledTime), isDark),
                             _buildTableRow('Servicio:', 'Operativo', isDark),
                             _buildTableRow('Horario:', '${trip.shift} ${_formatTime(trip.scheduledTime)}', isDark),
                             _buildTableRow('Placa:', trip.unitCode, isDark),
-                            _buildTableRow('Capacidad:', '${trip.passengerCount} de ${trip.capacity} pax', isDark),
+                            _buildTableRow('Capacidad:', '${_passengersList.length} de ${trip.capacity} pax', isDark),
                             _buildTableRow('Chofer:', driverName, isDark),
                             _buildTableRow('Apertura:', _formatTime12(trip.startedAt), isDark),
                             _buildTableRow('Cierre:', _formatTime12(trip.completedAt), isDark),
@@ -372,7 +446,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             ),
                             DesignSpacing.spacerV12,
                             Text(
-                              'No se registraron pasajeros en este viaje.',
+                              'Aún no existen pasajeros registrados para generar el manifiesto.',
+                              textAlign: TextAlign.center,
                               style: DesignTypography.bodyMedium.copyWith(
                                 color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                               ),

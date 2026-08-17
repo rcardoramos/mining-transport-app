@@ -7,7 +7,7 @@ class GetCatalogsUseCase {
 
   final CatalogRepository _repository;
 
-  Future<Result<CatalogBundle, Failure>> execute({bool forceRefresh = true}) {
+  Future<Result<CatalogBundle, Failure>> execute({bool forceRefresh = false}) {
     return _repository.fetchBootstrap(forceRefresh: forceRefresh);
   }
 }

@@ -145,7 +145,7 @@ class CatalogStopModel {
           ) ??
           0,
       allowedRadiusMeters: double.tryParse(
-            '${json['radioPermitido'] ?? json['RadioPermitido'] ?? 50}',
+            '${json['radioPermitido'] ?? json['RadioPermitido'] ?? json['RadioMetros'] ?? json['radioMetros'] ?? 50}',
           ) ??
           50,
       order: int.tryParse('${json['orden'] ?? json['Orden'] ?? 0}') ?? 0,

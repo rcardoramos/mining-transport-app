@@ -60,10 +60,18 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
   }
 
   Future<void> _submit() async {
-    final ok = await ref.read(createTripViewModelProvider.notifier).submit();
+    final notifier = ref.read(createTripViewModelProvider.notifier);
+    final ok = await notifier.submit();
     if (!mounted) return;
     if (ok) {
+      final preview =
+          ref.read(createTripViewModelProvider).buildLocalTripPreview();
       await ref.read(homeDashboardViewModelProvider.notifier).refreshDashboard();
+      if (preview != null) {
+        ref
+            .read(homeDashboardViewModelProvider.notifier)
+            .ensureCreatedTripVisible(preview);
+      }
       if (!mounted) return;
       DesignSnackbar.showSuccess(context, 'Viaje creado correctamente');
       Navigator.of(context).pop(true);
@@ -293,14 +301,65 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           }).toList(),
         ),
         DesignSpacing.spacerV16,
-        DesignTextField(
-          labelText: 'Fecha',
-          controller: TextEditingController(
-            text:
-                _formatServiceDate(state.serviceDate),
-          ),
-          enabled: false,
+        _ReadonlyField(
+          label: 'Fecha',
+          value: _formatServiceDate(state.serviceDate),
         ),
+        if (state.requiresManualStopSelection) ...[
+          DesignSpacing.spacerV24,
+          Text(
+            'Paraderos',
+            style: DesignTypography.labelLarge.copyWith(
+              color: isDark
+                  ? DesignColors.textPrimaryDark
+                  : DesignColors.textPrimaryLight,
+            ),
+          ),
+          DesignSpacing.spacerV8,
+          Text(
+            'El catálogo no asocia paraderos a la ruta. Seleccione el paradero autorizado.',
+            style: DesignTypography.caption.copyWith(
+              color: isDark
+                  ? DesignColors.textSecondaryDark
+                  : DesignColors.textSecondaryLight,
+            ),
+          ),
+          DesignSpacing.spacerV12,
+          DesignDropdown<int>(
+            labelText: 'Paradero',
+            value: state.selectedStopId,
+            items: state.availableStops
+                .map(
+                  (s) => DropdownMenuItem<int>(
+                    value: s.id,
+                    child: Text(s.name),
+                  ),
+                )
+                .toList(),
+            onChanged: (v) =>
+                ref.read(createTripViewModelProvider.notifier).selectStop(v),
+          ),
+        ] else if (state.linkedStopsForRoute.isNotEmpty) ...[
+          DesignSpacing.spacerV24,
+          Text(
+            'Paraderos de la ruta',
+            style: DesignTypography.labelLarge.copyWith(
+              color: isDark
+                  ? DesignColors.textPrimaryDark
+                  : DesignColors.textPrimaryLight,
+            ),
+          ),
+          DesignSpacing.spacerV12,
+          ...state.linkedStopsForRoute.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ReadonlyField(
+                label: 'Paradero ${s.order > 0 ? s.order : ''}'.trim(),
+                value: s.name,
+              ),
+            ),
+          ),
+        ],
         DesignSpacing.spacerV24,
         Text(
           'Datos del bus',
@@ -349,14 +408,9 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           ),
         ),
         DesignSpacing.spacerV12,
-        DesignTextField(
-          labelText: 'Conductor',
-          controller: TextEditingController(
-            text: state.user == null
-                ? ''
-                : '${state.user!.fullName} · ${state.user!.username}',
-          ),
-          enabled: false,
+        _ReadonlyField(
+          label: 'Conductor',
+          value: state.driverDisplayLabel,
         ),
         DesignSpacing.spacerV24,
       ],

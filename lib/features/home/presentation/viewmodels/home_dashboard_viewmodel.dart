@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mining_transport_app/features/catalog/domain/usecases/get_catalogs_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/entities/home_dashboard_data.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
 import 'package:mining_transport_app/features/home/domain/entities/stop_entity.dart';
@@ -15,7 +18,6 @@ import 'package:mining_transport_app/features/home/domain/usecases/complete_stop
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 import 'package:mining_transport_app/features/home/presentation/states/home_dashboard_state.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
-import 'dart:convert';
 import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
 import 'package:mining_transport_app/features/home/data/datasources/mock_home_dashboard_remote_data_source.dart';
 
@@ -53,6 +55,8 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
 
   Future<void> loadDashboard() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
+    // Prefetch catálogos en paralelo para que "Crear viaje" abra al instante.
+    unawaited(GetIt.I<GetCatalogsUseCase>().execute(forceRefresh: false));
     await _fetchData();
   }
 
@@ -112,6 +116,25 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         todayTrips: todayTrips,
         pendingTrips: pendingTrips,
         summary: summary,
+      ),
+    );
+  }
+
+  /// Si Historial aún no lista el viaje recién creado (p.ej. estado P),
+  /// lo inserta en "Viajes de Hoy" para poder aperturarlo.
+  void ensureCreatedTripVisible(TripEntity trip) {
+    final data = state.data;
+    if (data == null) return;
+
+    final alreadyInToday = data.todayTrips.any((t) => t.id == trip.id);
+    final alreadyInPending = data.pendingTrips.any((t) => t.id == trip.id);
+    if (alreadyInToday || alreadyInPending) return;
+
+    final todayTrips = [trip, ...data.todayTrips];
+    state = state.copyWith(
+      data: data.copyWith(
+        todayTrips: todayTrips,
+        driver: data.driver.copyWith(todayTripsCount: todayTrips.length),
       ),
     );
   }
@@ -184,7 +207,8 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
   }
 
   Future<bool> registerPassenger(String tripId, String dni, [CollaboratorStatus? status, String? category, String? registrationMethod, double? lat, double? lng, String? justification, String? uidCliente, String? nombreCompleto, String? empresa, int? paraderoId, String? lugarSubida, String? puesto, String? unidad]) async {
-    state = state.copyWith(isRefreshing: true, errorMessage: null);
+    // No marcar isRefreshing del Home: evita rebuilds pesados durante el escaneo.
+    state = state.copyWith(errorMessage: null);
     
     final isOnline = _ref.read(syncProvider).isOnline;
     if (!isOnline) {

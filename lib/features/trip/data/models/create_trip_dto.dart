@@ -5,8 +5,9 @@ export 'package:mining_transport_app/features/trip/domain/commands/create_trip_c
 
 /// Request DTO para POST /api/Viaje/Crear (Postman).
 ///
-/// No incluye `estado` ni `fechaApertura` a propósito
-/// (ver docs/architecture/create-trip-contract-gaps.md).
+/// Staging exige `estado` y `fechaApertura` ("campos obligatorios").
+/// Se envía `estado: P` (programado / por iniciar) para mantener Aperturar aparte.
+/// Postman documentaba `A` + apertura inmediata; eso se evita a propósito.
 class CreateTripRequestDto {
   CreateTripRequestDto({
     required this.usuario,
@@ -19,6 +20,8 @@ class CreateTripRequestDto {
     required this.fechaProgramado,
     required this.capacidad,
     required this.detalles,
+    required this.estado,
+    required this.fechaApertura,
   });
 
   final String usuario;
@@ -31,6 +34,8 @@ class CreateTripRequestDto {
   final String fechaProgramado;
   final int capacidad;
   final List<Map<String, int>> detalles;
+  final String estado;
+  final String fechaApertura;
 
   factory CreateTripRequestDto.fromCommand({
     required String usuario,
@@ -38,13 +43,7 @@ class CreateTripRequestDto {
     required CreateTripCommand command,
   }) {
     final scheduled = command.scheduledAt;
-    final fechaProgramado =
-        '${scheduled.year.toString().padLeft(4, '0')}-'
-        '${scheduled.month.toString().padLeft(2, '0')}-'
-        '${scheduled.day.toString().padLeft(2, '0')}T'
-        '${scheduled.hour.toString().padLeft(2, '0')}:'
-        '${scheduled.minute.toString().padLeft(2, '0')}:'
-        '${scheduled.second.toString().padLeft(2, '0')}';
+    final fechaProgramado = _formatDateTime(scheduled);
 
     return CreateTripRequestDto(
       usuario: usuario,
@@ -59,7 +58,20 @@ class CreateTripRequestDto {
       detalles: command.stopDetails
           .map((d) => {'paraderoId': d.paraderoId, 'orden': d.orden})
           .toList(),
+      // P = programado (Historial). Campo obligatorio en staging.
+      estado: 'P',
+      // El SP exige el campo; con estado P no implica viaje aperturado.
+      fechaApertura: fechaProgramado,
     );
+  }
+
+  static String _formatDateTime(DateTime value) {
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}T'
+        '${value.hour.toString().padLeft(2, '0')}:'
+        '${value.minute.toString().padLeft(2, '0')}:'
+        '${value.second.toString().padLeft(2, '0')}';
   }
 
   Map<String, dynamic> toJson() => {
@@ -72,8 +84,9 @@ class CreateTripRequestDto {
         'horarioId': horarioId,
         'fechaProgramado': fechaProgramado,
         'capacidad': capacidad,
+        'estado': estado,
+        'fechaApertura': fechaApertura,
         'detalles': detalles,
-        // estado / fechaApertura omitidos deliberadamente.
       };
 }
 

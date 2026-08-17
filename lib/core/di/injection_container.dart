@@ -39,6 +39,10 @@ import 'package:mining_transport_app/features/catalog/data/datasources/mock_cata
 import 'package:mining_transport_app/features/catalog/data/repositories/catalog_repository_impl.dart';
 import 'package:mining_transport_app/features/catalog/domain/repositories/catalog_repository.dart';
 import 'package:mining_transport_app/features/catalog/domain/usecases/get_catalogs_usecase.dart';
+import 'package:mining_transport_app/features/manifest/data/datasources/manifest_remote_data_source.dart';
+import 'package:mining_transport_app/features/manifest/data/datasources/mock_manifest_remote_data_source.dart';
+import 'package:mining_transport_app/features/manifest/data/repositories/manifest_repository_impl.dart';
+import 'package:mining_transport_app/features/manifest/domain/repositories/manifest_repository.dart';
 
 import 'package:mining_transport_app/features/geolocation/data/datasources/geolocation_remote_data_source.dart';
 import 'package:mining_transport_app/features/geolocation/data/repositories/geolocation_repository_impl.dart';
@@ -248,6 +252,28 @@ Future<void> setupLocator() async {
   );
   locator.registerLazySingleton<GetCatalogsUseCase>(
     () => GetCatalogsUseCase(locator<CatalogRepository>()),
+  );
+
+  // ── Manifest Feature ────────────────────────────────────────────────────
+  if (isDev) {
+    locator.registerLazySingleton<ManifestRemoteDataSource>(
+      () => MockManifestRemoteDataSource(),
+    );
+  } else {
+    locator.registerLazySingleton<ManifestRemoteDataSource>(
+      () => ManifestRemoteDataSourceImpl(
+        locator<DioClient>(),
+        locator<SecureStorage>(),
+        locator<AppLogger>(),
+      ),
+    );
+  }
+  locator.registerLazySingleton<ManifestRepository>(
+    () => ManifestRepositoryImpl(
+      locator<ManifestRemoteDataSource>(),
+      locator<HomeDashboardRepository>(),
+      locator<AppLogger>(),
+    ),
   );
 
   // ── Validation Feature ───────────────────────────────────────────────────

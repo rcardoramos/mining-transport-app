@@ -57,8 +57,26 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _driverIdMeta = const VerificationMeta(
+    'driverId',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, username, fullName, role, token];
+  late final GeneratedColumn<String> driverId = GeneratedColumn<String>(
+    'driver_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    username,
+    fullName,
+    role,
+    token,
+    driverId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -106,6 +124,12 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         token.isAcceptableOrUnknown(data['token']!, _tokenMeta),
       );
     }
+    if (data.containsKey('driver_id')) {
+      context.handle(
+        _driverIdMeta,
+        driverId.isAcceptableOrUnknown(data['driver_id']!, _driverIdMeta),
+      );
+    }
     return context;
   }
 
@@ -135,6 +159,10 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.string,
         data['${effectivePrefix}token'],
       ),
+      driverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}driver_id'],
+      ),
     );
   }
 
@@ -150,12 +178,16 @@ class User extends DataClass implements Insertable<User> {
   final String fullName;
   final String role;
   final String? token;
+
+  /// Código de chofer (`User.driverId` del Login). Nullable por migraciones previas.
+  final String? driverId;
   const User({
     required this.id,
     required this.username,
     required this.fullName,
     required this.role,
     this.token,
+    this.driverId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -166,6 +198,9 @@ class User extends DataClass implements Insertable<User> {
     map['role'] = Variable<String>(role);
     if (!nullToAbsent || token != null) {
       map['token'] = Variable<String>(token);
+    }
+    if (!nullToAbsent || driverId != null) {
+      map['driver_id'] = Variable<String>(driverId);
     }
     return map;
   }
@@ -179,6 +214,9 @@ class User extends DataClass implements Insertable<User> {
       token: token == null && nullToAbsent
           ? const Value.absent()
           : Value(token),
+      driverId: driverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(driverId),
     );
   }
 
@@ -193,6 +231,7 @@ class User extends DataClass implements Insertable<User> {
       fullName: serializer.fromJson<String>(json['fullName']),
       role: serializer.fromJson<String>(json['role']),
       token: serializer.fromJson<String?>(json['token']),
+      driverId: serializer.fromJson<String?>(json['driverId']),
     );
   }
   @override
@@ -204,6 +243,7 @@ class User extends DataClass implements Insertable<User> {
       'fullName': serializer.toJson<String>(fullName),
       'role': serializer.toJson<String>(role),
       'token': serializer.toJson<String?>(token),
+      'driverId': serializer.toJson<String?>(driverId),
     };
   }
 
@@ -213,12 +253,14 @@ class User extends DataClass implements Insertable<User> {
     String? fullName,
     String? role,
     Value<String?> token = const Value.absent(),
+    Value<String?> driverId = const Value.absent(),
   }) => User(
     id: id ?? this.id,
     username: username ?? this.username,
     fullName: fullName ?? this.fullName,
     role: role ?? this.role,
     token: token.present ? token.value : this.token,
+    driverId: driverId.present ? driverId.value : this.driverId,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -227,6 +269,7 @@ class User extends DataClass implements Insertable<User> {
       fullName: data.fullName.present ? data.fullName.value : this.fullName,
       role: data.role.present ? data.role.value : this.role,
       token: data.token.present ? data.token.value : this.token,
+      driverId: data.driverId.present ? data.driverId.value : this.driverId,
     );
   }
 
@@ -237,13 +280,15 @@ class User extends DataClass implements Insertable<User> {
           ..write('username: $username, ')
           ..write('fullName: $fullName, ')
           ..write('role: $role, ')
-          ..write('token: $token')
+          ..write('token: $token, ')
+          ..write('driverId: $driverId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, username, fullName, role, token);
+  int get hashCode =>
+      Object.hash(id, username, fullName, role, token, driverId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -252,7 +297,8 @@ class User extends DataClass implements Insertable<User> {
           other.username == this.username &&
           other.fullName == this.fullName &&
           other.role == this.role &&
-          other.token == this.token);
+          other.token == this.token &&
+          other.driverId == this.driverId);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -261,6 +307,7 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<String> fullName;
   final Value<String> role;
   final Value<String?> token;
+  final Value<String?> driverId;
   final Value<int> rowid;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -268,6 +315,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.fullName = const Value.absent(),
     this.role = const Value.absent(),
     this.token = const Value.absent(),
+    this.driverId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -276,6 +324,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     required String fullName,
     required String role,
     this.token = const Value.absent(),
+    this.driverId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        username = Value(username),
@@ -287,6 +336,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<String>? fullName,
     Expression<String>? role,
     Expression<String>? token,
+    Expression<String>? driverId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -295,6 +345,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (fullName != null) 'full_name': fullName,
       if (role != null) 'role': role,
       if (token != null) 'token': token,
+      if (driverId != null) 'driver_id': driverId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -305,6 +356,7 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<String>? fullName,
     Value<String>? role,
     Value<String?>? token,
+    Value<String?>? driverId,
     Value<int>? rowid,
   }) {
     return UsersCompanion(
@@ -313,6 +365,7 @@ class UsersCompanion extends UpdateCompanion<User> {
       fullName: fullName ?? this.fullName,
       role: role ?? this.role,
       token: token ?? this.token,
+      driverId: driverId ?? this.driverId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -335,6 +388,9 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (token.present) {
       map['token'] = Variable<String>(token.value);
     }
+    if (driverId.present) {
+      map['driver_id'] = Variable<String>(driverId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -349,6 +405,7 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('fullName: $fullName, ')
           ..write('role: $role, ')
           ..write('token: $token, ')
+          ..write('driverId: $driverId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4932,6 +4989,7 @@ typedef $$UsersTableCreateCompanionBuilder =
       required String fullName,
       required String role,
       Value<String?> token,
+      Value<String?> driverId,
       Value<int> rowid,
     });
 typedef $$UsersTableUpdateCompanionBuilder =
@@ -4941,6 +4999,7 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<String> fullName,
       Value<String> role,
       Value<String?> token,
+      Value<String?> driverId,
       Value<int> rowid,
     });
 
@@ -4997,6 +5056,11 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get token => $composableBuilder(
     column: $table.token,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get driverId => $composableBuilder(
+    column: $table.driverId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5059,6 +5123,11 @@ class $$UsersTableOrderingComposer
     column: $table.token,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get driverId => $composableBuilder(
+    column: $table.driverId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UsersTableAnnotationComposer
@@ -5084,6 +5153,9 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get token =>
       $composableBuilder(column: $table.token, builder: (column) => column);
+
+  GeneratedColumn<String> get driverId =>
+      $composableBuilder(column: $table.driverId, builder: (column) => column);
 
   Expression<T> auditLogsRefs<T extends Object>(
     Expression<T> Function($$AuditLogsTableAnnotationComposer a) f,
@@ -5144,6 +5216,7 @@ class $$UsersTableTableManager
                 Value<String> fullName = const Value.absent(),
                 Value<String> role = const Value.absent(),
                 Value<String?> token = const Value.absent(),
+                Value<String?> driverId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
@@ -5151,6 +5224,7 @@ class $$UsersTableTableManager
                 fullName: fullName,
                 role: role,
                 token: token,
+                driverId: driverId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5160,6 +5234,7 @@ class $$UsersTableTableManager
                 required String fullName,
                 required String role,
                 Value<String?> token = const Value.absent(),
+                Value<String?> driverId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
@@ -5167,6 +5242,7 @@ class $$UsersTableTableManager
                 fullName: fullName,
                 role: role,
                 token: token,
+                driverId: driverId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

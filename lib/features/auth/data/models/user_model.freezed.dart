@@ -22,6 +22,7 @@ mixin _$UserModel {
   String get fullName => throw _privateConstructorUsedError;
   String get role => throw _privateConstructorUsedError;
   String? get token => throw _privateConstructorUsedError;
+  String? get driverId => throw _privateConstructorUsedError;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -41,6 +42,7 @@ abstract class $UserModelCopyWith<$Res> {
     String fullName,
     String role,
     String? token,
+    String? driverId,
   });
 }
 
@@ -64,6 +66,7 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
     Object? fullName = null,
     Object? role = null,
     Object? token = freezed,
+    Object? driverId = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -87,6 +90,10 @@ class _$UserModelCopyWithImpl<$Res, $Val extends UserModel>
                 ? _value.token
                 : token // ignore: cast_nullable_to_non_nullable
                       as String?,
+            driverId: freezed == driverId
+                ? _value.driverId
+                : driverId // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -108,6 +115,7 @@ abstract class _$$UserModelImplCopyWith<$Res>
     String fullName,
     String role,
     String? token,
+    String? driverId,
   });
 }
 
@@ -130,6 +138,7 @@ class __$$UserModelImplCopyWithImpl<$Res>
     Object? fullName = null,
     Object? role = null,
     Object? token = freezed,
+    Object? driverId = freezed,
   }) {
     return _then(
       _$UserModelImpl(
@@ -153,6 +162,10 @@ class __$$UserModelImplCopyWithImpl<$Res>
             ? _value.token
             : token // ignore: cast_nullable_to_non_nullable
                   as String?,
+        driverId: freezed == driverId
+            ? _value.driverId
+            : driverId // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -167,6 +180,7 @@ class _$UserModelImpl extends _UserModel {
     required this.fullName,
     required this.role,
     this.token,
+    this.driverId,
   }) : super._();
 
   @override
@@ -179,10 +193,12 @@ class _$UserModelImpl extends _UserModel {
   final String role;
   @override
   final String? token;
+  @override
+  final String? driverId;
 
   @override
   String toString() {
-    return 'UserModel(id: $id, username: $username, fullName: $fullName, role: $role, token: $token)';
+    return 'UserModel(id: $id, username: $username, fullName: $fullName, role: $role, token: $token, driverId: $driverId)';
   }
 
   @override
@@ -196,12 +212,14 @@ class _$UserModelImpl extends _UserModel {
             (identical(other.fullName, fullName) ||
                 other.fullName == fullName) &&
             (identical(other.role, role) || other.role == role) &&
-            (identical(other.token, token) || other.token == token));
+            (identical(other.token, token) || other.token == token) &&
+            (identical(other.driverId, driverId) ||
+                other.driverId == driverId));
   }
 
   @override
   int get hashCode =>
-      Object.hash(runtimeType, id, username, fullName, role, token);
+      Object.hash(runtimeType, id, username, fullName, role, token, driverId);
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -219,6 +237,7 @@ abstract class _UserModel extends UserModel {
     required final String fullName,
     required final String role,
     final String? token,
+    final String? driverId,
   }) = _$UserModelImpl;
   const _UserModel._() : super._();
 
@@ -232,6 +251,8 @@ abstract class _UserModel extends UserModel {
   String get role;
   @override
   String? get token;
+  @override
+  String? get driverId;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.

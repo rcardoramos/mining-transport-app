@@ -27,6 +27,9 @@ mixin _$UserEntity {
   String get role => throw _privateConstructorUsedError;
   String? get token => throw _privateConstructorUsedError;
 
+  /// Código de chofer del backend (`User.driverId` en Login). Es el `choferId` de Crear.
+  String? get driverId => throw _privateConstructorUsedError;
+
   /// Serializes this UserEntity to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -50,6 +53,7 @@ abstract class $UserEntityCopyWith<$Res> {
     String fullName,
     String role,
     String? token,
+    String? driverId,
   });
 }
 
@@ -73,6 +77,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? fullName = null,
     Object? role = null,
     Object? token = freezed,
+    Object? driverId = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -96,6 +101,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
                 ? _value.token
                 : token // ignore: cast_nullable_to_non_nullable
                       as String?,
+            driverId: freezed == driverId
+                ? _value.driverId
+                : driverId // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -117,6 +126,7 @@ abstract class _$$UserEntityImplCopyWith<$Res>
     String fullName,
     String role,
     String? token,
+    String? driverId,
   });
 }
 
@@ -139,6 +149,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? fullName = null,
     Object? role = null,
     Object? token = freezed,
+    Object? driverId = freezed,
   }) {
     return _then(
       _$UserEntityImpl(
@@ -162,6 +173,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
             ? _value.token
             : token // ignore: cast_nullable_to_non_nullable
                   as String?,
+        driverId: freezed == driverId
+            ? _value.driverId
+            : driverId // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -176,6 +191,7 @@ class _$UserEntityImpl implements _UserEntity {
     required this.fullName,
     required this.role,
     this.token,
+    this.driverId,
   });
 
   factory _$UserEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -192,9 +208,13 @@ class _$UserEntityImpl implements _UserEntity {
   @override
   final String? token;
 
+  /// Código de chofer del backend (`User.driverId` en Login). Es el `choferId` de Crear.
+  @override
+  final String? driverId;
+
   @override
   String toString() {
-    return 'UserEntity(id: $id, username: $username, fullName: $fullName, role: $role, token: $token)';
+    return 'UserEntity(id: $id, username: $username, fullName: $fullName, role: $role, token: $token, driverId: $driverId)';
   }
 
   @override
@@ -208,13 +228,15 @@ class _$UserEntityImpl implements _UserEntity {
             (identical(other.fullName, fullName) ||
                 other.fullName == fullName) &&
             (identical(other.role, role) || other.role == role) &&
-            (identical(other.token, token) || other.token == token));
+            (identical(other.token, token) || other.token == token) &&
+            (identical(other.driverId, driverId) ||
+                other.driverId == driverId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode =>
-      Object.hash(runtimeType, id, username, fullName, role, token);
+      Object.hash(runtimeType, id, username, fullName, role, token, driverId);
 
   /// Create a copy of UserEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -237,6 +259,7 @@ abstract class _UserEntity implements UserEntity {
     required final String fullName,
     required final String role,
     final String? token,
+    final String? driverId,
   }) = _$UserEntityImpl;
 
   factory _UserEntity.fromJson(Map<String, dynamic> json) =
@@ -252,6 +275,10 @@ abstract class _UserEntity implements UserEntity {
   String get role;
   @override
   String? get token;
+
+  /// Código de chofer del backend (`User.driverId` en Login). Es el `choferId` de Crear.
+  @override
+  String? get driverId;
 
   /// Create a copy of UserEntity
   /// with the given fields replaced by the non-null parameter values.

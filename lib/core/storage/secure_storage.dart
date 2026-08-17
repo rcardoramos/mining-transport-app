@@ -14,6 +14,8 @@ class SecureStorage {
   static const String _keyPin = 'user_pin';
   static const String _keyUsername = 'cached_username';
   static const String _keyPasswordHash = 'password_hash';
+  static const String _keyDriverId = 'cached_driver_id';
+  static const String _keyFullName = 'cached_full_name';
 
   Future<void> saveToken(String token) async {
     await _storage.write(key: _keyToken, value: token);
@@ -57,6 +59,30 @@ class SecureStorage {
 
   Future<String?> getUsername() async {
     return await _storage.read(key: _keyUsername);
+  }
+
+  Future<void> saveDriverId(String driverId) async {
+    await _storage.write(key: _keyDriverId, value: driverId);
+  }
+
+  Future<String?> getDriverId() async {
+    return await _storage.read(key: _keyDriverId);
+  }
+
+  Future<void> deleteDriverId() async {
+    await _storage.delete(key: _keyDriverId);
+  }
+
+  Future<void> saveFullName(String fullName) async {
+    await _storage.write(key: _keyFullName, value: fullName);
+  }
+
+  Future<String?> getFullName() async {
+    return await _storage.read(key: _keyFullName);
+  }
+
+  Future<void> deleteFullName() async {
+    await _storage.delete(key: _keyFullName);
   }
 
   Future<void> savePasswordHash(String hash) async {

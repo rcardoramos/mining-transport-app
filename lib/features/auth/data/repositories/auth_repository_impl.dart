@@ -44,6 +44,7 @@ class AuthRepositoryImpl implements AuthRepository {
         fullName: 'Ricardo Ramos',
         role: 'DRIVER',
         token: 'mock_jwt_token',
+        driverId: '1',
       );
       final userModel = UserModel.fromEntity(user);
       await _localDataSource.saveToken('mock_jwt_token');

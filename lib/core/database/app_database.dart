@@ -12,6 +12,8 @@ class Users extends Table {
   TextColumn get fullName => text()();
   TextColumn get role => text()();
   TextColumn get token => text().nullable()();
+  /// Código de chofer (`User.driverId` del Login). Nullable por migraciones previas.
+  TextColumn get driverId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -158,11 +160,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.addColumn(users, users.driverId);
+        }
+      },
       beforeOpen: (details) async {
         // Habilitar claves foráneas en SQLite
         await customStatement('PRAGMA foreign_keys = ON;');

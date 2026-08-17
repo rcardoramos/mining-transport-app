@@ -13,6 +13,7 @@ _$UserEntityImpl _$$UserEntityImplFromJson(Map<String, dynamic> json) =>
       fullName: json['fullName'] as String,
       role: json['role'] as String,
       token: json['token'] as String?,
+      driverId: json['driverId'] as String?,
     );
 
 Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
@@ -22,4 +23,5 @@ Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
       'fullName': instance.fullName,
       'role': instance.role,
       'token': instance.token,
+      'driverId': instance.driverId,
     };
