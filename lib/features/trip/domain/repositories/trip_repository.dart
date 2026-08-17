@@ -1,5 +1,6 @@
 import 'package:mining_transport_app/core/utils/result.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/trip/domain/commands/create_trip_command.dart';
 
 /// Contrato puro de la capa de Dominio para la gestión de viajes.
 /// No conoce detalles de red ni de base de datos.
@@ -32,4 +33,7 @@ abstract class TripRepository {
   /// Obtiene el detalle completo de un viaje específico,
   /// incluyendo paraderos autorizados y estado actual de aforo.
   Future<Result<TripEntity, Failure>> getTripDetail(String tripId);
+
+  /// Crea un viaje vía API real (`/api/Viaje/Crear`). Requiere conectividad.
+  Future<Result<CreatedTripResult, Failure>> createTrip(CreateTripCommand command);
 }

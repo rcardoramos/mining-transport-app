@@ -109,6 +109,37 @@ Descarga de manera agrupada todos los maestros necesarios para la persistencia l
 
 ### 2.3 Módulo de Gestión de Viajes
 
+#### `POST /api/Viaje/Crear`
+Crea un viaje (colección Postman App Móvil). Ver también `docs/architecture/create-trip-contract-gaps.md`
+por las brechas de `estado`/`fechaApertura`, `choferId` y paraderos por ruta.
+
+* **Request Body** (campos que envía la app; `estado` y `fechaApertura` se omiten a propósito):
+```json
+{
+  "usuario": "pbeltran",
+  "token": "jwt_token_de_sesion",
+  "choferId": 1,
+  "busId": 1,
+  "rutaId": 2,
+  "servicioId": 1,
+  "horarioId": 2,
+  "fechaProgramado": "2026-08-15T14:00:00",
+  "capacidad": 40,
+  "detalles": [
+    { "paraderoId": 5, "orden": 1 }
+  ]
+}
+```
+
+* **Response Body (200 OK)**:
+```json
+{
+  "Success": true,
+  "Message": "Viaje creado",
+  "Data": { "ViajeId": 128, "Numero": "001", "Estado": "P" }
+}
+```
+
 #### `POST /api/Viaje/Aperturar`
 Crea un registro de viaje activo para el chofer y el vehículo.
 

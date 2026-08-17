@@ -10,6 +10,7 @@ import 'package:mining_transport_app/features/home/presentation/widgets/greeting
 import 'package:mining_transport_app/features/home/presentation/widgets/driver_profile_card.dart';
 import 'package:mining_transport_app/features/home/presentation/widgets/trip_item_card.dart';
 import 'package:mining_transport_app/features/home/presentation/widgets/dashboard_stats_section.dart';
+import 'package:mining_transport_app/features/home/presentation/widgets/create_trip_bottom_sheet.dart';
 import 'package:mining_transport_app/features/home/domain/entities/home_dashboard_data.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
 
@@ -176,6 +177,17 @@ class _HomeViewState extends ConsumerState<HomeView>
           ),
         ],
       ),
+      floatingActionButton: _currentNavigationIndex == 0
+          ? FloatingActionButton(
+              tooltip: 'Crear viaje',
+              heroTag: 'create_trip_fab',
+              onPressed: () => showCreateTripBottomSheet(context),
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? DesignColors.secondaryDark
+                  : DesignColors.secondaryLight,
+              child: const Icon(Icons.add_rounded, color: Colors.white),
+            )
+          : null,
     );
   }
 

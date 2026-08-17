@@ -31,6 +31,14 @@ import 'package:mining_transport_app/features/passenger/domain/usecases/register
 import 'package:mining_transport_app/features/passenger/domain/usecases/get_passengers_on_board_usecase.dart';
 import 'package:mining_transport_app/features/passenger/domain/usecases/check_collaborator_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/usecases/complete_stop_usecase.dart';
+import 'package:mining_transport_app/core/time/clock.dart';
+import 'package:mining_transport_app/features/catalog/data/datasources/catalog_local_data_source.dart';
+import 'package:mining_transport_app/features/catalog/data/datasources/catalog_remote_data_source.dart';
+import 'package:mining_transport_app/features/catalog/data/datasources/catalog_remote_data_source_impl.dart';
+import 'package:mining_transport_app/features/catalog/data/datasources/mock_catalog_remote_data_source.dart';
+import 'package:mining_transport_app/features/catalog/data/repositories/catalog_repository_impl.dart';
+import 'package:mining_transport_app/features/catalog/domain/repositories/catalog_repository.dart';
+import 'package:mining_transport_app/features/catalog/domain/usecases/get_catalogs_usecase.dart';
 
 import 'package:mining_transport_app/features/geolocation/data/datasources/geolocation_remote_data_source.dart';
 import 'package:mining_transport_app/features/geolocation/data/repositories/geolocation_repository_impl.dart';
@@ -58,6 +66,7 @@ final GetIt locator = GetIt.instance;
 Future<void> setupLocator() async {
   // 1. Registrar Logger (Sin dependencias)
   locator.registerLazySingleton<AppLogger>(() => AppLogger());
+  locator.registerLazySingleton<Clock>(() => const SystemClock());
 
   // 2. Registrar Secure Storage (Cifrado de tokens y PIN)
   locator.registerLazySingleton<SecureStorage>(() => SecureStorage());
@@ -213,6 +222,33 @@ Future<void> setupLocator() async {
       () => TripRemoteDataSourceImpl(locator<DioClient>(), locator<SecureStorage>()),
     );
   }
+
+  // ── Catalog Feature ───────────────────────────────────────────────────────
+  locator.registerLazySingleton<CatalogLocalDataSource>(
+    () => CatalogLocalDataSource(locator<AppDatabase>()),
+  );
+  if (isDev) {
+    locator.registerLazySingleton<CatalogRemoteDataSource>(
+      () => MockCatalogRemoteDataSource(),
+    );
+  } else {
+    locator.registerLazySingleton<CatalogRemoteDataSource>(
+      () => CatalogRemoteDataSourceImpl(
+        locator<DioClient>(),
+        locator<SecureStorage>(),
+        locator<AppLogger>(),
+      ),
+    );
+  }
+  locator.registerLazySingleton<CatalogRepository>(
+    () => CatalogRepositoryImpl(
+      locator<CatalogRemoteDataSource>(),
+      locator<CatalogLocalDataSource>(),
+    ),
+  );
+  locator.registerLazySingleton<GetCatalogsUseCase>(
+    () => GetCatalogsUseCase(locator<CatalogRepository>()),
+  );
 
   // ── Validation Feature ───────────────────────────────────────────────────
   locator.registerLazySingleton<ValidationLocalDataSource>(

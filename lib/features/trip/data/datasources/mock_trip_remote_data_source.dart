@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:mining_transport_app/features/home/data/models/stop_model.dart';
 import 'package:mining_transport_app/features/home/data/models/trip_model.dart';
+import 'package:mining_transport_app/features/trip/data/models/create_trip_dto.dart';
 import 'trip_remote_data_source.dart';
 
 /// Implementación Mock de alta fidelidad del [TripRemoteDataSource].
@@ -180,5 +181,31 @@ class MockTripRemoteDataSource implements TripRemoteDataSource {
 
     if (trip == null) throw Exception('Viaje no encontrado: $tripId');
     return trip;
+  }
+
+  @override
+  Future<CreateTripResponseDto> createTrip(CreateTripRequestDto request) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final id = 9000 + _todayTrips.length;
+    _todayTrips.insert(
+      0,
+      TripModel(
+        id: '$id',
+        route: 'Ruta creada (mock)',
+        scheduledTime: request.fechaProgramado,
+        shift: 'Mock',
+        unitCode: 'BUS-${request.busId}',
+        capacity: request.capacidad,
+        passengerCount: 0,
+        status: 'readyToStart',
+        startedAt: null,
+        completedAt: null,
+      ),
+    );
+    return CreateTripResponseDto(
+      viajeId: id,
+      numero: '$id',
+      estado: 'P',
+    );
   }
 }

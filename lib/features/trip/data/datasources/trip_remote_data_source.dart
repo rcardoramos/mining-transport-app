@@ -1,4 +1,5 @@
 import 'package:mining_transport_app/features/home/data/models/trip_model.dart';
+import 'package:mining_transport_app/features/trip/data/models/create_trip_dto.dart';
 
 /// Interfaz abstracta del Data Source remoto del módulo Trip.
 /// Define las operaciones de datos puras sin implementación tecnológica.
@@ -17,4 +18,7 @@ abstract class TripRemoteDataSource {
 
   /// Obtiene el detalle completo de un viaje por su ID.
   Future<TripModel> getTripDetail(String tripId);
+
+  /// Crea un viaje vía POST /api/Viaje/Crear.
+  Future<CreateTripResponseDto> createTrip(CreateTripRequestDto request);
 }

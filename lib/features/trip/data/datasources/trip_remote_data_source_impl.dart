@@ -3,6 +3,7 @@ import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/features/home/data/models/trip_model.dart';
+import 'package:mining_transport_app/features/trip/data/models/create_trip_dto.dart';
 import 'trip_remote_data_source.dart';
 
 /// Implementación real del [TripRemoteDataSource] que se comunica con
@@ -295,5 +296,34 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
 
     final wrapped = response.data as Map<String, dynamic>;
     return TripModel.fromJson(wrapped['Data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<CreateTripResponseDto> createTrip(CreateTripRequestDto request) async {
+    final response = await _dioClient.dio.post(
+      'api/Viaje/Crear',
+      data: request.toJson(),
+    );
+
+    final wrapped = response.data as Map<String, dynamic>;
+    if (wrapped['Success'] != true) {
+      final message = (wrapped['Message'] ??
+              wrapped['message'] ??
+              'No pudimos crear el viaje. Inténtelo nuevamente.')
+          .toString();
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        message: message,
+      );
+    }
+
+    final data = wrapped['Data'];
+    if (data is Map<String, dynamic>) {
+      return CreateTripResponseDto.fromJson(data);
+    }
+    // Algunos SP solo confirman Success sin Data detallada.
+    return CreateTripResponseDto(viajeId: 0);
   }
 }
