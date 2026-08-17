@@ -22,7 +22,25 @@ class CollaboratorModel with _$CollaboratorModel {
     final fullName = fullNameVal.toString();
 
     final statusVal = json['status'] ?? json['EstadoLaboral'] ?? 'OK';
-    final status = statusVal.toString();
+    var status = statusVal.toString();
+
+    // Contrato staging: AptoParaAbordar=false + EstadoLaboral=SUSPENSION.
+    // Si el estado no se reconoce y no es apto, no tratarlo como OK.
+    final aptoRaw = json['AptoParaAbordar'] ?? json['aptoParaAbordar'];
+    final apto = aptoRaw is bool
+        ? aptoRaw
+        : (aptoRaw?.toString().toLowerCase() == 'true'
+            ? true
+            : (aptoRaw?.toString().toLowerCase() == 'false' ? false : null));
+    if (apto == false) {
+      final normalized = status.trim().toUpperCase();
+      if (normalized.isEmpty ||
+          normalized == 'OK' ||
+          normalized == 'ACTIVO' ||
+          normalized == 'ACTIVE') {
+        status = 'SUSPENSION';
+      }
+    }
 
     final categoryVal = json['category'] ?? json['Empresa'] ?? json['categoria'] ?? 'Miski Mayo';
     final category = _normalizeCategory(categoryVal.toString());
@@ -84,6 +102,12 @@ CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {
   }
   if (clean == 'CESADO' || clean == 'INACTIVO' || clean == 'TERMINATED' || clean == 'CESADO_ALERT') {
     return CollaboratorStatus.terminated;
+  }
+  if (clean == 'SUSPENSION' ||
+      clean == 'SUSPENDIDO' ||
+      clean == 'SUSPENDED' ||
+      clean == 'SUSPENDIDO_ALERT') {
+    return CollaboratorStatus.suspended;
   }
   
   return CollaboratorStatus.values.firstWhere(

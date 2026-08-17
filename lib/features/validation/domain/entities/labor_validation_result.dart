@@ -9,6 +9,7 @@ enum LaborValidationStatus {
   warningMedicalLeave,
   warningLicense,
   blockedInactive,
+  blockedSuspended,
   blockedEmoExpired,
   blockedInductionExpired,
   blockedSecurity,

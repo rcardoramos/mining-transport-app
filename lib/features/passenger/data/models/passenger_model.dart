@@ -91,6 +91,12 @@ CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {
   if (clean == 'CESADO' || clean == 'INACTIVO' || clean == 'TERMINATED' || clean == 'CESADO_ALERT') {
     return CollaboratorStatus.terminated;
   }
+  if (clean == 'SUSPENSION' ||
+      clean == 'SUSPENDIDO' ||
+      clean == 'SUSPENDED' ||
+      clean == 'SUSPENDIDO_ALERT') {
+    return CollaboratorStatus.suspended;
+  }
   
   return CollaboratorStatus.values.firstWhere(
     (e) => e.name.toUpperCase() == clean,

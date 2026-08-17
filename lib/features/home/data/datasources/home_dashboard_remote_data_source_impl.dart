@@ -419,7 +419,9 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
                         ? 'LICENCIA'
                         : (status.toLowerCase() == 'terminated'
                             ? 'CESADO'
-                            : status.toUpperCase())))));
+                            : (status.toLowerCase() == 'suspended'
+                                ? 'SUSPENSION'
+                                : status.toUpperCase()))))));
 
     // Generar client UID único si no se provee
     final clientUid = uidCliente ?? const Uuid().v4();

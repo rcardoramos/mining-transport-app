@@ -125,6 +125,18 @@ class ValidationRepositoryImpl implements ValidationRepository {
         errorMessage: 'Acceso Denegado: Estado del trabajador cesado o inactivo.',
       );
     }
+    if (normalizedStatus == 'suspended' || normalizedStatus == 'suspension') {
+      return LaborValidationResult(
+        dni: passenger.docNumber,
+        fullName: fullName,
+        status: LaborValidationStatus.blockedSuspended,
+        category: passenger.companyName,
+        emoExpirationDate: passenger.emoExpirationDate,
+        inductionExpirationDate: passenger.inductionExpirationDate,
+        hasSecurityBlock: false,
+        errorMessage: 'Acceso Denegado: Colaborador suspendido.',
+      );
+    }
 
     // Regla 2: Examen médico ocupacional
     if (emoDate.isBefore(todayDate)) {
@@ -219,6 +231,8 @@ class ValidationRepositoryImpl implements ValidationRepository {
         return LaborValidationStatus.warningLicense;
       case CollaboratorStatus.terminated:
         return LaborValidationStatus.blockedInactive;
+      case CollaboratorStatus.suspended:
+        return LaborValidationStatus.blockedSuspended;
     }
   }
 
@@ -226,6 +240,8 @@ class ValidationRepositoryImpl implements ValidationRepository {
     switch (validationStatus) {
       case LaborValidationStatus.blockedInactive:
         return 'Acceso Denegado: Estado del trabajador cesado o inactivo.';
+      case LaborValidationStatus.blockedSuspended:
+        return 'Acceso Denegado: Colaborador suspendido.';
       case LaborValidationStatus.blockedSecurity:
         return 'Acceso Denegado: Colaborador con bloqueo administrativo o de seguridad activo.';
       case LaborValidationStatus.blockedEmoExpired:

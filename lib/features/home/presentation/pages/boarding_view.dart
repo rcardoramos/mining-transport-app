@@ -454,6 +454,19 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
+    } else if (validation.status == LaborValidationStatus.blockedSuspended) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => DesignDialog(
+            title: 'Acceso Denegado',
+            content:
+                'El colaborador ${validation.fullName} (DNI: $dni) se encuentra SUSPENDIDO.\n\nNo está permitido su embarque.',
+            confirmLabel: 'Entendido',
+            onConfirm: () {},
+          ),
+        );
+      }
     } else if (validation.status == LaborValidationStatus.blockedEmoExpired) {
       if (mounted) {
         showDialog(
@@ -1615,6 +1628,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                 if (passenger.status == CollaboratorStatus.vacation) statusLabel = 'Vacaciones';
                                 if (passenger.status == CollaboratorStatus.medicalLeave) statusLabel = 'DM';
                                 if (passenger.status == CollaboratorStatus.license) statusLabel = 'Licencia';
+                                if (passenger.status == CollaboratorStatus.suspended) statusLabel = 'Suspensión';
+                                if (passenger.status == CollaboratorStatus.terminated) statusLabel = 'Cesado';
 
                                 return DesignListTile(
                                   title: passenger.fullName,

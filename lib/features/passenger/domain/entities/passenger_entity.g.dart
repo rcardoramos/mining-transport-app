@@ -36,4 +36,5 @@ const _$CollaboratorStatusEnumMap = {
   CollaboratorStatus.medicalLeave: 'medicalLeave',
   CollaboratorStatus.license: 'license',
   CollaboratorStatus.terminated: 'terminated',
+  CollaboratorStatus.suspended: 'suspended',
 };

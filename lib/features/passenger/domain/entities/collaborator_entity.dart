@@ -4,7 +4,14 @@ part 'collaborator_entity.freezed.dart';
 part 'collaborator_entity.g.dart';
 
 /// Estatus del colaborador en relación a su derecho de embarque.
-enum CollaboratorStatus { ok, vacation, medicalLeave, license, terminated }
+enum CollaboratorStatus {
+  ok,
+  vacation,
+  medicalLeave,
+  license,
+  terminated,
+  suspended,
+}
 
 @freezed
 class CollaboratorEntity with _$CollaboratorEntity {

@@ -471,6 +471,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                         if (passenger.status == CollaboratorStatus.vacation) statusLabel = 'Vacaciones';
                         if (passenger.status == CollaboratorStatus.medicalLeave) statusLabel = 'DM';
                         if (passenger.status == CollaboratorStatus.license) statusLabel = 'Licencia';
+                        if (passenger.status == CollaboratorStatus.suspended) statusLabel = 'Suspensión';
+                        if (passenger.status == CollaboratorStatus.terminated) statusLabel = 'Cesado';
 
                         return DesignListTile(
                           title: passenger.fullName,
