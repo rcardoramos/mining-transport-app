@@ -29,16 +29,29 @@ class TripModel with _$TripModel {
     final id = idVal.toString();
 
     // 2. Parse Route (Ruta or route or RutaNombre or NombreRuta)
-    final routeRaw = json['route'] ?? json['Ruta'] ?? json['RutaNombre'] ?? json['NombreRuta'] ?? json['ruta'];
-    String route = 'Ruta Sin Nombre';
+    // Viaje/Obtener no incluye Ruta; no inventar placeholder aquí (rompe el merge con Historial).
+    final routeRaw = json['route'] ??
+        json['Ruta'] ??
+        json['RutaNombre'] ??
+        json['NombreRuta'] ??
+        json['DescripcionRuta'] ??
+        json['ruta'];
+    String route = '';
     if (routeRaw != null) {
       if (routeRaw is Map) {
-        final nameVal = routeRaw['nombre'] ?? routeRaw['Nombre'] ?? routeRaw['name'] ?? routeRaw['Name'] ?? routeRaw['Ruta'] ?? routeRaw['ruta'];
+        final nameVal = routeRaw['nombre'] ??
+            routeRaw['Nombre'] ??
+            routeRaw['name'] ??
+            routeRaw['Name'] ??
+            routeRaw['Descripcion'] ??
+            routeRaw['descripcion'] ??
+            routeRaw['Ruta'] ??
+            routeRaw['ruta'];
         if (nameVal != null) {
-          route = nameVal.toString();
+          route = nameVal.toString().trim();
         }
       } else {
-        route = routeRaw.toString();
+        route = routeRaw.toString().trim();
       }
     }
 

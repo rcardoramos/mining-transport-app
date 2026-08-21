@@ -248,7 +248,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
                 : updated.status),
         passengerCount: updated.passengerCount > 0 ? updated.passengerCount : t.passengerCount,
         capacity: updated.capacity > 0 ? updated.capacity : t.capacity,
-        route: updated.route.isNotEmpty ? updated.route : t.route,
+        route: isUsableTripRoute(updated.route) ? updated.route : t.route,
         unitCode: updated.unitCode.isNotEmpty ? updated.unitCode : t.unitCode,
         shift: updated.shift.isNotEmpty ? updated.shift : t.shift,
         startedAt: updated.startedAt ??

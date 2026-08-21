@@ -58,3 +58,11 @@ List<TripEntity> sortTripsByOperationalStatus(List<TripEntity> trips) {
   });
   return sorted;
 }
+
+/// `Viaje/Obtener` no trae Ruta; un placeholder no debe pisar el nombre de Historial/catálogo.
+bool isUsableTripRoute(String? route) {
+  final value = route?.trim() ?? '';
+  if (value.isEmpty) return false;
+  final normalized = value.toLowerCase();
+  return normalized != 'ruta sin nombre' && normalized != 'sin nombre';
+}

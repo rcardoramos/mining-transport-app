@@ -1010,7 +1010,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     final resolvedTrip = trip != null
         ? trip.copyWith(
-            route: (trip.route.isNotEmpty && trip.route != 'Ruta Sin Nombre')
+            route: isUsableTripRoute(trip.route)
                 ? trip.route
                 : (_detailedTrip?.route ?? trip.route),
             shift: (trip.shift.isNotEmpty && trip.shift != 'Día')
@@ -1558,7 +1558,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                        'DNI: ${passenger.dni} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
                                         style: DesignTypography.bodyMedium.copyWith(
                                           color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                                         ),
@@ -1607,7 +1607,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                         ? (isDark ? Colors.amber.shade900.withOpacity(0.4) : Colors.amber.shade100)
                                         : (isDark ? const Color(0xFF2D2D2D) : const Color(0xFFECECEC)),
                                     child: Text(
-                                      passenger.seatNumber ?? '${index + 1}',
+                                      '${index + 1}',
                                       style: DesignTypography.bodyMedium.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: isWarning

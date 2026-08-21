@@ -86,7 +86,7 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             shift: detailEntity.shift.isNotEmpty
                 ? detailEntity.shift
                 : entity.shift,
-            route: detailEntity.route.isNotEmpty
+            route: isUsableTripRoute(detailEntity.route)
                 ? detailEntity.route
                 : entity.route,
             unitCode: detailEntity.unitCode.isNotEmpty

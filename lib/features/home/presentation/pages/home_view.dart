@@ -930,7 +930,7 @@ class _TripResumenSheetState extends ConsumerState<_TripResumenSheet> {
         _trip = _trip.copyWith(
           passengerCount: detail.passengerCount,
           capacity: detail.capacity > 0 ? detail.capacity : _trip.capacity,
-          route: detail.route.isNotEmpty ? detail.route : _trip.route,
+          route: isUsableTripRoute(detail.route) ? detail.route : _trip.route,
           unitCode:
               detail.unitCode.isNotEmpty ? detail.unitCode : _trip.unitCode,
           startedAt: detail.startedAt ?? _trip.startedAt,
