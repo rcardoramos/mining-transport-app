@@ -1115,96 +1115,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             child: ListView(
               padding: DesignSpacing.allM,
               children: [
-          // Detalle de ruta + Paradero Activo arriba (contexto operativo).
-          DesignCard.status(
-            statusColor:
-                isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        activeTrip.route,
-                        style: DesignTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? DesignColors.textPrimaryDark
-                              : DesignColors.textPrimaryLight,
-                        ),
-                      ),
-                    ),
-                    DesignBadge(
-                      label: activeTrip.status == TripStatus.travelling ? 'En tránsito' : 'En curso',
-                      color: activeTrip.status == TripStatus.travelling ? colors.success : colors.info,
-                    ),
-                  ],
-                ),
-                DesignSpacing.spacerV12,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildMeta(Icons.access_time_rounded, 'Prog.',
-                        _formatTime(activeTrip.scheduledTime), isDark),
-                    _buildMeta(Icons.play_circle_fill_rounded, 'Inicio',
-                        _formatTime(activeTrip.startedAt), isDark),
-                    _buildMeta(Icons.directions_bus_rounded, 'Vehículo',
-                        activeTrip.unitCode, isDark),
-                  ],
-                ),
-                DesignSpacing.spacerV16,
-                const DesignDivider(),
-                DesignSpacing.spacerV16,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Ocupación actual',
-                      style: DesignTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? DesignColors.textPrimaryDark
-                            : DesignColors.textPrimaryLight,
-                      ),
-                    ),
-                    Text(
-                      '${activeTrip.passengerCount} / ${activeTrip.capacity}',
-                      style: DesignTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? DesignColors.primaryDark
-                            : DesignColors.primaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-                DesignSpacing.spacerV8,
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: occupancy.percentage,
-                    backgroundColor: isDark
-                        ? const Color(0xFF2C2C2C)
-                        : const Color(0xFFE5E7EB),
-                    color: isDark
-                        ? DesignColors.primaryDark
-                        : DesignColors.primaryLight,
-                    minHeight: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          DesignSpacing.spacerV24,
-          _buildParaderosCard(activeTrip, isDark, colors),
-          if (kDebugMode && EnvConfig.instance.allowsDebugTools)
-            _buildGpsSimulatorPanel(activeTrip, isDark, colors),
-
-          DesignSpacing.spacerV24,
-
-          // Acciones de registro (escaneo / manual / lista).
+          // 1) Acciones de registro (escaneo / manual / lista).
           // Habilitar controles cuando el bus esté en rango del paradero activo
           (() {
             return Opacity(
@@ -1738,6 +1649,105 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                     ),
                   )
                 : const SizedBox.shrink(key: ValueKey('passengers_hidden')),
+          ),
+
+          DesignSpacing.spacerV24,
+
+          // 2) Paradero Activo.
+          _buildParaderosCard(activeTrip, isDark, colors),
+          if (kDebugMode && EnvConfig.instance.allowsDebugTools)
+            _buildGpsSimulatorPanel(activeTrip, isDark, colors),
+
+          DesignSpacing.spacerV24,
+
+          // 3) Detalle de la ruta (consulta secundaria).
+          DesignCard.status(
+            statusColor:
+                isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        activeTrip.route,
+                        style: DesignTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? DesignColors.textPrimaryDark
+                              : DesignColors.textPrimaryLight,
+                        ),
+                      ),
+                    ),
+                    DesignBadge(
+                      label: activeTrip.status == TripStatus.travelling ? 'En tránsito' : 'En curso',
+                      color: activeTrip.status == TripStatus.travelling ? colors.success : colors.info,
+                    ),
+                  ],
+                ),
+                DesignSpacing.spacerV12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildMeta(
+                      Icons.calendar_today_rounded,
+                      'Fecha',
+                      PeruDateFormatter.formatDate(activeTrip.scheduledTime),
+                      isDark,
+                    ),
+                    _buildMeta(Icons.access_time_rounded, 'Prog.',
+                        _formatTime(activeTrip.scheduledTime), isDark),
+                    _buildMeta(Icons.play_circle_fill_rounded, 'Inicio',
+                        _formatTime(activeTrip.startedAt), isDark),
+                  ],
+                ),
+                DesignSpacing.spacerV12,
+                _buildMeta(Icons.directions_bus_rounded, 'Vehículo',
+                    activeTrip.unitCode, isDark),
+                DesignSpacing.spacerV16,
+                const DesignDivider(),
+                DesignSpacing.spacerV16,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Ocupación actual',
+                      style: DesignTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? DesignColors.textPrimaryDark
+                            : DesignColors.textPrimaryLight,
+                      ),
+                    ),
+                    Text(
+                      '${activeTrip.passengerCount} / ${activeTrip.capacity}',
+                      style: DesignTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? DesignColors.primaryDark
+                            : DesignColors.primaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+                DesignSpacing.spacerV8,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: occupancy.percentage,
+                    backgroundColor: isDark
+                        ? const Color(0xFF2C2C2C)
+                        : const Color(0xFFE5E7EB),
+                    color: isDark
+                        ? DesignColors.primaryDark
+                        : DesignColors.primaryLight,
+                    minHeight: 10,
+                  ),
+                ),
+              ],
+            ),
           ),
 
           DesignSpacing.spacerV32,

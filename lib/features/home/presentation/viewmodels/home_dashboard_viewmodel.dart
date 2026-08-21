@@ -92,8 +92,12 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     }
 
     final driverRaw = driverRes.successOrNull as DriverEntity;
-    final todayTrips = (todayRes.successOrNull as List).cast<TripEntity>();
-    final pendingTrips = (pendingRes.successOrNull as List).cast<TripEntity>();
+    final todayTrips = sortTripsByOperationalStatus(
+      (todayRes.successOrNull as List).cast<TripEntity>(),
+    );
+    final pendingTrips = sortTripsByOperationalStatus(
+      (pendingRes.successOrNull as List).cast<TripEntity>(),
+    );
     final summary = _summaryFromTodayTrips(todayTrips);
 
     // getDriverInfo no recibe todayTripsCount del backend (queda en 0);
@@ -132,16 +136,20 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     }
 
     TripEntity? patched;
-    final updatedToday = currentData.todayTrips.map((t) {
-      if (t.id != tripId) return t;
-      patched = patch(t);
-      return patched!;
-    }).toList();
-    final updatedPending = currentData.pendingTrips.map((t) {
-      if (t.id != tripId) return t;
-      patched = patch(t);
-      return patched!;
-    }).toList();
+    final updatedToday = sortTripsByOperationalStatus(
+      currentData.todayTrips.map((t) {
+        if (t.id != tripId) return t;
+        patched = patch(t);
+        return patched!;
+      }).toList(),
+    );
+    final updatedPending = sortTripsByOperationalStatus(
+      currentData.pendingTrips.map((t) {
+        if (t.id != tripId) return t;
+        patched = patch(t);
+        return patched!;
+      }).toList(),
+    );
 
     state = state.copyWith(
       isRefreshing: false,
@@ -165,7 +173,7 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     final alreadyInPending = data.pendingTrips.any((t) => t.id == trip.id);
     if (alreadyInToday || alreadyInPending) return;
 
-    final todayTrips = [trip, ...data.todayTrips];
+    final todayTrips = sortTripsByOperationalStatus([trip, ...data.todayTrips]);
     state = state.copyWith(
       data: data.copyWith(
         todayTrips: todayTrips,
@@ -304,18 +312,22 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       // Incrementar el aforo localmente en el State del ViewModel para visualización inmediata offline
       final currentData = state.data;
       if (currentData != null) {
-        final updatedToday = currentData.todayTrips.map((t) {
-          if (t.id == tripId) {
-            return t.copyWith(passengerCount: t.passengerCount + 1);
-          }
-          return t;
-        }).toList();
-        final updatedPending = currentData.pendingTrips.map((t) {
-          if (t.id == tripId) {
-            return t.copyWith(passengerCount: t.passengerCount + 1);
-          }
-          return t;
-        }).toList();
+        final updatedToday = sortTripsByOperationalStatus(
+          currentData.todayTrips.map((t) {
+            if (t.id == tripId) {
+              return t.copyWith(passengerCount: t.passengerCount + 1);
+            }
+            return t;
+          }).toList(),
+        );
+        final updatedPending = sortTripsByOperationalStatus(
+          currentData.pendingTrips.map((t) {
+            if (t.id == tripId) {
+              return t.copyWith(passengerCount: t.passengerCount + 1);
+            }
+            return t;
+          }).toList(),
+        );
         state = state.copyWith(
           isRefreshing: false,
           data: currentData.copyWith(
@@ -355,34 +367,38 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     if (updatedTrip != null) {
       final currentData = state.data;
       if (currentData != null) {
-        final updatedToday = currentData.todayTrips.map<TripEntity>((t) {
-          if (t.id == tripId) {
-            return t.copyWith(
-              passengerCount: updatedTrip.passengerCount,
-              status: updatedTrip.status,
-              startedAt: updatedTrip.startedAt ?? t.startedAt,
-              completedAt: updatedTrip.completedAt ?? t.completedAt,
-              stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
-                  ? updatedTrip.stops
-                  : t.stops,
-            );
-          }
-          return t;
-        }).toList();
-        final updatedPending = currentData.pendingTrips.map<TripEntity>((t) {
-          if (t.id == tripId) {
-            return t.copyWith(
-              passengerCount: updatedTrip.passengerCount,
-              status: updatedTrip.status,
-              startedAt: updatedTrip.startedAt ?? t.startedAt,
-              completedAt: updatedTrip.completedAt ?? t.completedAt,
-              stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
-                  ? updatedTrip.stops
-                  : t.stops,
-            );
-          }
-          return t;
-        }).toList();
+        final updatedToday = sortTripsByOperationalStatus(
+          currentData.todayTrips.map<TripEntity>((t) {
+            if (t.id == tripId) {
+              return t.copyWith(
+                passengerCount: updatedTrip.passengerCount,
+                status: updatedTrip.status,
+                startedAt: updatedTrip.startedAt ?? t.startedAt,
+                completedAt: updatedTrip.completedAt ?? t.completedAt,
+                stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
+                    ? updatedTrip.stops
+                    : t.stops,
+              );
+            }
+            return t;
+          }).toList(),
+        );
+        final updatedPending = sortTripsByOperationalStatus(
+          currentData.pendingTrips.map<TripEntity>((t) {
+            if (t.id == tripId) {
+              return t.copyWith(
+                passengerCount: updatedTrip.passengerCount,
+                status: updatedTrip.status,
+                startedAt: updatedTrip.startedAt ?? t.startedAt,
+                completedAt: updatedTrip.completedAt ?? t.completedAt,
+                stops: (updatedTrip.stops != null && updatedTrip.stops!.isNotEmpty)
+                    ? updatedTrip.stops
+                    : t.stops,
+              );
+            }
+            return t;
+          }).toList(),
+        );
         state = state.copyWith(
           data: currentData.copyWith(
             todayTrips: updatedToday,
@@ -410,20 +426,24 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     
     final currentData = state.data;
     if (currentData != null) {
-      final updatedToday = currentData.todayTrips.map((t) {
-        if (t.id == tripId) {
-          final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
-          return t.copyWith(stops: stops);
-        }
-        return t;
-      }).toList();
-      final updatedPending = currentData.pendingTrips.map((t) {
-        if (t.id == tripId) {
-          final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
-          return t.copyWith(stops: stops);
-        }
-        return t;
-      }).toList();
+      final updatedToday = sortTripsByOperationalStatus(
+        currentData.todayTrips.map((t) {
+          if (t.id == tripId) {
+            final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
+            return t.copyWith(stops: stops);
+          }
+          return t;
+        }).toList(),
+      );
+      final updatedPending = sortTripsByOperationalStatus(
+        currentData.pendingTrips.map((t) {
+          if (t.id == tripId) {
+            final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
+            return t.copyWith(stops: stops);
+          }
+          return t;
+        }).toList(),
+      );
       state = state.copyWith(
         isRefreshing: false,
         data: currentData.copyWith(

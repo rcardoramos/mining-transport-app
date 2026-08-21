@@ -95,13 +95,32 @@ class TripItemCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
+                  flex: 4,
+                  child: _buildDetailColumn(
+                    Icons.calendar_today_outlined,
+                    'Fecha',
+                    PeruDateFormatter.formatDate(trip.scheduledTime),
+                    isDark,
+                  ),
+                ),
+                Expanded(
                   flex: 3,
-                  child: _buildDetailColumn(Icons.access_time_outlined, 'Hora Prog.', _formatTime(trip.scheduledTime), isDark),
+                  child: _buildDetailColumn(
+                    Icons.access_time_outlined,
+                    'Hora Prog.',
+                    _formatTime(trip.scheduledTime),
+                    isDark,
+                  ),
                 ),
                 Expanded(
                   flex: 2,
                   child: _buildDetailColumn(Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
                 ),
+              ],
+            ),
+            DesignSpacing.spacerV12,
+            Row(
+              children: [
                 Expanded(
                   flex: 5,
                   child: _buildDetailColumn(Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),

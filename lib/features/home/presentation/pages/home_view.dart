@@ -293,7 +293,10 @@ class _HomeViewState extends ConsumerState<HomeView>
   }
 
   Widget _buildViajesTab(HomeDashboardData data) {
-    final allTrips = [...data.todayTrips, ...data.pendingTrips];
+    final allTrips = sortTripsByOperationalStatus([
+      ...data.todayTrips,
+      ...data.pendingTrips,
+    ]);
     final hasActiveTrip = allTrips.any(
       (t) => t.status == TripStatus.inProgress,
     );
@@ -970,6 +973,12 @@ class _TripResumenSheetState extends ConsumerState<_TripResumenSheet> {
             ),
             DesignSpacing.spacerV12,
             widget.buildSummaryRow('Ruta:', _trip.route, isDark),
+            const Divider(height: 12),
+            widget.buildSummaryRow(
+              'Fecha:',
+              PeruDateFormatter.formatDate(_trip.scheduledTime),
+              isDark,
+            ),
             const Divider(height: 12),
             widget.buildSummaryRow(
               'Hora Prog:',

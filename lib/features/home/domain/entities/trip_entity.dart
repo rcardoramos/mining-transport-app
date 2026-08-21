@@ -32,3 +32,29 @@ class TripEntity with _$TripEntity {
 
   factory TripEntity.fromJson(Map<String, dynamic> json) => _$TripEntityFromJson(json);
 }
+
+/// Orden operativo en Home: abiertos → pendientes → cerrados.
+/// Dentro de cada grupo, por hora programada ascendente.
+List<TripEntity> sortTripsByOperationalStatus(List<TripEntity> trips) {
+  int priority(TripStatus status) {
+    switch (status) {
+      case TripStatus.inProgress:
+      case TripStatus.travelling:
+        return 0;
+      case TripStatus.scheduled:
+      case TripStatus.readyToStart:
+        return 1;
+      case TripStatus.completed:
+      case TripStatus.cancelled:
+        return 2;
+    }
+  }
+
+  final sorted = [...trips];
+  sorted.sort((a, b) {
+    final byStatus = priority(a.status).compareTo(priority(b.status));
+    if (byStatus != 0) return byStatus;
+    return a.scheduledTime.compareTo(b.scheduledTime);
+  });
+  return sorted;
+}
