@@ -53,8 +53,8 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
     }
   }
 
-  /// Historial suele omitir aforo/capacidad. Para viajes abiertos pedimos
-  /// `Viaje/Obtener` en paralelo (1 call/viaje; sin Pasajero/Lista).
+  /// Historial suele omitir aforo/capacidad. Pedimos `Viaje/Obtener` en paralelo
+  /// para viajes no cancelados (incluye finalizados: el resumen/Home necesitan aforo).
   Future<List<TripEntity>> _mapTripsWithLocalTravellingFlag(
     List<TripModel> models,
   ) async {
@@ -63,17 +63,20 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
 
     return Future.wait(models.map((m) async {
       var entity = m.toEntity();
-      final isOpen = entity.status != TripStatus.completed &&
-          entity.status != TripStatus.cancelled;
+      final isCancelled = entity.status == TripStatus.cancelled;
+      final isOpen = entity.status != TripStatus.completed && !isCancelled;
 
       if (isOpen) {
         final isTravelling = await secureStorage.isTripTravelling(entity.id);
         if (isTravelling) {
           entity = entity.copyWith(status: TripStatus.travelling);
         }
+      }
 
+      if (!isCancelled) {
         try {
-          final detailEntity = (await tripRemote.getTripDetail(entity.id)).toEntity();
+          final detailEntity =
+              (await tripRemote.getTripDetail(entity.id)).toEntity();
           entity = entity.copyWith(
             passengerCount: detailEntity.passengerCount,
             capacity: detailEntity.capacity > 0
@@ -89,6 +92,8 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             unitCode: detailEntity.unitCode.isNotEmpty
                 ? detailEntity.unitCode
                 : entity.unitCode,
+            startedAt: detailEntity.startedAt ?? entity.startedAt,
+            completedAt: detailEntity.completedAt ?? entity.completedAt,
             stops: (detailEntity.stops != null &&
                     detailEntity.stops!.isNotEmpty)
                 ? detailEntity.stops

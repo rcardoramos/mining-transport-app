@@ -81,4 +81,10 @@ class EnvConfig {
     }
     return _instance!;
   }
+
+  bool get isProd => environment == AppEnvironment.prod;
+
+  /// Herramientas de simulación (GPS, escáner mock, etc.).
+  /// Ocultas en `ENV=prod` aunque el binario sea debug (`flutter run`).
+  bool get allowsDebugTools => environment != AppEnvironment.prod;
 }

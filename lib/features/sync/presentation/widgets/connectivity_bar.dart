@@ -74,7 +74,7 @@ class ConnectivityBar extends ConsumerWidget {
           
           // Texto interactivo de estado de conexión (Solo alternable en desarrollo/staging, no en producción)
           GestureDetector(
-            onTap: (kDebugMode && EnvConfig.instance.environment != AppEnvironment.prod)
+            onTap: (kDebugMode && EnvConfig.instance.allowsDebugTools)
                 ? () {
                     ref.read(syncProvider.notifier).toggleConnectionManual();
                     DesignSnackbar.showSuccess(

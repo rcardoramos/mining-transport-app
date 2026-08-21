@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import 'package:mining_transport_app/core/utils/logger.dart';
+import 'package:mining_transport_app/core/utils/person_name_formatter.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/audio/audio_service.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
@@ -25,6 +26,7 @@ import 'package:mining_transport_app/features/occupancy/domain/usecases/validate
 import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:mining_transport_app/core/constants/env_config.dart';
 import 'package:mining_transport_app/core/scanner/qr_scanner_page.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/features/manifest/domain/usecases/generate_manifest_usecase.dart';
@@ -64,6 +66,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPassengers();
       _loadTripDetail();
+      // En prod usar GPS real (el servicio arranca en modo simulado por defecto).
+      if (!EnvConfig.instance.allowsDebugTools) {
+        unawaited(_gpsService.startTrackingRealGps());
+      }
     });
     _currentPosition = _gpsService.currentPosition;
     _gpsSubscription = _gpsService.positionStream.listen((Position position) {
@@ -1109,7 +1115,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             child: ListView(
               padding: DesignSpacing.allM,
               children: [
-          // ── Cabecera con datos del viaje activo ──────────────────────────
+          // Detalle de ruta + Paradero Activo arriba (contexto operativo).
           DesignCard.status(
             statusColor:
                 isDark ? DesignColors.primaryDark : DesignColors.primaryLight,
@@ -1191,12 +1197,14 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
               ],
             ),
           ),
-
           DesignSpacing.spacerV24,
           _buildParaderosCard(activeTrip, isDark, colors),
-          if (kDebugMode)
+          if (kDebugMode && EnvConfig.instance.allowsDebugTools)
             _buildGpsSimulatorPanel(activeTrip, isDark, colors),
 
+          DesignSpacing.spacerV24,
+
+          // Acciones de registro (escaneo / manual / lista).
           // Habilitar controles cuando el bus esté en rango del paradero activo
           (() {
             return Opacity(
@@ -1221,7 +1229,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                         ? null
                         : () async {
                           String? scannedDni;
-                          if (kDebugMode) {
+                          if (kDebugMode && EnvConfig.instance.allowsDebugTools) {
                             // En modo desarrollo, permitir elegir entre cámara real y simulador
                             final choice = await showModalBottomSheet<String>(
                               context: context,
@@ -1632,7 +1640,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                 if (passenger.status == CollaboratorStatus.terminated) statusLabel = 'Cesado';
 
                                 return DesignListTile(
-                                  title: passenger.fullName,
+                                  title: PersonNameFormatter.shortDisplayName(
+                                    passenger.fullName,
+                                  ),
                                   subtitleWidget: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [

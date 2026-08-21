@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mining_transport_app/features/auth/presentation/viewmodels/login_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
@@ -14,6 +15,7 @@ import 'package:mining_transport_app/features/home/presentation/widgets/dashboar
 import 'package:mining_transport_app/features/home/presentation/widgets/create_trip_bottom_sheet.dart';
 import 'package:mining_transport_app/features/home/domain/entities/home_dashboard_data.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
 
 /// Vista principal de Dashboard (Home) del conductor con barra de navegación inferior.
 class HomeView extends ConsumerStatefulWidget {
@@ -832,96 +834,11 @@ class _HomeViewState extends ConsumerState<HomeView>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Resumen del Viaje',
-                      style: DesignTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? DesignColors.textPrimaryDark
-                            : DesignColors.textPrimaryLight,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                DesignSpacing.spacerV12,
-                _buildSummaryRow('Ruta:', trip.route, isDark),
-                const Divider(height: 12),
-                _buildSummaryRow(
-                  'Hora Prog:',
-                  _formatTime(trip.scheduledTime),
-                  isDark,
-                ),
-                const Divider(height: 12),
-                _buildSummaryRow(
-                  'Hora Inicio:',
-                  _formatTime(trip.startedAt),
-                  isDark,
-                ),
-                const Divider(height: 12),
-                _buildSummaryRow(
-                  'Hora Fin:',
-                  _formatTime(trip.completedAt),
-                  isDark,
-                ),
-                const Divider(height: 12),
-                _buildSummaryRow(
-                  'Pasajeros:',
-                  '${trip.passengerCount} de ${trip.capacity} pax',
-                  isDark,
-                ),
-                const Divider(height: 12),
-                _buildSummaryRow('Bus Asignado:', trip.unitCode, isDark),
-                DesignSpacing.spacerV16,
-                Text(
-                  'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
-                  style: DesignTypography.caption.copyWith(
-                    color: isDark
-                        ? DesignColors.textSecondaryDark
-                        : DesignColors.textSecondaryLight,
-                  ),
-                ),
-                DesignSpacing.spacerV20,
-                Row(
-                  children: [
-                    Expanded(
-                      child: DesignButton.outlined(
-                        text: 'Ver Manifiesto',
-                        icon: Icons.assignment_rounded,
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push('/dashboard/manifest/${trip.id}');
-                        },
-                        fullWidth: true,
-                      ),
-                    ),
-                    DesignSpacing.spacerH12,
-                    Expanded(
-                      child: DesignButton.primary(
-                        text: 'Aceptar',
-                        icon: Icons.check_rounded,
-                        onTap: () => Navigator.pop(context),
-                        fullWidth: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return _TripResumenSheet(
+          initialTrip: trip,
+          isDark: isDark,
+          formatTime: _formatTime,
+          buildSummaryRow: _buildSummaryRow,
         );
       },
     );
@@ -967,6 +884,157 @@ class _HomeViewState extends ConsumerState<HomeView>
         DesignSpacing.spacerV24,
         const DesignSkeletonLoader(height: 80),
       ],
+    );
+  }
+}
+
+/// Bottom sheet de resumen: refresca aforo con `Viaje/Obtener` al abrir.
+class _TripResumenSheet extends ConsumerStatefulWidget {
+  final TripEntity initialTrip;
+  final bool isDark;
+  final String Function(DateTime?) formatTime;
+  final Widget Function(String, String, bool) buildSummaryRow;
+
+  const _TripResumenSheet({
+    required this.initialTrip,
+    required this.isDark,
+    required this.formatTime,
+    required this.buildSummaryRow,
+  });
+
+  @override
+  ConsumerState<_TripResumenSheet> createState() => _TripResumenSheetState();
+}
+
+class _TripResumenSheetState extends ConsumerState<_TripResumenSheet> {
+  late TripEntity _trip;
+  bool _loadingAforo = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _trip = widget.initialTrip;
+    unawaited(_refreshAforo());
+  }
+
+  Future<void> _refreshAforo() async {
+    try {
+      final detail =
+          (await GetIt.I<TripRemoteDataSource>().getTripDetail(_trip.id))
+              .toEntity();
+      if (!mounted) return;
+      setState(() {
+        _trip = _trip.copyWith(
+          passengerCount: detail.passengerCount,
+          capacity: detail.capacity > 0 ? detail.capacity : _trip.capacity,
+          route: detail.route.isNotEmpty ? detail.route : _trip.route,
+          unitCode:
+              detail.unitCode.isNotEmpty ? detail.unitCode : _trip.unitCode,
+          startedAt: detail.startedAt ?? _trip.startedAt,
+          completedAt: detail.completedAt ?? _trip.completedAt,
+        );
+        _loadingAforo = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingAforo = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Resumen del Viaje',
+                  style: DesignTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? DesignColors.textPrimaryDark
+                        : DesignColors.textPrimaryLight,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            DesignSpacing.spacerV12,
+            widget.buildSummaryRow('Ruta:', _trip.route, isDark),
+            const Divider(height: 12),
+            widget.buildSummaryRow(
+              'Hora Prog:',
+              widget.formatTime(_trip.scheduledTime),
+              isDark,
+            ),
+            const Divider(height: 12),
+            widget.buildSummaryRow(
+              'Hora Inicio:',
+              widget.formatTime(_trip.startedAt),
+              isDark,
+            ),
+            const Divider(height: 12),
+            widget.buildSummaryRow(
+              'Hora Fin:',
+              widget.formatTime(_trip.completedAt),
+              isDark,
+            ),
+            const Divider(height: 12),
+            widget.buildSummaryRow(
+              'Pasajeros:',
+              _loadingAforo
+                  ? '… / ${_trip.capacity} pax'
+                  : '${_trip.passengerCount} de ${_trip.capacity} pax',
+              isDark,
+            ),
+            const Divider(height: 12),
+            widget.buildSummaryRow('Bus Asignado:', _trip.unitCode, isDark),
+            DesignSpacing.spacerV16,
+            Text(
+              'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
+              style: DesignTypography.caption.copyWith(
+                color: isDark
+                    ? DesignColors.textSecondaryDark
+                    : DesignColors.textSecondaryLight,
+              ),
+            ),
+            DesignSpacing.spacerV20,
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton.outlined(
+                    text: 'Ver Manifiesto',
+                    icon: Icons.assignment_rounded,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/dashboard/manifest/${_trip.id}');
+                    },
+                    fullWidth: true,
+                  ),
+                ),
+                DesignSpacing.spacerH12,
+                Expanded(
+                  child: DesignButton.primary(
+                    text: 'Aceptar',
+                    icon: Icons.check_rounded,
+                    onTap: () => Navigator.pop(context),
+                    fullWidth: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
