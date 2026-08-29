@@ -10,6 +10,8 @@ class PdfService {
     required TripEntity trip,
     required List<PassengerEntity> passengers,
     required String driverName,
+    String? driverDni,
+    String? driverLicense,
     String? tripStatusLabel,
     DateTime? generatedAt,
   }) async {
@@ -71,6 +73,10 @@ class PdfService {
                   _buildMetaRow('Placa:', trip.unitCode),
                   _buildMetaRow('Capacidad:', '${passengers.length} de ${trip.capacity} pax'),
                   _buildMetaRow('Chofer:', driverName),
+                  if (driverDni != null && driverDni.trim().isNotEmpty)
+                    _buildMetaRow('DNI Chofer:', driverDni.trim()),
+                  if (driverLicense != null && driverLicense.trim().isNotEmpty)
+                    _buildMetaRow('Licencia:', driverLicense.trim()),
                   _buildMetaRow('Estado:', status),
                   _buildMetaRow('Apertura:', PeruDateFormatter.formatTime12(trip.startedAt)),
                   _buildMetaRow('Cierre:', PeruDateFormatter.formatTime12(trip.completedAt)),

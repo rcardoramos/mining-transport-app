@@ -9,6 +9,8 @@ class ManifestSnapshot {
     this.headerRoute,
     this.headerPlate,
     this.headerDriverName,
+    this.headerDriverDni,
+    this.headerDriverLicense,
     this.headerShift,
     this.headerService,
     this.rawEstado,
@@ -20,6 +22,8 @@ class ManifestSnapshot {
   final String? headerRoute;
   final String? headerPlate;
   final String? headerDriverName;
+  final String? headerDriverDni;
+  final String? headerDriverLicense;
   final String? headerShift;
   final String? headerService;
   final String? rawEstado;
@@ -42,12 +46,16 @@ class ManifestGenerationResult {
     required this.snapshot,
     required this.trip,
     required this.driverName,
+    this.driverDni,
+    this.driverLicense,
     required this.generatedAt,
   });
 
   final ManifestSnapshot snapshot;
   final TripEntity trip;
   final String driverName;
+  final String? driverDni;
+  final String? driverLicense;
   final DateTime generatedAt;
 
   String get statusLabel {

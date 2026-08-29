@@ -8,6 +8,8 @@ class ManifestDto {
     this.route,
     this.plate,
     this.driverName,
+    this.driverDni,
+    this.driverLicense,
     this.shift,
     this.service,
     this.estado,
@@ -17,6 +19,8 @@ class ManifestDto {
   final String? route;
   final String? plate;
   final String? driverName;
+  final String? driverDni;
+  final String? driverLicense;
   final String? shift;
   final String? service;
   final String? estado;
@@ -43,6 +47,8 @@ class ManifestDto {
       route: _str(header, const ['Ruta', 'ruta', 'NombreRuta', 'route']),
       plate: _str(header, const ['Placa', 'placa', 'Bus', 'bus', 'unitCode']),
       driverName: _str(header, const ['Chofer', 'chofer', 'Conductor', 'conductor', 'NombreChofer']),
+      driverDni: _str(header, const ['DniChofer', 'dniChofer', 'DNIChofer', 'DniConductor', 'dni']),
+      driverLicense: _str(header, const ['Licencia', 'licencia', 'LicenciaChofer', 'NumeroLicencia', 'LicenciaConducir']),
       shift: _str(header, const ['Horario', 'horario', 'Turno', 'turno', 'shift']),
       service: _str(header, const ['Servicio', 'servicio', 'service']),
       estado: _str(header, const ['Estado', 'estado', 'status']) ??
@@ -56,6 +62,8 @@ class ManifestDto {
         headerRoute: route,
         headerPlate: plate,
         headerDriverName: driverName,
+        headerDriverDni: driverDni,
+        headerDriverLicense: driverLicense,
         headerShift: shift,
         headerService: service,
         rawEstado: estado,

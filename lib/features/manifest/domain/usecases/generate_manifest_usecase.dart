@@ -67,6 +67,8 @@ class GenerateManifestUseCase {
         driverName: snapshot.headerDriverName?.isNotEmpty == true
             ? snapshot.headerDriverName!
             : driverName,
+        driverDni: snapshot.headerDriverDni,
+        driverLicense: snapshot.headerDriverLicense,
         generatedAt: _clock.now(),
       ),
     );

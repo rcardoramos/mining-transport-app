@@ -29,6 +29,9 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
   List<PassengerEntity> _passengersList = [];
   bool _isLoadingPassengers = false;
   String? _loadError;
+  String? _headerDriverName;
+  String? _headerDriverDni;
+  String? _headerDriverLicense;
 
   @override
   void initState() {
@@ -54,10 +57,17 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
       _isLoadingPassengers = false;
       if (result.isFailure) {
         _passengersList = [];
+        _headerDriverName = null;
+        _headerDriverDni = null;
+        _headerDriverLicense = null;
         _loadError = result.failureOrNull?.message ??
             'No pudimos generar el manifiesto. Inténtelo nuevamente.';
       } else {
-        _passengersList = result.successOrNull?.passengers ?? [];
+        final snapshot = result.successOrNull;
+        _passengersList = snapshot?.passengers ?? [];
+        _headerDriverName = snapshot?.headerDriverName;
+        _headerDriverDni = snapshot?.headerDriverDni;
+        _headerDriverLicense = snapshot?.headerDriverLicense;
       }
     });
   }
@@ -164,7 +174,10 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
       return;
     }
 
-    final driverName = data?.driver.name ?? 'Chofer';
+    final driverName = (_headerDriverName != null &&
+            _headerDriverName!.trim().isNotEmpty)
+        ? _headerDriverName!.trim()
+        : (data?.driver.name ?? 'Chofer');
     final status = _statusLabel(trip);
     final now = DateTime.now();
     final fileBase =
@@ -213,6 +226,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                         trip: trip!,
                         passengers: _passengersList,
                         driverName: driverName,
+                        driverDni: _headerDriverDni,
+                        driverLicense: _headerDriverLicense,
                         tripStatusLabel: status,
                         generatedAt: now,
                       );
@@ -241,6 +256,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                         trip: trip!,
                         passengers: _passengersList,
                         driverName: driverName,
+                        driverDni: _headerDriverDni,
+                        driverLicense: _headerDriverLicense,
                         tripStatusLabel: status,
                         generatedAt: now,
                       );
@@ -281,7 +298,10 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
       } catch (_) {}
     }
 
-    final driverName = data?.driver.name ?? 'Chofer';
+    final driverName = (_headerDriverName != null &&
+            _headerDriverName!.trim().isNotEmpty)
+        ? _headerDriverName!.trim()
+        : (data?.driver.name ?? 'Chofer');
 
     if (trip == null) {
       return Scaffold(
@@ -394,6 +414,20 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             _buildTableRow('Placa:', trip.unitCode, isDark),
                             _buildTableRow('Capacidad:', '${_passengersList.length} de ${trip.capacity} pax', isDark),
                             _buildTableRow('Chofer:', driverName, isDark),
+                            if (_headerDriverDni != null &&
+                                _headerDriverDni!.trim().isNotEmpty)
+                              _buildTableRow(
+                                'DNI Chofer:',
+                                _headerDriverDni!.trim(),
+                                isDark,
+                              ),
+                            if (_headerDriverLicense != null &&
+                                _headerDriverLicense!.trim().isNotEmpty)
+                              _buildTableRow(
+                                'Licencia:',
+                                _headerDriverLicense!.trim(),
+                                isDark,
+                              ),
                             _buildTableRow('Apertura:', _formatTime12(trip.startedAt), isDark),
                             _buildTableRow('Cierre:', _formatTime12(trip.completedAt), isDark),
                           ],
