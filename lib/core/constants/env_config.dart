@@ -32,15 +32,15 @@ class EnvConfig {
   static const String _apiBaseUrlOverride =
       String.fromEnvironment('API_BASE_URL');
 
-  /// Fallbacks actuales por ambiente (comportamiento histórico del proyecto).
-  /// Hoy coinciden; cuando exista URL de producción real, actualizar solo
-  /// el caso [AppEnvironment.prod] o inyectar `API_BASE_URL` en CI.
+  /// Fallbacks por ambiente.
+  /// Dev/staging: servidor de pruebas. Prod: API real Mosaic.
+  /// Se puede sobreescribir con `API_BASE_URL` o `--dart-define-from-file`.
   static const String _defaultDevBaseUrl =
       'http://40.75.87.68/wsadryanbus/';
   static const String _defaultStagingBaseUrl =
       'http://40.75.87.68/wsadryanbus/';
   static const String _defaultProdBaseUrl =
-      'http://40.75.87.68/wsadryanbus/';
+      'https://adryanweb.mosaicco.com/AppBuses/wsadryanbus/';
 
   static void initialize(AppEnvironment env) {
     switch (env) {

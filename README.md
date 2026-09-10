@@ -123,8 +123,15 @@ flutter test
 Para generar los instaladores (.apk) optimizados para producción o pruebas, utiliza los siguientes comandos:
 
 #### Generar APK para Producción (Consumo de APIs Reales)
+API: `https://adryanweb.mosaicco.com/AppBuses/wsadryanbus/`
 ```bash
 flutter build apk --release --dart-define=ENV=prod
+```
+
+Opcional (override explícito desde archivo):
+```bash
+cp config/prod.example.json config/prod.json
+flutter build apk --release --dart-define-from-file=config/prod.json
 ```
 
 #### Generar APK para Staging (Consumo de APIs de Pruebas / Pre-Producción)
