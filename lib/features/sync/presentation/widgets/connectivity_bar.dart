@@ -72,22 +72,26 @@ class ConnectivityBar extends ConsumerWidget {
           ),
           DesignSpacing.spacerH8,
           
-          // Texto interactivo de estado de conexión (Solo alternable en desarrollo/staging, no en producción)
-          GestureDetector(
-            onTap: (kDebugMode && EnvConfig.instance.allowsDebugTools)
-                ? () {
-                    ref.read(syncProvider.notifier).toggleConnectionManual();
-                    DesignSnackbar.showSuccess(
-                      context,
-                      'Modo alternado a: ${ref.read(syncProvider).isOnline ? "Online" : "Offline"}',
-                    );
-                  }
-                : null,
-            child: Text(
-              syncState.isOnline ? 'Online • Sincronizado' : 'Offline • Datos locales',
-              style: DesignTypography.bodyMedium.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.bold,
+          // Texto interactivo de estado de conexión
+          Flexible(
+            child: GestureDetector(
+              onTap: (kDebugMode && EnvConfig.instance.allowsDebugTools)
+                  ? () {
+                      ref.read(syncProvider.notifier).toggleConnectionManual();
+                      DesignSnackbar.showSuccess(
+                        context,
+                        'Modo alternado a: ${ref.read(syncProvider).isOnline ? "Online" : "Offline"}',
+                      );
+                    }
+                  : null,
+              child: Text(
+                syncState.isOnline ? 'Online • Sincronizado' : 'Offline • Datos locales',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

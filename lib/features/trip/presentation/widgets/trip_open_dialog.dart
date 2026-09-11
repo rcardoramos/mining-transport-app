@@ -42,15 +42,21 @@ class _TripOpenDialogState extends State<TripOpenDialog> {
 
     return Dialog(
       backgroundColor: isDark ? DesignColors.surfaceDark : Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Header
               Row(
                 children: [
@@ -224,7 +230,9 @@ class _TripOpenDialogState extends State<TripOpenDialog> {
                   ),
                 ],
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

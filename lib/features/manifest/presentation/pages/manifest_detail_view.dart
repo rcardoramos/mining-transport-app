@@ -440,17 +440,23 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
 
                   // ── Passengers Section Title ─────────────────────────────────
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Pasajeros Registrados',
-                        style: DesignTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                      Expanded(
+                        child: Text(
+                          'Pasajeros Registrados',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: DesignTypography.titleMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                          ),
                         ),
                       ),
+                      DesignSpacing.spacerH8,
                       DesignBadge(
-                        label: '${_passengersList.length} PASAJEROS',
+                        label: MediaQuery.sizeOf(context).width < 360
+                            ? '${_passengersList.length}'
+                            : '${_passengersList.length} PASAJEROS',
                         color: colors.success,
                       ),
                     ],
@@ -515,47 +521,58 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                             children: [
                               Text(
                                 'DNI: ${passenger.dni} • Asiento: ${passenger.seatNumber ?? "-"} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: DesignTypography.bodyMedium.copyWith(
                                   color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                                 ),
                               ),
-                              if (passenger.registrationMethod.contains('_transit')) ...[
-                                DesignSpacing.spacerV4,
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.place_rounded,
-                                              size: 12,
-                                              color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Flexible(
-                                              child: Text(
-                                                passenger.registrationMethod.split(':').last,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: DesignTypography.caption.copyWith(
-                                                  color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                              DesignSpacing.spacerV4,
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  _buildCategoryBadge(passenger.category, isDark),
+                                  if (isWarning)
+                                    Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: isDark ? Colors.amberAccent : Colors.amber.shade900,
+                                      size: 18,
+                                    ),
+                                  if (passenger.registrationMethod.contains('_transit'))
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.place_rounded,
+                                            size: 12,
+                                            color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 140),
+                                            child: Text(
+                                              passenger.registrationMethod.split(':').last,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: DesignTypography.caption.copyWith(
+                                                color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ],
                           ),
                           leading: CircleAvatar(
@@ -572,29 +589,14 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                               ),
                             ),
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildCategoryBadge(passenger.category, isDark),
-                              DesignSpacing.spacerH8,
-                              if (isWarning) ...[
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: isDark ? Colors.amberAccent : Colors.amber.shade900,
-                                  size: 20,
-                                ),
-                                DesignSpacing.spacerH8,
-                              ],
-                              Icon(
-                                passenger.registrationMethod.startsWith('qr_scan')
-                                    ? Icons.qr_code_scanner_rounded
-                                    : Icons.keyboard_rounded,
-                                color: isDark
-                                    ? DesignColors.textSecondaryDark
-                                    : DesignColors.textSecondaryLight,
-                                size: 20,
-                              ),
-                            ],
+                          trailing: Icon(
+                            passenger.registrationMethod.startsWith('qr_scan')
+                                ? Icons.qr_code_scanner_rounded
+                                : Icons.keyboard_rounded,
+                            color: isDark
+                                ? DesignColors.textSecondaryDark
+                                : DesignColors.textSecondaryLight,
+                            size: 20,
                           ),
                         );
                       },
@@ -635,6 +637,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
           padding: const EdgeInsets.symmetric(vertical: 6.0),
           child: Text(
             value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: DesignTypography.bodyMedium.copyWith(
               fontWeight: FontWeight.bold,
               color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,

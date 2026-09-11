@@ -79,12 +79,15 @@ class TripItemCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     trip.route,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: DesignTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
                     ),
                   ),
                 ),
+                DesignSpacing.spacerH8,
                 DesignBadge(
                   label: _getStatusText(trip.status),
                   color: statusColor,

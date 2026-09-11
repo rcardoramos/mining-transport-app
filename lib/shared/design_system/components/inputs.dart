@@ -379,10 +379,15 @@ class DesignSwitch extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label!,
-            style: DesignTypography.bodyLarge,
+          Expanded(
+            child: Text(
+              label!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: DesignTypography.bodyLarge,
+            ),
           ),
+          DesignSpacing.spacerH8,
           switchWidget,
         ],
       );

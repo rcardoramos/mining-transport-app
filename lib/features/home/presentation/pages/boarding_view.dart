@@ -484,11 +484,15 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 children: [
                   const Icon(Icons.medical_services_rounded, color: Colors.orange, size: 28),
                   const SizedBox(width: 8),
-                  Text(
-                    'Examen Médico Vencido',
-                    style: DesignTypography.titleMedium.copyWith(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Examen Médico Vencido',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.titleMedium.copyWith(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -549,11 +553,15 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 children: [
                   const Icon(Icons.gpp_bad_rounded, color: Colors.red, size: 28),
                   const SizedBox(width: 8),
-                  Text(
-                    'Inducción Vencida',
-                    style: DesignTypography.titleMedium.copyWith(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Inducción Vencida',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.titleMedium.copyWith(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -1473,18 +1481,22 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Lista de Pasajeros',
-                                style: DesignTypography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? DesignColors.textPrimaryDark
-                                      : DesignColors.textPrimaryLight,
+                              Expanded(
+                                child: Text(
+                                  'Lista de Pasajeros',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: DesignTypography.bodyLarge.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? DesignColors.textPrimaryDark
+                                        : DesignColors.textPrimaryLight,
+                                  ),
                                 ),
                               ),
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (_isLoadingPassengers) ...[
                                     const SizedBox(
@@ -1559,47 +1571,58 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                     children: [
                                       Text(
                                         'DNI: ${passenger.dni} • $timeStr${isWarning ? ' • [$statusLabel]' : ''}',
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                         style: DesignTypography.bodyMedium.copyWith(
                                           color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                                         ),
                                       ),
-                                      if (passenger.registrationMethod.contains('_transit')) ...[
-                                        DesignSpacing.spacerV4,
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.place_rounded,
-                                                      size: 12,
-                                                      color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Flexible(
-                                                      child: Text(
-                                                        passenger.registrationMethod.split(':').last,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        style: DesignTypography.caption.copyWith(
-                                                          color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
+                                      DesignSpacing.spacerV4,
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          _buildCategoryBadge(passenger.category, isDark),
+                                          if (isWarning)
+                                            Icon(
+                                              Icons.warning_amber_rounded,
+                                              color: isDark ? Colors.amberAccent : Colors.amber.shade900,
+                                              size: 18,
+                                            ),
+                                          if (passenger.registrationMethod.contains('_transit'))
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.place_rounded,
+                                                    size: 12,
+                                                    color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  ConstrainedBox(
+                                                    constraints: const BoxConstraints(maxWidth: 140),
+                                                    child: Text(
+                                                      passenger.registrationMethod.split(':').last,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: DesignTypography.caption.copyWith(
+                                                        color: isDark ? Colors.blue.shade100 : Colors.blue.shade800,
+                                                        fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ],
                                   ),
                                   leading: CircleAvatar(
@@ -1616,29 +1639,14 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                       ),
                                     ),
                                   ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _buildCategoryBadge(passenger.category, isDark),
-                                      DesignSpacing.spacerH8,
-                                      if (isWarning) ...[
-                                        Icon(
-                                          Icons.warning_amber_rounded,
-                                          color: isDark ? Colors.amberAccent : Colors.amber.shade900,
-                                          size: 20,
-                                        ),
-                                        DesignSpacing.spacerH8,
-                                      ],
-                                      Icon(
-                                        passenger.registrationMethod.startsWith('qr_scan')
-                                            ? Icons.qr_code_scanner_rounded
-                                            : Icons.keyboard_rounded,
-                                        color: isDark
-                                            ? DesignColors.textSecondaryDark
-                                            : DesignColors.textSecondaryLight,
-                                        size: 20,
-                                      ),
-                                    ],
+                                  trailing: Icon(
+                                    passenger.registrationMethod.startsWith('qr_scan')
+                                        ? Icons.qr_code_scanner_rounded
+                                        : Icons.keyboard_rounded,
+                                    color: isDark
+                                        ? DesignColors.textSecondaryDark
+                                        : DesignColors.textSecondaryLight,
+                                    size: 20,
                                   ),
                                 );
                               },
@@ -1673,6 +1681,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                     Expanded(
                       child: Text(
                         activeTrip.route,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: DesignTypography.titleMedium.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark
@@ -1689,18 +1699,23 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 ),
                 DesignSpacing.spacerV12,
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildMeta(
-                      Icons.calendar_today_rounded,
-                      'Fecha',
-                      PeruDateFormatter.formatDate(activeTrip.scheduledTime),
-                      isDark,
+                    Expanded(
+                      child: _buildMeta(
+                        Icons.calendar_today_rounded,
+                        'Fecha',
+                        PeruDateFormatter.formatDate(activeTrip.scheduledTime),
+                        isDark,
+                      ),
                     ),
-                    _buildMeta(Icons.access_time_rounded, 'Prog.',
-                        _formatTime(activeTrip.scheduledTime), isDark),
-                    _buildMeta(Icons.play_circle_fill_rounded, 'Inicio',
-                        _formatTime(activeTrip.startedAt), isDark),
+                    Expanded(
+                      child: _buildMeta(Icons.access_time_rounded, 'Prog.',
+                          _formatTime(activeTrip.scheduledTime), isDark),
+                    ),
+                    Expanded(
+                      child: _buildMeta(Icons.play_circle_fill_rounded, 'Inicio',
+                          _formatTime(activeTrip.startedAt), isDark),
+                    ),
                   ],
                 ),
                 DesignSpacing.spacerV12,
@@ -1827,27 +1842,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.place_rounded,
-                      color: inRange ? colors.success : colors.warning,
-                      size: 24,
-                    ),
-                    DesignSpacing.spacerH8,
-                    Text(
-                      'Paradero Activo (Orden ${activeStop.sequenceOrder})',
-                      style: DesignTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  Icons.place_rounded,
+                  color: inRange ? colors.success : colors.warning,
+                  size: 24,
                 ),
+                DesignSpacing.spacerH8,
+                Expanded(
+                  child: Text(
+                    'Paradero Activo (Orden ${activeStop.sequenceOrder})',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DesignTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                DesignSpacing.spacerH8,
                 DesignBadge(
-                  label: inRange ? 'En rango' : 'Fuera de rango',
+                  label: inRange
+                      ? 'En rango'
+                      : (MediaQuery.sizeOf(context).width < 360
+                          ? 'Fuera'
+                          : 'Fuera de rango'),
                   color: inRange ? colors.success : colors.warning,
                 ),
               ],
@@ -1855,6 +1874,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             DesignSpacing.spacerV12,
             Text(
               activeStop.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: DesignTypography.titleLarge.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
@@ -1926,23 +1947,29 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
         ),
         DesignSpacing.spacerH8,
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: DesignTypography.caption.copyWith(
-                color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.caption.copyWith(
+                  color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                ),
               ),
-            ),
-            Text(
-              value,
-              style: DesignTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -2070,13 +2097,17 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                     ? DesignColors.textSecondaryDark
                     : DesignColors.textSecondaryLight),
             DesignSpacing.spacerH4,
-            Text(
-              label,
-              style: DesignTypography.caption.copyWith(
-                color: isDark
-                    ? DesignColors.textSecondaryDark
-                    : DesignColors.textSecondaryLight,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.caption.copyWith(
+                  color: isDark
+                      ? DesignColors.textSecondaryDark
+                      : DesignColors.textSecondaryLight,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -2084,6 +2115,8 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         DesignSpacing.spacerV4,
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: DesignTypography.bodyMedium.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark

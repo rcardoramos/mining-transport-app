@@ -437,6 +437,8 @@ class _ReadonlyField extends StatelessWidget {
       ),
       child: Text(
         value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: DesignTypography.bodyLarge.copyWith(
           color: isDark
               ? DesignColors.textPrimaryDark

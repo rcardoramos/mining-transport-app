@@ -21,39 +21,44 @@ class DashboardStatsSection extends StatelessWidget {
       children: [
         const DesignSectionHeader(title: 'Resumen de Indicadores'),
         DesignSpacing.spacerV8,
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.85,
-          children: [
-            _buildStatCard(
-              context,
-              '${summary.completedTrips}',
-              'Viajes Concluidos',
-              Icons.directions_bus_rounded,
-              colors.success,
-              isDark,
-            ),
-            _buildStatCard(
-              context,
-              '${summary.passengersTransported}',
-              'Pasajeros',
-              Icons.people_rounded,
-              colors.info,
-              isDark,
-            ),
-            _buildStatCard(
-              context,
-              '${summary.observationsRegistered}',
-              'Reportes / Obs.',
-              Icons.assignment_late_rounded,
-              colors.danger,
-              isDark,
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360;
+            return GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: compact ? 8 : 12,
+              mainAxisSpacing: compact ? 8 : 12,
+              childAspectRatio: compact ? 0.72 : 0.85,
+              children: [
+                _buildStatCard(
+                  context,
+                  '${summary.completedTrips}',
+                  'Viajes Concluidos',
+                  Icons.directions_bus_rounded,
+                  colors.success,
+                  isDark,
+                ),
+                _buildStatCard(
+                  context,
+                  '${summary.passengersTransported}',
+                  'Pasajeros',
+                  Icons.people_rounded,
+                  colors.info,
+                  isDark,
+                ),
+                _buildStatCard(
+                  context,
+                  '${summary.observationsRegistered}',
+                  'Reportes / Obs.',
+                  Icons.assignment_late_rounded,
+                  colors.danger,
+                  isDark,
+                ),
+              ],
+            );
+          },
         ),
       ],
     );

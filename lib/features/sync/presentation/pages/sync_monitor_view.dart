@@ -109,39 +109,46 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
               child: Column(
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Estado de Conexión',
-                            style: DesignTypography.bodyMedium.copyWith(
-                              color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Estado de Conexión',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: DesignTypography.bodyMedium.copyWith(
+                                color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                              ),
                             ),
-                          ),
-                          DesignSpacing.spacerV4,
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: syncState.isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                                  shape: BoxShape.circle,
+                            DesignSpacing.spacerV4,
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: syncState.isOnline ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              DesignSpacing.spacerH8,
-                              Text(
-                                syncState.isOnline ? 'Online (Conectado)' : 'Offline (Desconectado)',
-                                style: DesignTypography.titleMedium.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                                DesignSpacing.spacerH8,
+                                Expanded(
+                                  child: Text(
+                                    syncState.isOnline ? 'Online (Conectado)' : 'Offline (Desconectado)',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: DesignTypography.titleMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       Switch.adaptive(
                         value: syncState.isOnline,
@@ -157,18 +164,23 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
                   const DesignDivider(),
                   DesignSpacing.spacerV16,
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatColumn('Pendientes', '${syncState.pendingSyncCount}', Colors.amber),
-                      _buildStatColumn(
-                        'Total Historial',
-                        '${_queueHistory.length}',
-                        isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                      Expanded(
+                        child: _buildStatColumn('Pendientes', '${syncState.pendingSyncCount}', Colors.amber),
                       ),
-                      _buildStatColumn(
-                        'Procesando',
-                        syncState.isSyncing ? 'SÍ' : 'NO',
-                        syncState.isSyncing ? Colors.blue : Colors.grey,
+                      Expanded(
+                        child: _buildStatColumn(
+                          MediaQuery.sizeOf(context).width < 360 ? 'Historial' : 'Total Historial',
+                          '${_queueHistory.length}',
+                          isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildStatColumn(
+                          'Procesando',
+                          syncState.isSyncing ? 'SÍ' : 'NO',
+                          syncState.isSyncing ? Colors.blue : Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -281,6 +293,8 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
                       children: [
                         Text(
                           payloadText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: DesignTypography.bodyMedium.copyWith(
                             fontWeight: FontWeight.w600,
                             color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
@@ -289,6 +303,8 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
                         DesignSpacing.spacerV4,
                         Text(
                           'Intentos: ${item.attempts} • Creado: ${item.createdAt.toLocal().toString().split('.').first}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: DesignTypography.caption.copyWith(
                             color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
                           ),
@@ -346,6 +362,8 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
       children: [
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: DesignTypography.titleLarge.copyWith(
             fontWeight: FontWeight.w900,
             color: color,
@@ -354,6 +372,9 @@ class _SyncMonitorViewState extends ConsumerState<SyncMonitorView> {
         DesignSpacing.spacerV4,
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: DesignTypography.caption.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,

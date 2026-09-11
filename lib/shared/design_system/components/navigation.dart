@@ -71,7 +71,12 @@ class DesignBottomNavigation extends StatelessWidget {
     final bgColor = isDark ? const Color(0xFF1E1E24) : Colors.white;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      margin: EdgeInsets.fromLTRB(
+        MediaQuery.sizeOf(context).width < 360 ? 12 : 24,
+        0,
+        MediaQuery.sizeOf(context).width < 360 ? 12 : 24,
+        MediaQuery.sizeOf(context).width < 360 ? 12 : 20,
+      ),
       height: 72,
       decoration: BoxDecoration(
         color: bgColor,
@@ -88,12 +93,15 @@ class DesignBottomNavigation extends StatelessWidget {
       child: ClipRRect(
         borderRadius: DesignRadius.allBottomNav,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.sizeOf(context).width < 360 ? 4 : 8,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(items.length, (index) {
               final item = items[index];
               final isSelected = index == currentIndex;
+              final compact = MediaQuery.sizeOf(context).width < 360;
 
               return Expanded(
                 child: GestureDetector(
@@ -105,17 +113,20 @@ class DesignBottomNavigation extends StatelessWidget {
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOut,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 8 : 16,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected 
-                              ? activeColor.withOpacity(0.1) 
+                          color: isSelected
+                              ? activeColor.withOpacity(0.1)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
                           (item.icon as Icon).icon,
                           color: isSelected ? activeColor : inactiveColor,
-                          size: 22,
+                          size: compact ? 20 : 22,
                         ),
                       ),
                       DesignSpacing.spacerV4,
@@ -213,11 +224,15 @@ class DesignSectionHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: DesignTypography.titleMedium.copyWith(
-              color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DesignTypography.titleMedium.copyWith(
+                color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           if (actionLabel != null && onAction != null)
@@ -264,6 +279,8 @@ class DesignListTile extends StatelessWidget {
     return ListTile(
       title: Text(
         title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: DesignTypography.bodyLarge.copyWith(
           color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
           fontWeight: FontWeight.w600,
@@ -272,6 +289,8 @@ class DesignListTile extends StatelessWidget {
       subtitle: subtitleWidget ?? (subtitle != null
           ? Text(
               subtitle!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: DesignTypography.bodyMedium.copyWith(
                 color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
               ),
@@ -281,7 +300,10 @@ class DesignListTile extends StatelessWidget {
       trailing: trailing,
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: DesignRadius.allMedium),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 360 ? 8 : 16,
+        vertical: 4,
+      ),
     );
   }
 }

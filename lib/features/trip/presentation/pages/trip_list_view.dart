@@ -5,7 +5,6 @@ import 'package:mining_transport_app/features/home/domain/entities/trip_entity.d
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
 import '../viewmodels/trip_viewmodel.dart';
-import '../widgets/trip_open_dialog.dart';
 import '../widgets/trip_close_dialog.dart';
 
 /// Pantalla principal de gestión de viajes.
@@ -288,11 +287,12 @@ class _TripListViewState extends ConsumerState<TripListView>
           children: [
             // Header: ruta + badge
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     trip.route,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: DesignTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDark
@@ -312,19 +312,26 @@ class _TripListViewState extends ConsumerState<TripListView>
 
             // Info rápida
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildInfoCell(
-                    Icons.access_time_outlined,
-                    'Hora',
-                    PeruDateFormatter.formatTime(trip.scheduledTime),
-                    isDark),
-                _buildInfoCell(
-                    Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
-                _buildInfoCell(
-                    Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),
-                _buildInfoCell(Icons.people_alt_outlined, 'Cap.',
-                    '${trip.capacity}', isDark),
+                Expanded(
+                  child: _buildInfoCell(
+                      Icons.access_time_outlined,
+                      'Hora',
+                      PeruDateFormatter.formatTime(trip.scheduledTime),
+                      isDark),
+                ),
+                Expanded(
+                  child: _buildInfoCell(
+                      Icons.wb_sunny_outlined, 'Turno', trip.shift, isDark),
+                ),
+                Expanded(
+                  child: _buildInfoCell(
+                      Icons.directions_bus_outlined, 'Bus', trip.unitCode, isDark),
+                ),
+                Expanded(
+                  child: _buildInfoCell(Icons.people_alt_outlined, 'Cap.',
+                      '${trip.capacity}', isDark),
+                ),
               ],
             ),
 
@@ -334,18 +341,21 @@ class _TripListViewState extends ConsumerState<TripListView>
               const DesignDivider(),
               DesignSpacing.spacerV12,
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildInfoCell(
-                      Icons.play_circle_outline_rounded,
-                      'Inicio',
-                      PeruDateFormatter.formatTime(trip.startedAt),
-                      isDark),
-                  _buildInfoCell(
-                      Icons.people_outline_rounded,
-                      'Pasajeros',
-                      '${trip.passengerCount} / ${trip.capacity}',
-                      isDark),
+                  Expanded(
+                    child: _buildInfoCell(
+                        Icons.play_circle_outline_rounded,
+                        'Inicio',
+                        PeruDateFormatter.formatTime(trip.startedAt),
+                        isDark),
+                  ),
+                  Expanded(
+                    child: _buildInfoCell(
+                        Icons.people_outline_rounded,
+                        'Pasajeros',
+                        '${trip.passengerCount} / ${trip.capacity}',
+                        isDark),
+                  ),
                 ],
               ),
               DesignSpacing.spacerV12,
@@ -431,13 +441,17 @@ class _TripListViewState extends ConsumerState<TripListView>
                     ? DesignColors.textSecondaryDark
                     : DesignColors.textSecondaryLight),
             DesignSpacing.spacerH4,
-            Text(
-              label,
-              style: DesignTypography.caption.copyWith(
-                color: isDark
-                    ? DesignColors.textSecondaryDark
-                    : DesignColors.textSecondaryLight,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.caption.copyWith(
+                  color: isDark
+                      ? DesignColors.textSecondaryDark
+                      : DesignColors.textSecondaryLight,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -445,6 +459,8 @@ class _TripListViewState extends ConsumerState<TripListView>
         DesignSpacing.spacerV4,
         Text(
           value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: DesignTypography.bodyMedium.copyWith(
             fontWeight: FontWeight.bold,
             color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,

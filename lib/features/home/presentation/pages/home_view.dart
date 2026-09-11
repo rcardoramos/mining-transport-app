@@ -401,40 +401,48 @@ class _HomeViewState extends ConsumerState<HomeView>
     return DesignCard.basic(
       onTap: onTap,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                code,
-                style: DesignTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? DesignColors.textPrimaryDark
-                      : DesignColors.textPrimaryLight,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? DesignColors.textPrimaryDark
+                        : DesignColors.textPrimaryLight,
+                  ),
                 ),
-              ),
-              DesignSpacing.spacerV4,
-              Text(
-                route,
-                style: DesignTypography.bodyMedium.copyWith(
-                  color: isDark
-                      ? DesignColors.textPrimaryDark
-                      : DesignColors.textPrimaryLight,
+                DesignSpacing.spacerV4,
+                Text(
+                  route,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.bodyMedium.copyWith(
+                    color: isDark
+                        ? DesignColors.textPrimaryDark
+                        : DesignColors.textPrimaryLight,
+                  ),
                 ),
-              ),
-              DesignSpacing.spacerV4,
-              Text(
-                passengers,
-                style: DesignTypography.caption.copyWith(
-                  color: isDark
-                      ? DesignColors.textSecondaryDark
-                      : DesignColors.textSecondaryLight,
+                DesignSpacing.spacerV4,
+                Text(
+                  passengers,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.caption.copyWith(
+                    color: isDark
+                        ? DesignColors.textSecondaryDark
+                        : DesignColors.textSecondaryLight,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          DesignSpacing.spacerH8,
           DesignBadge(
             label: status,
             color: completed ? colors.success : colors.warning,
@@ -702,19 +710,24 @@ class _HomeViewState extends ConsumerState<HomeView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Detalle del Turno: $dateStr',
-                style: DesignTypography.bodyMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isDark
-                      ? DesignColors.textPrimaryDark
-                      : DesignColors.textPrimaryLight,
+              Expanded(
+                child: Text(
+                  'Detalle del Turno: $dateStr',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? DesignColors.textPrimaryDark
+                        : DesignColors.textPrimaryLight,
+                  ),
                 ),
               ),
-              if (isToday)
+              if (isToday) ...[
+                DesignSpacing.spacerH8,
                 const DesignBadge(label: 'Activo', color: Colors.blue),
+              ],
             ],
           ),
           DesignSpacing.spacerV12,
@@ -736,21 +749,29 @@ class _HomeViewState extends ConsumerState<HomeView>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: DesignTypography.bodyMedium.copyWith(
-              color: isDark
-                  ? DesignColors.textPrimaryDark
-                  : DesignColors.textPrimaryLight,
+          Flexible(
+            flex: 2,
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: DesignTypography.bodyMedium.copyWith(
+                color: isDark
+                    ? DesignColors.textPrimaryDark
+                    : DesignColors.textPrimaryLight,
+              ),
             ),
           ),
           DesignSpacing.spacerH16,
-          Expanded(
+          Flexible(
+            flex: 3,
             child: Text(
               value,
               textAlign: TextAlign.end,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: DesignTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isDark
@@ -830,6 +851,7 @@ class _HomeViewState extends ConsumerState<HomeView>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: isDark
           ? DesignColors.surfaceDark
           : DesignColors.surfaceLight,
@@ -849,24 +871,36 @@ class _HomeViewState extends ConsumerState<HomeView>
 
   Widget _buildSummaryRow(String label, String value, bool isDark) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: DesignTypography.bodyMedium.copyWith(
-            color: isDark
-                ? DesignColors.textSecondaryDark
-                : DesignColors.textSecondaryLight,
-            fontWeight: FontWeight.w500,
+        Flexible(
+          flex: 2,
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: DesignTypography.bodyMedium.copyWith(
+              color: isDark
+                  ? DesignColors.textSecondaryDark
+                  : DesignColors.textSecondaryLight,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-        Text(
-          value,
-          style: DesignTypography.bodyMedium.copyWith(
-            color: isDark
-                ? DesignColors.textPrimaryDark
-                : DesignColors.textPrimaryLight,
-            fontWeight: FontWeight.bold,
+        DesignSpacing.spacerH12,
+        Flexible(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: DesignTypography.bodyMedium.copyWith(
+              color: isDark
+                  ? DesignColors.textPrimaryDark
+                  : DesignColors.textPrimaryLight,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -947,101 +981,106 @@ class _TripResumenSheetState extends ConsumerState<_TripResumenSheet> {
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Resumen del Viaje',
-                  style: DesignTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? DesignColors.textPrimaryDark
-                        : DesignColors.textPrimaryLight,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Resumen del Viaje',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? DesignColors.textPrimaryDark
+                            : DesignColors.textPrimaryLight,
+                      ),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            DesignSpacing.spacerV12,
-            widget.buildSummaryRow('Ruta:', _trip.route, isDark),
-            const Divider(height: 12),
-            widget.buildSummaryRow(
-              'Fecha:',
-              PeruDateFormatter.formatDate(_trip.scheduledTime),
-              isDark,
-            ),
-            const Divider(height: 12),
-            widget.buildSummaryRow(
-              'Hora Prog:',
-              widget.formatTime(_trip.scheduledTime),
-              isDark,
-            ),
-            const Divider(height: 12),
-            widget.buildSummaryRow(
-              'Hora Inicio:',
-              widget.formatTime(_trip.startedAt),
-              isDark,
-            ),
-            const Divider(height: 12),
-            widget.buildSummaryRow(
-              'Hora Fin:',
-              widget.formatTime(_trip.completedAt),
-              isDark,
-            ),
-            const Divider(height: 12),
-            widget.buildSummaryRow(
-              'Pasajeros:',
-              _loadingAforo
-                  ? '… / ${_trip.capacity} pax'
-                  : '${_trip.passengerCount} de ${_trip.capacity} pax',
-              isDark,
-            ),
-            const Divider(height: 12),
-            widget.buildSummaryRow('Bus Asignado:', _trip.unitCode, isDark),
-            DesignSpacing.spacerV16,
-            Text(
-              'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
-              style: DesignTypography.caption.copyWith(
-                color: isDark
-                    ? DesignColors.textSecondaryDark
-                    : DesignColors.textSecondaryLight,
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-            ),
-            DesignSpacing.spacerV20,
-            Row(
-              children: [
-                Expanded(
-                  child: DesignButton.outlined(
-                    text: 'Ver Manifiesto',
-                    icon: Icons.assignment_rounded,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/dashboard/manifest/${_trip.id}');
-                    },
-                    fullWidth: true,
-                  ),
+              DesignSpacing.spacerV12,
+              widget.buildSummaryRow('Ruta:', _trip.route, isDark),
+              const Divider(height: 12),
+              widget.buildSummaryRow(
+                'Fecha:',
+                PeruDateFormatter.formatDate(_trip.scheduledTime),
+                isDark,
+              ),
+              const Divider(height: 12),
+              widget.buildSummaryRow(
+                'Hora Prog:',
+                widget.formatTime(_trip.scheduledTime),
+                isDark,
+              ),
+              const Divider(height: 12),
+              widget.buildSummaryRow(
+                'Hora Inicio:',
+                widget.formatTime(_trip.startedAt),
+                isDark,
+              ),
+              const Divider(height: 12),
+              widget.buildSummaryRow(
+                'Hora Fin:',
+                widget.formatTime(_trip.completedAt),
+                isDark,
+              ),
+              const Divider(height: 12),
+              widget.buildSummaryRow(
+                'Pasajeros:',
+                _loadingAforo
+                    ? '… / ${_trip.capacity} pax'
+                    : '${_trip.passengerCount} de ${_trip.capacity} pax',
+                isDark,
+              ),
+              const Divider(height: 12),
+              widget.buildSummaryRow('Bus Asignado:', _trip.unitCode, isDark),
+              DesignSpacing.spacerV16,
+              Text(
+                'Los datos se encuentran sincronizados y guardados en almacenamiento local.',
+                style: DesignTypography.caption.copyWith(
+                  color: isDark
+                      ? DesignColors.textSecondaryDark
+                      : DesignColors.textSecondaryLight,
                 ),
-                DesignSpacing.spacerH12,
-                Expanded(
-                  child: DesignButton.primary(
-                    text: 'Aceptar',
-                    icon: Icons.check_rounded,
-                    onTap: () => Navigator.pop(context),
-                    fullWidth: true,
+              ),
+              DesignSpacing.spacerV20,
+              Row(
+                children: [
+                  Expanded(
+                    child: DesignButton.outlined(
+                      text: 'Ver Manifiesto',
+                      icon: Icons.assignment_rounded,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/dashboard/manifest/${_trip.id}');
+                      },
+                      fullWidth: true,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  DesignSpacing.spacerH12,
+                  Expanded(
+                    child: DesignButton.primary(
+                      text: 'Aceptar',
+                      icon: Icons.check_rounded,
+                      onTap: () => Navigator.pop(context),
+                      fullWidth: true,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

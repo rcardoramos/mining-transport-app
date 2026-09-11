@@ -53,6 +53,8 @@ class DriverProfileCard extends StatelessWidget {
               children: [
                 Text(
                   driver.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: DesignTypography.titleMedium.copyWith(
                     color: isDark ? DesignColors.textPrimaryDark : DesignColors.textPrimaryLight,
                     fontWeight: FontWeight.bold,
@@ -61,10 +63,14 @@ class DriverProfileCard extends StatelessWidget {
                 DesignSpacing.spacerV4,
                 Row(
                   children: [
-                    Text(
-                      driver.code,
-                      style: DesignTypography.bodyMedium.copyWith(
-                        color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                    Flexible(
+                      child: Text(
+                        driver.code,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: DesignTypography.bodyMedium.copyWith(
+                          color: isDark ? DesignColors.textSecondaryDark : DesignColors.textSecondaryLight,
+                        ),
                       ),
                     ),
                     DesignSpacing.spacerH8,
@@ -77,9 +83,11 @@ class DriverProfileCard extends StatelessWidget {
                       ),
                     ),
                     DesignSpacing.spacerH8,
-                    DesignBadge(
-                      label: _getStatusLabel(driver.status),
-                      color: _getStatusColor(driver.status, customColors),
+                    Flexible(
+                      child: DesignBadge(
+                        label: _getStatusLabel(driver.status),
+                        color: _getStatusColor(driver.status, customColors),
+                      ),
                     ),
                   ],
                 ),
