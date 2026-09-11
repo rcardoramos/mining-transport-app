@@ -44,15 +44,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DesignTextField(
-            labelText: 'Usuario',
-            hintText: 'Ingresa tu usuario de red',
+            labelText: 'DNI',
+            hintText: 'Ingresa tu DNI',
             controller: _usernameController,
             enabled: !state.isLoading,
-            prefixIcon: const Icon(Icons.person_outline_rounded),
+            prefixIcon: const Icon(Icons.badge_outlined),
             borderRadius: DesignRadius.allCircular,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'El usuario es requerido';
+                return 'El DNI es requerido';
               }
               return null;
             },

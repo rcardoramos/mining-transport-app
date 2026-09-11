@@ -19,16 +19,16 @@ class UsernameField extends StatelessWidget {
       keyboardType: TextInputType.text,
       textInputAction: TextInputAction.next,
       decoration: InputDecoration(
-        labelText: 'Usuario',
-        hintText: 'Ingrese su nombre de usuario',
-        prefixIcon: const Icon(Icons.person_outline),
+        labelText: 'DNI',
+        hintText: 'Ingrese su DNI',
+        prefixIcon: const Icon(Icons.badge_outlined),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'El usuario es requerido';
+          return 'El DNI es requerido';
         }
         return null;
       },
