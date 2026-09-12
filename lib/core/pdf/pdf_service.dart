@@ -106,7 +106,7 @@ class PdfService {
                 0: pw.FixedColumnWidth(30), // N°
                 1: pw.FlexColumnWidth(3),   // Nombre
                 2: pw.FixedColumnWidth(70), // DNI
-                3: pw.FlexColumnWidth(1.5), // Categoria
+                3: pw.FlexColumnWidth(1.5), // Compañía
                 4: pw.FixedColumnWidth(60), // Hora
               },
               children: [
@@ -117,7 +117,7 @@ class PdfService {
                     _buildCell('N°', isHeader: true),
                     _buildCell('Nombre Completo', isHeader: true),
                     _buildCell('DNI', isHeader: true),
-                    _buildCell('Categoría', isHeader: true),
+                    _buildCell('Compañía', isHeader: true),
                     _buildCell('Hora de Abordaje', isHeader: true),
                   ],
                 ),
