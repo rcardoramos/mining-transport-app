@@ -111,6 +111,34 @@ class SecureStorage {
     await _storage.delete(key: 'trip_travelling_$tripId');
   }
 
+  String _completedStopsKey(String tripId) => 'trip_completed_stops_$tripId';
+
+  /// IDs de paraderos ya completados en el viaje (avance local / offline).
+  Future<Set<String>> getCompletedStopIds(String tripId) async {
+    final raw = await _storage.read(key: _completedStopsKey(tripId));
+    if (raw == null || raw.trim().isEmpty) return <String>{};
+    return raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+  }
+
+  Future<void> markStopCompleted(String tripId, String stopId) async {
+    final id = stopId.trim();
+    if (id.isEmpty) return;
+    final current = await getCompletedStopIds(tripId);
+    if (!current.add(id)) return;
+    await _storage.write(
+      key: _completedStopsKey(tripId),
+      value: current.join(','),
+    );
+  }
+
+  Future<void> clearCompletedStops(String tripId) async {
+    await _storage.delete(key: _completedStopsKey(tripId));
+  }
+
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }

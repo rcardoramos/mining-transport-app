@@ -10,6 +10,7 @@ import 'package:mining_transport_app/features/auth/domain/usecases/get_current_u
 import 'package:mining_transport_app/features/catalog/domain/entities/catalog_entities.dart';
 import 'package:mining_transport_app/features/catalog/domain/usecases/get_catalogs_usecase.dart';
 import 'package:mining_transport_app/features/home/domain/entities/trip_entity.dart';
+import 'package:mining_transport_app/features/home/domain/entities/stop_entity.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/features/trip/data/datasources/trip_remote_data_source.dart';
@@ -116,6 +117,26 @@ class CreateTripState {
         ? TripStatus.inProgress
         : TripStatus.scheduled;
 
+    final stopIds = selectedStopIds.isNotEmpty
+        ? selectedStopIds
+        : linkedStopsForRoute.map((s) => s.id).toList();
+    final stopsById = {for (final s in catalogs.stops) s.id: s};
+    final previewStops = <StopEntity>[];
+    for (var i = 0; i < stopIds.length; i++) {
+      final catalogStop = stopsById[stopIds[i]];
+      if (catalogStop == null) continue;
+      previewStops.add(
+        StopEntity(
+          id: '${catalogStop.id}',
+          name: catalogStop.name,
+          latitude: catalogStop.latitude,
+          longitude: catalogStop.longitude,
+          allowedRadius: catalogStop.allowedRadiusMeters,
+          sequenceOrder: i + 1,
+        ),
+      );
+    }
+
     return TripEntity(
       id: created.viajeId,
       route: route.name,
@@ -125,6 +146,7 @@ class CreateTripState {
       capacity: bus.capacity,
       passengerCount: 0,
       status: status,
+      stops: previewStops.isEmpty ? null : previewStops,
     );
   }
 

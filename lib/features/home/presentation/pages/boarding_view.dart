@@ -95,6 +95,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             entity = entity.copyWith(status: TripStatus.travelling);
           }
         }
+        // Obtener suele devolver paraderos sin flag "completado";
+        // reaplicar avance local para no perder el Paradero Activo.
+        entity = await _applyLocalCompletedStops(entity);
+
+        // Si Home ya tiene la lista completa de paraderos (p.ej. al crear)
+        // y Obtener trae menos, conservar la lista local más completa.
+        final dash = ref.read(homeDashboardViewModelProvider).data;
+        if (dash != null) {
+          final all = [...dash.todayTrips, ...dash.pendingTrips];
+          TripEntity? localTrip;
+          try {
+            localTrip = all.firstWhere((t) => t.id == widget.tripId);
+          } catch (_) {}
+          final localStops = localTrip?.stops;
+          if (localStops != null &&
+              localStops.isNotEmpty &&
+              (entity.stops == null ||
+                  entity.stops!.length < localStops.length)) {
+            entity = entity.copyWith(
+              stops: _mergeStopsKeepingCompleted(localStops, entity.stops),
+            );
+            entity = await _applyLocalCompletedStops(entity);
+          }
+        }
+
         setState(() {
           _detailedTrip = entity;
         });
@@ -106,6 +131,45 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         setState(() => _isLoadingTripDetail = false);
       }
     }
+  }
+
+  Future<TripEntity> _applyLocalCompletedStops(TripEntity trip) async {
+    final stops = trip.stops;
+    if (stops == null || stops.isEmpty) return trip;
+    final completedIds =
+        await GetIt.I<SecureStorage>().getCompletedStopIds(trip.id);
+    if (completedIds.isEmpty) return trip;
+    return trip.copyWith(
+      stops: stops
+          .map(
+            (s) => completedIds.contains(s.id)
+                ? s.copyWith(isCompleted: true)
+                : s,
+          )
+          .toList(),
+    );
+  }
+
+  /// Combina paraderos de Obtener + Home preservando `isCompleted`.
+  List<StopEntity>? _mergeStopsKeepingCompleted(
+    List<StopEntity>? primary,
+    List<StopEntity>? secondary,
+  ) {
+    if (primary == null || primary.isEmpty) return secondary;
+    if (secondary == null || secondary.isEmpty) return primary;
+
+    final secondaryById = {for (final s in secondary) s.id: s};
+    // Preferir la lista más completa (crear/local puede tener más que Obtener).
+    final base = primary.length >= secondary.length ? primary : secondary;
+    final otherById = primary.length >= secondary.length
+        ? secondaryById
+        : {for (final s in primary) s.id: s};
+
+    return base.map((s) {
+      final other = otherById[s.id];
+      final done = s.isCompleted || (other?.isCompleted ?? false);
+      return done ? s.copyWith(isCompleted: true) : s;
+    }).toList();
   }
 
   Future<void> _loadPassengers({bool showLoading = true}) async {
@@ -1027,7 +1091,10 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             scheduledTime: trip.scheduledTime,
             passengerCount: resolvedPassengerCount,
             capacity: resolvedCapacity,
-            stops: _detailedTrip?.stops ?? trip.stops,
+            stops: _mergeStopsKeepingCompleted(
+              _detailedTrip?.stops,
+              trip.stops,
+            ),
             startedAt: _detailedTrip?.startedAt ?? trip.startedAt,
             completedAt: _detailedTrip?.completedAt ?? trip.completedAt,
             // Preferir estado del detalle remoto (p. ej. COMPLETED) sobre el del dashboard.
@@ -1915,18 +1982,40 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                         ? null
                         : () async {
                             setState(() => _isRegistering = true);
+                            final completedId = activeStop.id;
+                            final completedName = activeStop.name;
                             final success = await ref
                                 .read(homeDashboardViewModelProvider.notifier)
-                                .completeStop(trip.id, activeStop.id);
-                            setState(() => _isRegistering = false);
-                            if (success && mounted) {
-                                DesignSnackbar.showSuccess(
-                                  context,
-                                  '¡${activeStop.name} completado! Avanzando al siguiente paradero.',
+                                .completeStop(trip.id, completedId);
+
+                            // Actualizar detalle local ya; el reload de Obtener
+                            // no debe revertir el avance.
+                            if (success && mounted && _detailedTrip != null) {
+                              final currentStops = _detailedTrip!.stops;
+                              if (currentStops != null) {
+                                _detailedTrip = _detailedTrip!.copyWith(
+                                  stops: currentStops
+                                      .map(
+                                        (s) => s.id == completedId
+                                            ? s.copyWith(isCompleted: true)
+                                            : s,
+                                      )
+                                      .toList(),
                                 );
-                                _loadPassengers();
-                                await _loadTripDetail();
                               }
+                            }
+
+                            if (mounted) {
+                              setState(() => _isRegistering = false);
+                            }
+                            if (success && mounted) {
+                              DesignSnackbar.showSuccess(
+                                context,
+                                '¡$completedName completado! Avanzando al siguiente paradero.',
+                              );
+                              _loadPassengers();
+                              await _loadTripDetail();
+                            }
                           },
                   ),
                 ),

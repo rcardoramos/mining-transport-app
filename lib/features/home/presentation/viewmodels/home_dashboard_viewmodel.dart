@@ -20,6 +20,7 @@ import 'package:mining_transport_app/features/home/presentation/states/home_dash
 import 'package:mining_transport_app/features/sync/presentation/viewmodels/sync_viewmodel.dart';
 import 'package:mining_transport_app/features/home/data/datasources/home_dashboard_remote_data_source.dart';
 import 'package:mining_transport_app/features/home/data/datasources/mock_home_dashboard_remote_data_source.dart';
+import 'package:mining_transport_app/core/storage/secure_storage.dart';
 
 /// ViewModel que gestiona el estado y eventos de la pantalla principal (Home).
 class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
@@ -262,6 +263,10 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     });
 
     // Sync suave en background solo tras aperturar/cerrar (no bloquea UI ni skeleton).
+    if (newStatus == TripStatus.completed) {
+      unawaited(GetIt.I<SecureStorage>().clearCompletedStops(tripId));
+    }
+
     if (newStatus == TripStatus.inProgress || newStatus == TripStatus.completed) {
       unawaited(syncDashboardInBackground());
     }
@@ -414,34 +419,41 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
 
   Future<bool> completeStop(String tripId, String stopId) async {
     state = state.copyWith(isRefreshing: true, errorMessage: null);
-    
-    // Completar paradero es una acción puramente local en el frontend en producción,
-    // ya que no existe un endpoint en el servidor real para esto.
-    final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
-    if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
-      try {
-        await remoteDataSource.completeStop(tripId, stopId);
-      } catch (_) {}
+
+    // Persistir avance localmente: Viaje/Obtener no siempre refleja paraderos
+    // completados y el reload de Embarque borraba el progreso en UI.
+    await GetIt.I<SecureStorage>().markStopCompleted(tripId, stopId);
+
+    // Intentar endpoint real; si falla, igual avanzamos en UI local.
+    final apiResult = await _completeStopUseCase.execute(tripId, stopId);
+    if (apiResult.isFailure) {
+      final remoteDataSource = GetIt.I<HomeDashboardRemoteDataSource>();
+      if (remoteDataSource is MockHomeDashboardRemoteDataSource) {
+        try {
+          await remoteDataSource.completeStop(tripId, stopId);
+        } catch (_) {}
+      }
     }
-    
+
     final currentData = state.data;
     if (currentData != null) {
+      List<StopEntity>? markCompleted(List<StopEntity>? stops) {
+        if (stops == null) return null;
+        return stops
+            .map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s)
+            .toList();
+      }
+
       final updatedToday = sortTripsByOperationalStatus(
         currentData.todayTrips.map((t) {
-          if (t.id == tripId) {
-            final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
-            return t.copyWith(stops: stops);
-          }
-          return t;
+          if (t.id != tripId) return t;
+          return t.copyWith(stops: markCompleted(t.stops));
         }).toList(),
       );
       final updatedPending = sortTripsByOperationalStatus(
         currentData.pendingTrips.map((t) {
-          if (t.id == tripId) {
-            final List<StopEntity>? stops = t.stops?.map((s) => s.id == stopId ? s.copyWith(isCompleted: true) : s).toList();
-            return t.copyWith(stops: stops);
-          }
-          return t;
+          if (t.id != tripId) return t;
+          return t.copyWith(stops: markCompleted(t.stops));
         }).toList(),
       );
       state = state.copyWith(
@@ -449,13 +461,13 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
         data: currentData.copyWith(
           todayTrips: updatedToday,
           pendingTrips: updatedPending,
-          summary: currentData.summary, // Mantener el mismo summary
+          summary: currentData.summary,
         ),
       );
     } else {
       state = state.copyWith(isRefreshing: false);
     }
-    
+
     return true;
   }
 
