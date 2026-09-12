@@ -38,7 +38,7 @@ class CreateTripState {
     this.selectedServiceId,
     this.selectedScheduleId,
     this.selectedBusId,
-    this.selectedStopId,
+    this.selectedStopIds = const [],
     this.errorMessage,
     this.createdTrip,
     this.isDirty = false,
@@ -51,7 +51,8 @@ class CreateTripState {
   final int? selectedServiceId;
   final int? selectedScheduleId;
   final int? selectedBusId;
-  final int? selectedStopId;
+  /// Paraderos manuales en orden de selección (1..N → `orden` del API).
+  final List<int> selectedStopIds;
   final String? errorMessage;
   final CreatedTripResult? createdTrip;
   final bool isDirty;
@@ -150,7 +151,8 @@ class CreateTripState {
 
   bool get isFormValid {
     final bus = selectedBus;
-    final stopOk = !requiresManualStopSelection || selectedStopId != null;
+    final stopOk =
+        !requiresManualStopSelection || selectedStopIds.isNotEmpty;
     return selectedRouteId != null &&
         selectedServiceId != null &&
         selectedScheduleId != null &&
@@ -162,6 +164,12 @@ class CreateTripState {
         phase != CreateTripPhase.loadingCatalogs;
   }
 
+  /// Índice de orden (1-based) si el paradero está seleccionado; si no, null.
+  int? stopOrderOf(int stopId) {
+    final index = selectedStopIds.indexOf(stopId);
+    return index < 0 ? null : index + 1;
+  }
+
   CreateTripState copyWith({
     CreateTripPhase? phase,
     CatalogBundle? catalogs,
@@ -170,7 +178,7 @@ class CreateTripState {
     int? selectedServiceId,
     int? selectedScheduleId,
     int? selectedBusId,
-    int? selectedStopId,
+    List<int>? selectedStopIds,
     String? errorMessage,
     CreatedTripResult? createdTrip,
     bool? isDirty,
@@ -191,7 +199,8 @@ class CreateTripState {
       selectedScheduleId:
           clearSchedule ? null : (selectedScheduleId ?? this.selectedScheduleId),
       selectedBusId: clearBus ? null : (selectedBusId ?? this.selectedBusId),
-      selectedStopId: clearStop ? null : (selectedStopId ?? this.selectedStopId),
+      selectedStopIds:
+          clearStop ? const [] : (selectedStopIds ?? this.selectedStopIds),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       createdTrip: createdTrip ?? this.createdTrip,
       isDirty: isDirty ?? this.isDirty,
@@ -357,8 +366,19 @@ class CreateTripViewModel extends StateNotifier<CreateTripState> {
     state = state.copyWith(selectedBusId: id, isDirty: true, clearError: true);
   }
 
-  void selectStop(int? id) {
-    state = state.copyWith(selectedStopId: id, isDirty: true, clearError: true);
+  void selectStop(int id) {
+    final current = List<int>.from(state.selectedStopIds);
+    final index = current.indexOf(id);
+    if (index >= 0) {
+      current.removeAt(index);
+    } else {
+      current.add(id);
+    }
+    state = state.copyWith(
+      selectedStopIds: current,
+      isDirty: true,
+      clearError: true,
+    );
   }
 
   Future<bool> submit() async {
@@ -366,8 +386,9 @@ class CreateTripViewModel extends StateNotifier<CreateTripState> {
     if (!state.isFormValid) {
       state = state.copyWith(
         phase: CreateTripPhase.validationError,
-        errorMessage: state.requiresManualStopSelection && state.selectedStopId == null
-            ? 'Seleccione un paradero para continuar.'
+        errorMessage: state.requiresManualStopSelection &&
+                state.selectedStopIds.isEmpty
+            ? 'Seleccione al menos un paradero para continuar.'
             : 'Complete todos los campos obligatorios.',
       );
       return false;
@@ -382,9 +403,8 @@ class CreateTripViewModel extends StateNotifier<CreateTripState> {
 
     state = state.copyWith(phase: CreateTripPhase.creating, clearError: true);
 
-    final manualStops = state.requiresManualStopSelection &&
-            state.selectedStopId != null
-        ? <int>[state.selectedStopId!]
+    final manualStops = state.requiresManualStopSelection
+        ? List<int>.from(state.selectedStopIds)
         : const <int>[];
 
     final result = await _createTripUseCase.execute(

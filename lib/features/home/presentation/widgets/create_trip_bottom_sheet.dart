@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mining_transport_app/features/catalog/domain/entities/catalog_entities.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/create_trip_viewmodel.dart';
 import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
@@ -25,12 +26,21 @@ class CreateTripBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
+  /// Incrementa al scrollear el formulario para cerrar desplegables abiertos.
+  final ValueNotifier<int> _collapseMenus = ValueNotifier<int>(0);
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(createTripViewModelProvider.notifier).load();
     });
+  }
+
+  @override
+  void dispose() {
+    _collapseMenus.dispose();
+    super.dispose();
   }
 
   Future<bool> _onWillPop() async {
@@ -218,7 +228,20 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
       );
     }
 
-    return ListView(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // depth == 0: scroll del formulario; >0: scroll interno de un desplegable.
+        if (notification.depth != 0) return false;
+        final isUserDrag = (notification is ScrollUpdateNotification &&
+                notification.dragDetails != null) ||
+            (notification is ScrollStartNotification &&
+                notification.dragDetails != null);
+        if (isUserDrag) {
+          _collapseMenus.value++;
+        }
+        return false;
+      },
+      child: ListView(
       padding: DesignSpacing.allM,
       children: [
         if (state.errorMessage != null) ...[
@@ -240,19 +263,12 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           ),
         ),
         DesignSpacing.spacerV12,
-        DesignDropdown<int>(
-          labelText: 'Ruta',
-          value: state.selectedRouteId,
-          items: catalogs.routes
-              .map(
-                (r) => DropdownMenuItem<int>(
-                  value: r.id,
-                  child: Text(r.displayLabel),
-                ),
-              )
-              .toList(),
-          onChanged: (v) =>
-              ref.read(createTripViewModelProvider.notifier).selectRoute(v),
+        _RouteDropdown(
+          routes: catalogs.routes,
+          selectedRouteId: state.selectedRouteId,
+          collapseListenable: _collapseMenus,
+          onSelected: (id) =>
+              ref.read(createTripViewModelProvider.notifier).selectRoute(id),
         ),
         DesignSpacing.spacerV16,
         Text(
@@ -317,7 +333,7 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           ),
           DesignSpacing.spacerV8,
           Text(
-            'El catálogo no asocia paraderos a la ruta. Seleccione el paradero autorizado.',
+            'El catálogo no asocia paraderos a la ruta. Seleccione uno o más paraderos en el orden del recorrido.',
             style: DesignTypography.caption.copyWith(
               color: isDark
                   ? DesignColors.textSecondaryDark
@@ -325,19 +341,12 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
             ),
           ),
           DesignSpacing.spacerV12,
-          DesignDropdown<int>(
-            labelText: 'Paradero',
-            value: state.selectedStopId,
-            items: state.availableStops
-                .map(
-                  (s) => DropdownMenuItem<int>(
-                    value: s.id,
-                    child: Text(s.name),
-                  ),
-                )
-                .toList(),
-            onChanged: (v) =>
-                ref.read(createTripViewModelProvider.notifier).selectStop(v),
+          _StopDropdown(
+            stops: state.availableStops,
+            selectedStopIds: state.selectedStopIds,
+            collapseListenable: _collapseMenus,
+            onToggle: (id) =>
+                ref.read(createTripViewModelProvider.notifier).selectStop(id),
           ),
         ] else if (state.linkedStopsForRoute.isNotEmpty) ...[
           DesignSpacing.spacerV24,
@@ -370,19 +379,12 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           ),
         ),
         DesignSpacing.spacerV12,
-        DesignDropdown<int>(
-          labelText: 'Placa',
-          value: state.selectedBusId,
-          items: catalogs.buses
-              .map(
-                (b) => DropdownMenuItem<int>(
-                  value: b.id,
-                  child: Text(b.plate),
-                ),
-              )
-              .toList(),
-          onChanged: (v) =>
-              ref.read(createTripViewModelProvider.notifier).selectBus(v),
+        _BusDropdown(
+          buses: catalogs.buses,
+          selectedBusId: state.selectedBusId,
+          collapseListenable: _collapseMenus,
+          onSelected: (id) =>
+              ref.read(createTripViewModelProvider.notifier).selectBus(id),
         ),
         DesignSpacing.spacerV12,
         _ReadonlyField(
@@ -414,6 +416,811 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
         ),
         DesignSpacing.spacerV24,
       ],
+      ),
+    );
+  }
+}
+
+class _BusDropdown extends StatefulWidget {
+  const _BusDropdown({
+    required this.buses,
+    required this.selectedBusId,
+    required this.onSelected,
+    this.collapseListenable,
+  });
+
+  final List<CatalogBus> buses;
+  final int? selectedBusId;
+  final ValueChanged<int> onSelected;
+  final Listenable? collapseListenable;
+
+  @override
+  State<_BusDropdown> createState() => _BusDropdownState();
+}
+
+class _BusDropdownState extends State<_BusDropdown> {
+  bool _expanded = false;
+
+  static const Color _selectedBgLight = Color(0xFFE6F4EF);
+  static const Color _selectedBgDark = Color(0xFF1A2E28);
+  static const Color _selectedAccent = DesignColors.successLight;
+  static const double _menuMaxHeight = 220;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.collapseListenable?.addListener(_collapse);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BusDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collapseListenable != widget.collapseListenable) {
+      oldWidget.collapseListenable?.removeListener(_collapse);
+      widget.collapseListenable?.addListener(_collapse);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.collapseListenable?.removeListener(_collapse);
+    super.dispose();
+  }
+
+  void _collapse() {
+    if (!_expanded || !mounted) return;
+    setState(() => _expanded = false);
+  }
+
+  CatalogBus? get _selected {
+    final id = widget.selectedBusId;
+    if (id == null) return null;
+    return widget.buses.where((b) => b.id == id).firstOrNull;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? DesignColors.borderDark : DesignColors.borderLight;
+    final unselectedIcon = isDark
+        ? DesignColors.textSecondaryDark
+        : DesignColors.textSecondaryLight;
+    final textColor = isDark
+        ? DesignColors.textPrimaryDark
+        : DesignColors.textPrimaryLight;
+    final selected = _selected;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+          borderRadius: DesignRadius.allMedium,
+          child: InkWell(
+            borderRadius: DesignRadius.allMedium,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: InputDecorator(
+              isFocused: _expanded,
+              decoration: InputDecoration(
+                labelText: 'Placa',
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? DesignColors.primaryDark
+                        : DesignColors.primaryLight,
+                    width: 2,
+                  ),
+                ),
+                suffixIcon: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: unselectedIcon,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.directions_bus_rounded,
+                    size: 18,
+                    color: selected != null ? _selectedAccent : unselectedIcon,
+                  ),
+                  DesignSpacing.spacerH12,
+                  Expanded(
+                    child: Text(
+                      selected?.plate ?? 'Seleccione la placa',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.caption.copyWith(
+                        fontSize: 12.5,
+                        fontWeight:
+                            selected != null ? FontWeight.w600 : FontWeight.w500,
+                        color: selected != null ? textColor : unselectedIcon,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (_expanded) ...[
+          DesignSpacing.spacerV8,
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E24) : const Color(0xFFF7F9F9),
+              borderRadius: DesignRadius.allMedium,
+              border: Border.all(color: borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            constraints: const BoxConstraints(maxHeight: _menuMaxHeight),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: widget.buses.length,
+              separatorBuilder: (_, _) =>
+                  Divider(height: 1, thickness: 1, color: borderColor),
+              itemBuilder: (context, i) {
+                final bus = widget.buses[i];
+                final isSelected = widget.selectedBusId == bus.id;
+                return _SingleSelectTile(
+                  label: bus.plate,
+                  icon: Icons.directions_bus_rounded,
+                  selected: isSelected,
+                  selectedBg: isDark ? _selectedBgDark : _selectedBgLight,
+                  selectedAccent: _selectedAccent,
+                  unselectedIcon: unselectedIcon,
+                  textColor: textColor,
+                  onTap: () {
+                    widget.onSelected(bus.id);
+                    setState(() => _expanded = false);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _RouteDropdown extends StatefulWidget {
+  const _RouteDropdown({
+    required this.routes,
+    required this.selectedRouteId,
+    required this.onSelected,
+    this.collapseListenable,
+  });
+
+  final List<CatalogRoute> routes;
+  final int? selectedRouteId;
+  final ValueChanged<int> onSelected;
+  final Listenable? collapseListenable;
+
+  @override
+  State<_RouteDropdown> createState() => _RouteDropdownState();
+}
+
+class _RouteDropdownState extends State<_RouteDropdown> {
+  bool _expanded = false;
+
+  static const Color _selectedBgLight = Color(0xFFE6F4EF);
+  static const Color _selectedBgDark = Color(0xFF1A2E28);
+  static const Color _selectedAccent = DesignColors.successLight;
+  static const double _menuMaxHeight = 220;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.collapseListenable?.addListener(_collapse);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RouteDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collapseListenable != widget.collapseListenable) {
+      oldWidget.collapseListenable?.removeListener(_collapse);
+      widget.collapseListenable?.addListener(_collapse);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.collapseListenable?.removeListener(_collapse);
+    super.dispose();
+  }
+
+  void _collapse() {
+    if (!_expanded || !mounted) return;
+    setState(() => _expanded = false);
+  }
+
+  CatalogRoute? get _selected {
+    final id = widget.selectedRouteId;
+    if (id == null) return null;
+    return widget.routes.where((r) => r.id == id).firstOrNull;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? DesignColors.borderDark : DesignColors.borderLight;
+    final unselectedIcon = isDark
+        ? DesignColors.textSecondaryDark
+        : DesignColors.textSecondaryLight;
+    final textColor = isDark
+        ? DesignColors.textPrimaryDark
+        : DesignColors.textPrimaryLight;
+    final selected = _selected;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+          borderRadius: DesignRadius.allMedium,
+          child: InkWell(
+            borderRadius: DesignRadius.allMedium,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: InputDecorator(
+              isFocused: _expanded,
+              decoration: InputDecoration(
+                labelText: 'Ruta',
+                filled: true,
+                fillColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? DesignColors.primaryDark
+                        : DesignColors.primaryLight,
+                    width: 2,
+                  ),
+                ),
+                suffixIcon: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: unselectedIcon,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.route_rounded,
+                    size: 18,
+                    color: selected != null ? _selectedAccent : unselectedIcon,
+                  ),
+                  DesignSpacing.spacerH12,
+                  Expanded(
+                    child: Text(
+                      selected?.displayLabel ?? 'Seleccione la ruta',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.caption.copyWith(
+                        fontSize: 12.5,
+                        fontWeight:
+                            selected != null ? FontWeight.w600 : FontWeight.w500,
+                        color: selected != null ? textColor : unselectedIcon,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (_expanded) ...[
+          DesignSpacing.spacerV8,
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E24) : const Color(0xFFF7F9F9),
+              borderRadius: DesignRadius.allMedium,
+              border: Border.all(color: borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            constraints: const BoxConstraints(maxHeight: _menuMaxHeight),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: widget.routes.length,
+              separatorBuilder: (_, _) =>
+                  Divider(height: 1, thickness: 1, color: borderColor),
+              itemBuilder: (context, i) {
+                final route = widget.routes[i];
+                final isSelected = widget.selectedRouteId == route.id;
+                return _SingleSelectTile(
+                  label: route.displayLabel,
+                  icon: Icons.route_rounded,
+                  selected: isSelected,
+                  selectedBg: isDark ? _selectedBgDark : _selectedBgLight,
+                  selectedAccent: _selectedAccent,
+                  unselectedIcon: unselectedIcon,
+                  textColor: textColor,
+                  onTap: () {
+                    widget.onSelected(route.id);
+                    setState(() => _expanded = false);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SingleSelectTile extends StatelessWidget {
+  const _SingleSelectTile({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.selectedBg,
+    required this.selectedAccent,
+    required this.unselectedIcon,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final Color selectedBg;
+  final Color selectedAccent;
+  final Color unselectedIcon;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? selectedBg : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected ? selectedAccent : unselectedIcon,
+              ),
+              DesignSpacing.spacerH12,
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.caption.copyWith(
+                    fontSize: 12.5,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: textColor,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+              DesignSpacing.spacerH8,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? selectedAccent : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? selectedAccent : unselectedIcon,
+                    width: 1.6,
+                  ),
+                ),
+                child: selected
+                    ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StopDropdown extends StatefulWidget {
+  const _StopDropdown({
+    required this.stops,
+    required this.selectedStopIds,
+    required this.onToggle,
+    this.collapseListenable,
+  });
+
+  final List<CatalogStop> stops;
+  final List<int> selectedStopIds;
+  final ValueChanged<int> onToggle;
+  final Listenable? collapseListenable;
+
+  @override
+  State<_StopDropdown> createState() => _StopDropdownState();
+}
+
+class _StopDropdownState extends State<_StopDropdown> {
+  bool _expanded = false;
+
+  static const Color _selectedBgLight = Color(0xFFE6F4EF);
+  static const Color _selectedBgDark = Color(0xFF1A2E28);
+  static const Color _selectedAccent = DesignColors.successLight;
+  static const double _menuMaxHeight = 220;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.collapseListenable?.addListener(_collapse);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StopDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collapseListenable != widget.collapseListenable) {
+      oldWidget.collapseListenable?.removeListener(_collapse);
+      widget.collapseListenable?.addListener(_collapse);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.collapseListenable?.removeListener(_collapse);
+    super.dispose();
+  }
+
+  void _collapse() {
+    if (!_expanded || !mounted) return;
+    setState(() => _expanded = false);
+  }
+
+  int? _orderOf(int stopId) {
+    final index = widget.selectedStopIds.indexOf(stopId);
+    return index < 0 ? null : index + 1;
+  }
+
+  String get _summary {
+    // El detalle vive en los chips; el campo actúa como disparador.
+    return 'Seleccione los paraderos';
+  }
+
+  List<({int id, String name, int order})> get _selectedChips {
+    final byId = {for (final s in widget.stops) s.id: s};
+    final chips = <({int id, String name, int order})>[];
+    for (var i = 0; i < widget.selectedStopIds.length; i++) {
+      final id = widget.selectedStopIds[i];
+      final stop = byId[id];
+      if (stop == null) continue;
+      chips.add((id: id, name: stop.name, order: i + 1));
+    }
+    return chips;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? DesignColors.borderDark : DesignColors.borderLight;
+    final unselectedIcon = isDark
+        ? DesignColors.textSecondaryDark
+        : DesignColors.textSecondaryLight;
+    final textColor = isDark
+        ? DesignColors.textPrimaryDark
+        : DesignColors.textPrimaryLight;
+    final chips = _selectedChips;
+    final hasSelection = chips.isNotEmpty;
+    final chipBg = isDark ? _selectedBgDark : _selectedBgLight;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: isDark ? const Color(0xFF1E1E24) : const Color(0xFFF7F9F9),
+          borderRadius: DesignRadius.allMedium,
+          child: InkWell(
+            borderRadius: DesignRadius.allMedium,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: InputDecorator(
+              isFocused: _expanded,
+              decoration: InputDecoration(
+                labelText: 'Paraderos',
+                filled: true,
+                fillColor:
+                    isDark ? const Color(0xFF1E1E24) : const Color(0xFFF7F9F9),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(color: borderColor, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: DesignRadius.allMedium,
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? DesignColors.primaryDark
+                        : DesignColors.primaryLight,
+                    width: 2,
+                  ),
+                ),
+                suffixIcon: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: unselectedIcon,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.location_on_rounded,
+                    size: 18,
+                    color: hasSelection ? _selectedAccent : unselectedIcon,
+                  ),
+                  DesignSpacing.spacerH12,
+                  Expanded(
+                    child: Text(
+                      hasSelection
+                          ? '${chips.length} seleccionado${chips.length == 1 ? '' : 's'}'
+                          : _summary,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DesignTypography.caption.copyWith(
+                        fontSize: 12.5,
+                        fontWeight:
+                            hasSelection ? FontWeight.w600 : FontWeight.w500,
+                        color: hasSelection ? textColor : unselectedIcon,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (_expanded) ...[
+          DesignSpacing.spacerV8,
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E24) : const Color(0xFFF7F9F9),
+              borderRadius: DesignRadius.allMedium,
+              border: Border.all(color: borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            constraints: const BoxConstraints(maxHeight: _menuMaxHeight),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: widget.stops.length,
+              separatorBuilder: (_, _) =>
+                  Divider(height: 1, thickness: 1, color: borderColor),
+              itemBuilder: (context, i) {
+                final stop = widget.stops[i];
+                final order = _orderOf(stop.id);
+                final isSelected = order != null;
+                return _StopSelectionTile(
+                  name: stop.name,
+                  order: order,
+                  selected: isSelected,
+                  selectedBg:
+                      isDark ? _selectedBgDark : _selectedBgLight,
+                  selectedAccent: _selectedAccent,
+                  unselectedIcon: unselectedIcon,
+                  textColor: textColor,
+                  onTap: () => widget.onToggle(stop.id),
+                );
+              },
+            ),
+          ),
+        ],
+        if (hasSelection) ...[
+          DesignSpacing.spacerV8,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final chip in chips)
+                _SelectedStopChip(
+                  order: chip.order,
+                  name: chip.name,
+                  background: chipBg,
+                  accent: _selectedAccent,
+                  textColor: textColor,
+                  onRemove: () => widget.onToggle(chip.id),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SelectedStopChip extends StatelessWidget {
+  const _SelectedStopChip({
+    required this.order,
+    required this.name,
+    required this.background,
+    required this.accent,
+    required this.textColor,
+    required this.onRemove,
+  });
+
+  final int order;
+  final String name;
+  final Color background;
+  final Color accent;
+  final Color textColor;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_on_rounded, size: 14, color: accent),
+            const SizedBox(width: 4),
+            Text(
+              '$order',
+              style: DesignTypography.caption.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: accent,
+                height: 1,
+              ),
+            ),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 140),
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DesignTypography.caption.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                  height: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            InkWell(
+              onTap: onRemove,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.close_rounded, size: 14, color: accent),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StopSelectionTile extends StatelessWidget {
+  const _StopSelectionTile({
+    required this.name,
+    required this.order,
+    required this.selected,
+    required this.selectedBg,
+    required this.selectedAccent,
+    required this.unselectedIcon,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final String name;
+  final int? order;
+  final bool selected;
+  final Color selectedBg;
+  final Color selectedAccent;
+  final Color unselectedIcon;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? selectedBg : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.location_on_rounded,
+                size: 18,
+                color: selected ? selectedAccent : unselectedIcon,
+              ),
+              DesignSpacing.spacerH12,
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DesignTypography.caption.copyWith(
+                    fontSize: 12.5,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: textColor,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+              DesignSpacing.spacerH8,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? selectedAccent : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? selectedAccent : unselectedIcon,
+                    width: 1.6,
+                  ),
+                ),
+                child: selected
+                    ? Text(
+                        '$order',
+                        style: DesignTypography.caption.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1,
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
