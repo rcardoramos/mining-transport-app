@@ -70,12 +70,16 @@ class CatalogSchedule {
   }
 
   /// Combina fecha de servicio (día calendario) con horaSalida.
+  ///
+  /// Devuelve un instante compatible con [PeruDateFormatter]: UTC wall-clock + 5h,
+  /// para que al formatear (UTC−5) se vea la hora del catálogo (ej. 22:00), no −5h.
   DateTime scheduledDateTimeOn(DateTime serviceDay) {
     final parts = departureTime.split(':');
     final h = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
     final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
     final s = parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0;
-    return DateTime(serviceDay.year, serviceDay.month, serviceDay.day, h, m, s);
+    return DateTime.utc(serviceDay.year, serviceDay.month, serviceDay.day, h, m, s)
+        .add(const Duration(hours: 5));
   }
 }
 

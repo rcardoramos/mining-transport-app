@@ -175,12 +175,17 @@ class TripModel with _$TripModel {
 
     if (!isExplicitlyOpen && !isExplicitlyClosed && parsedCompletedAt != null) {
       resolvedStatus = TripStatus.completed;
-    } else if (!isExplicitlyClosed &&
-        (resolvedStatus == TripStatus.scheduled ||
-            resolvedStatus == TripStatus.readyToStart) &&
-        parsedStartedAt != null) {
-      resolvedStatus = TripStatus.inProgress;
     }
+    // No promover a "en curso" solo por FechaApertura: en Crear se envía la misma
+    // marca que fechaProgramado y no significa que el viaje haya iniciado.
+
+    // Hora Inicio solo aplica tras "Iniciar viaje" (tránsito) o viaje cerrado.
+    // En programado/embarque se deja vacía aunque el API traiga FechaApertura.
+    final DateTime? resolvedStartedAt =
+        (resolvedStatus == TripStatus.travelling ||
+                resolvedStatus == TripStatus.completed)
+            ? parsedStartedAt
+            : null;
 
     return TripEntity(
       id: id,
@@ -191,9 +196,12 @@ class TripModel with _$TripModel {
       capacity: capacity,
       passengerCount: passengerCount,
       status: resolvedStatus,
-      startedAt: parsedStartedAt,
+      startedAt: resolvedStartedAt,
       completedAt:
-          resolvedStatus == TripStatus.inProgress ? null : parsedCompletedAt,
+          resolvedStatus == TripStatus.inProgress ||
+                  resolvedStatus == TripStatus.travelling
+              ? null
+              : parsedCompletedAt,
       stops: stops?.map((s) => s.toEntity()).toList(),
     );
   }

@@ -208,9 +208,23 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
       
       _patchTripInState(tripId, (t) => t.copyWith(
         status: newStatus,
-        startedAt: newStatus == TripStatus.inProgress ? DateTime.now() : t.startedAt,
+        // Hora Inicio solo al "Iniciar viaje" (tránsito), no al aperturar.
+        startedAt: newStatus == TripStatus.travelling
+            ? DateTime.now()
+            : newStatus == TripStatus.inProgress
+                ? null
+                : t.startedAt,
         completedAt: newStatus == TripStatus.completed ? DateTime.now() : t.completedAt,
       ));
+      if (newStatus == TripStatus.travelling) {
+        final now = DateTime.now();
+        unawaited(GetIt.I<SecureStorage>().saveTripTravelling(tripId, true));
+        unawaited(GetIt.I<SecureStorage>().saveTripStartedAt(tripId, now));
+      }
+      if (newStatus == TripStatus.completed) {
+        unawaited(GetIt.I<SecureStorage>().clearTripStartedAt(tripId));
+        unawaited(GetIt.I<SecureStorage>().deleteTripTravelling(tripId));
+      }
       return;
     }
 
@@ -229,47 +243,81 @@ class HomeDashboardViewModel extends StateNotifier<HomeDashboardState> {
     }
 
     final updated = result.successOrNull;
+    final startedNow = DateTime.now();
     _patchTripInState(tripId, (t) {
       if (updated == null) {
         return t.copyWith(
           status: newStatus,
-          startedAt: newStatus == TripStatus.inProgress
-              ? (t.startedAt ?? DateTime.now())
-              : t.startedAt,
+          startedAt: newStatus == TripStatus.travelling
+              ? startedNow
+              : newStatus == TripStatus.inProgress
+                  ? null
+                  : t.startedAt,
           completedAt: newStatus == TripStatus.completed
-              ? (t.completedAt ?? DateTime.now())
+              ? (t.completedAt ?? startedNow)
               : t.completedAt,
         );
       }
+
+      final resolvedStatus = newStatus == TripStatus.travelling
+          ? TripStatus.travelling
+          : (updated.status == TripStatus.scheduled && newStatus == TripStatus.inProgress
+              ? TripStatus.inProgress
+              : updated.status);
+
       return t.copyWith(
-        status: newStatus == TripStatus.travelling
-            ? TripStatus.travelling
-            : (updated.status == TripStatus.scheduled && newStatus == TripStatus.inProgress
-                ? TripStatus.inProgress
-                : updated.status),
+        status: resolvedStatus,
         passengerCount: updated.passengerCount > 0 ? updated.passengerCount : t.passengerCount,
         capacity: updated.capacity > 0 ? updated.capacity : t.capacity,
         route: isUsableTripRoute(updated.route) ? updated.route : t.route,
         unitCode: updated.unitCode.isNotEmpty ? updated.unitCode : t.unitCode,
-        shift: updated.shift.isNotEmpty ? updated.shift : t.shift,
-        startedAt: updated.startedAt ??
-            (newStatus == TripStatus.inProgress ? DateTime.now() : t.startedAt),
+        shift: _preferShift(updated.shift, t.shift),
+        // Conservar horario programado local si el API stub trae "ahora".
+        scheduledTime: _looksLikePlaceholderSchedule(updated.scheduledTime, t.scheduledTime)
+            ? t.scheduledTime
+            : updated.scheduledTime,
+        startedAt: newStatus == TripStatus.travelling
+            ? (updated.startedAt ?? startedNow)
+            : newStatus == TripStatus.inProgress
+                ? null
+                : (updated.startedAt ?? t.startedAt),
         completedAt: updated.completedAt ??
-            (newStatus == TripStatus.completed ? DateTime.now() : t.completedAt),
+            (newStatus == TripStatus.completed ? startedNow : t.completedAt),
         stops: (updated.stops != null && updated.stops!.isNotEmpty)
             ? updated.stops
             : t.stops,
       );
     });
 
-    // Sync suave en background solo tras aperturar/cerrar (no bloquea UI ni skeleton).
+    if (newStatus == TripStatus.travelling) {
+      unawaited(GetIt.I<SecureStorage>().saveTripTravelling(tripId, true));
+      unawaited(GetIt.I<SecureStorage>().saveTripStartedAt(tripId, startedNow));
+    }
     if (newStatus == TripStatus.completed) {
       unawaited(GetIt.I<SecureStorage>().clearCompletedStops(tripId));
+      unawaited(GetIt.I<SecureStorage>().clearTripStartedAt(tripId));
+      unawaited(GetIt.I<SecureStorage>().deleteTripTravelling(tripId));
     }
 
+    // Sync suave en background solo tras aperturar/cerrar (no bloquea UI ni skeleton).
     if (newStatus == TripStatus.inProgress || newStatus == TripStatus.completed) {
       unawaited(syncDashboardInBackground());
     }
+  }
+
+  /// Stubs de Aperturar a veces mandan scheduledTime ≈ now y pisarían el horario del formulario.
+  bool _looksLikePlaceholderSchedule(DateTime candidate, DateTime localScheduled) {
+    final diff = candidate.difference(DateTime.now()).abs();
+    if (diff > const Duration(minutes: 2)) return false;
+    final localDiff = localScheduled.difference(DateTime.now()).abs();
+    return localDiff > const Duration(minutes: 5);
+  }
+
+  /// Aperturar a menudo no trae Turno y el mapper pone "Día" por defecto.
+  String _preferShift(String remote, String local) {
+    if (local.isEmpty) return remote;
+    if (remote.isEmpty || remote == 'Día') return local;
+    return remote;
   }
 
   /// Revalida Historial sin skeleton (`isLoading`) ni indicador de pull-to-refresh.

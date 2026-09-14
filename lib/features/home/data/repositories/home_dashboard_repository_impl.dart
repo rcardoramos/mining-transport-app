@@ -69,7 +69,11 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       if (isOpen) {
         final isTravelling = await secureStorage.isTripTravelling(entity.id);
         if (isTravelling) {
-          entity = entity.copyWith(status: TripStatus.travelling);
+          final startedAt = await secureStorage.getTripStartedAt(entity.id);
+          entity = entity.copyWith(
+            status: TripStatus.travelling,
+            startedAt: startedAt ?? entity.startedAt,
+          );
         }
       }
 
@@ -77,13 +81,18 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
         try {
           final detailEntity =
               (await tripRemote.getTripDetail(entity.id)).toEntity();
+          final keepTravelling = entity.status == TripStatus.travelling;
+          final detailScheduleLooksFake = _looksLikeNow(detailEntity.scheduledTime);
           entity = entity.copyWith(
             passengerCount: detailEntity.passengerCount,
             capacity: detailEntity.capacity > 0
                 ? detailEntity.capacity
                 : entity.capacity,
-            scheduledTime: detailEntity.scheduledTime,
-            shift: detailEntity.shift.isNotEmpty
+            // Obtener casi nunca trae horario real; no pisar el del formulario/Historial.
+            scheduledTime: detailScheduleLooksFake
+                ? entity.scheduledTime
+                : detailEntity.scheduledTime,
+            shift: (detailEntity.shift.isNotEmpty && detailEntity.shift != 'Día')
                 ? detailEntity.shift
                 : entity.shift,
             route: isUsableTripRoute(detailEntity.route)
@@ -92,8 +101,12 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             unitCode: detailEntity.unitCode.isNotEmpty
                 ? detailEntity.unitCode
                 : entity.unitCode,
-            startedAt: detailEntity.startedAt ?? entity.startedAt,
+            // En embarque Hora Inicio queda vacía; en tránsito conservar la local.
+            startedAt: keepTravelling
+                ? (entity.startedAt ?? detailEntity.startedAt)
+                : detailEntity.startedAt,
             completedAt: detailEntity.completedAt ?? entity.completedAt,
+            status: keepTravelling ? TripStatus.travelling : entity.status,
             stops: (detailEntity.stops != null &&
                     detailEntity.stops!.isNotEmpty)
                 ? detailEntity.stops
@@ -106,6 +119,10 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
 
       return entity;
     }));
+  }
+
+  bool _looksLikeNow(DateTime value) {
+    return value.difference(DateTime.now()).abs() < const Duration(minutes: 2);
   }
 
   @override
@@ -136,11 +153,19 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
       );
       var entity = model.toEntity();
       if (status == TripStatus.travelling) {
+        final startedAt = DateTime.now();
         await GetIt.I<SecureStorage>().saveTripTravelling(id, true);
-        entity = entity.copyWith(status: TripStatus.travelling);
+        await GetIt.I<SecureStorage>().saveTripStartedAt(id, startedAt);
+        entity = entity.copyWith(
+          status: TripStatus.travelling,
+          startedAt: startedAt,
+        );
       } else if (status == TripStatus.completed) {
         await GetIt.I<SecureStorage>().deleteTripTravelling(id);
+        await GetIt.I<SecureStorage>().clearTripStartedAt(id);
         entity = entity.copyWith(status: TripStatus.completed);
+      } else if (status == TripStatus.inProgress) {
+        entity = entity.copyWith(startedAt: null);
       }
       return Success(entity);
     } catch (e) {
@@ -152,7 +177,9 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
           return FailureResult(_parseRepositoryException(e));
         }
         if (status == TripStatus.travelling) {
+          final startedAt = DateTime.now();
           await GetIt.I<SecureStorage>().saveTripTravelling(id, true);
+          await GetIt.I<SecureStorage>().saveTripStartedAt(id, startedAt);
           return Success(TripEntity(
             id: id,
             route: '',
@@ -162,9 +189,11 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             capacity: 40,
             passengerCount: 0,
             status: TripStatus.travelling,
+            startedAt: startedAt,
           ));
         } else if (status == TripStatus.completed) {
           await GetIt.I<SecureStorage>().deleteTripTravelling(id);
+          await GetIt.I<SecureStorage>().clearTripStartedAt(id);
           return Success(TripEntity(
             id: id,
             route: '',
@@ -185,7 +214,6 @@ class HomeDashboardRepositoryImpl implements HomeDashboardRepository {
             capacity: 40,
             passengerCount: 0,
             status: TripStatus.inProgress,
-            startedAt: DateTime.now(),
           ));
         }
       }

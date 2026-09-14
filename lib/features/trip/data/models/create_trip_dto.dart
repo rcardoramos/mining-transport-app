@@ -65,13 +65,16 @@ class CreateTripRequestDto {
     );
   }
 
+  /// Serializa hora Perú (wall-clock). Si viene el encoding UTC+5 del catálogo,
+  /// se resta 5h para enviar 22:00 y no 03:00 del día siguiente.
   static String _formatDateTime(DateTime value) {
-    return '${value.year.toString().padLeft(4, '0')}-'
-        '${value.month.toString().padLeft(2, '0')}-'
-        '${value.day.toString().padLeft(2, '0')}T'
-        '${value.hour.toString().padLeft(2, '0')}:'
-        '${value.minute.toString().padLeft(2, '0')}:'
-        '${value.second.toString().padLeft(2, '0')}';
+    final peru = value.toUtc().subtract(const Duration(hours: 5));
+    return '${peru.year.toString().padLeft(4, '0')}-'
+        '${peru.month.toString().padLeft(2, '0')}-'
+        '${peru.day.toString().padLeft(2, '0')}T'
+        '${peru.hour.toString().padLeft(2, '0')}:'
+        '${peru.minute.toString().padLeft(2, '0')}:'
+        '${peru.second.toString().padLeft(2, '0')}';
   }
 
   Map<String, dynamic> toJson() => {

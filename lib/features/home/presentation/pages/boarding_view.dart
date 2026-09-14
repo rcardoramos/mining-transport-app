@@ -877,8 +877,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     // No volver a llamar Viaje/Obtener: solo marcar tránsito en el detalle local.
     if (_detailedTrip != null) {
+      final startedAt = DateTime.now();
       setState(() {
-        _detailedTrip = _detailedTrip!.copyWith(status: TripStatus.travelling);
+        _detailedTrip = _detailedTrip!.copyWith(
+          status: TripStatus.travelling,
+          startedAt: startedAt,
+        );
       });
     }
 

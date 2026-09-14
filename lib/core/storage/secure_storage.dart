@@ -139,6 +139,26 @@ class SecureStorage {
     await _storage.delete(key: _completedStopsKey(tripId));
   }
 
+  String _tripStartedAtKey(String tripId) => 'trip_started_at_$tripId';
+
+  /// Hora real de "Iniciar viaje" (no aperturar embarque).
+  Future<void> saveTripStartedAt(String tripId, DateTime startedAt) async {
+    await _storage.write(
+      key: _tripStartedAtKey(tripId),
+      value: startedAt.toUtc().toIso8601String(),
+    );
+  }
+
+  Future<DateTime?> getTripStartedAt(String tripId) async {
+    final raw = await _storage.read(key: _tripStartedAtKey(tripId));
+    if (raw == null || raw.trim().isEmpty) return null;
+    return DateTime.tryParse(raw)?.toUtc();
+  }
+
+  Future<void> clearTripStartedAt(String tripId) async {
+    await _storage.delete(key: _tripStartedAtKey(tripId));
+  }
+
   Future<void> clearAll() async {
     await _storage.deleteAll();
   }
