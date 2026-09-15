@@ -74,9 +74,25 @@ class AuthRepositoryImpl implements AuthRepository {
         ),
       );
 
-      // Guardar sesión y tokens de forma local
+      // Guardar sesión y tokens de forma local.
+      // Backend a veces manda User.id vacío: usar username/driverId como PK local
+      // para no mezclar filas al cambiar de conductor.
       await _localDataSource.saveToken(response.token);
-      final userWithToken = response.user.copyWith(token: response.token);
+      final resolvedId = response.user.id.trim().isNotEmpty
+          ? response.user.id.trim()
+          : (response.user.username.trim().isNotEmpty
+              ? response.user.username.trim()
+              : (response.user.driverId?.trim().isNotEmpty == true
+                  ? response.user.driverId!.trim()
+                  : username.trim()));
+      final userWithToken = response.user.copyWith(
+        token: response.token,
+        id: resolvedId.isNotEmpty ? resolvedId : username,
+        username: response.user.username.trim().isNotEmpty
+            ? response.user.username.trim()
+            : username.trim(),
+      );
+      await _localDataSource.deleteUser();
       await _localDataSource.saveUser(userWithToken);
       await _localDataSource.saveUsername(username);
 

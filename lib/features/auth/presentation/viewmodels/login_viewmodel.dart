@@ -6,6 +6,7 @@ import 'package:mining_transport_app/features/auth/domain/usecases/get_current_u
 import 'package:mining_transport_app/features/auth/domain/usecases/login_usecase.dart';
 import 'package:mining_transport_app/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:mining_transport_app/features/auth/presentation/states/login_state.dart';
+import 'package:mining_transport_app/features/home/presentation/viewmodels/home_dashboard_viewmodel.dart';
 
 /// ViewModel para la pantalla de inicio de sesión gestionado con Riverpod [StateNotifier].
 class LoginViewModel extends StateNotifier<LoginState> {
@@ -13,21 +14,25 @@ class LoginViewModel extends StateNotifier<LoginState> {
   final LogoutUseCase _logoutUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final CheckSessionUseCase _checkSessionUseCase;
+  final void Function()? _resetDashboardCache;
 
   LoginViewModel({
     required LoginUseCase loginUseCase,
     required LogoutUseCase logoutUseCase,
     required GetCurrentUserUseCase getCurrentUserUseCase,
     required CheckSessionUseCase checkSessionUseCase,
+    void Function()? resetDashboardCache,
   })  : _loginUseCase = loginUseCase,
         _logoutUseCase = logoutUseCase,
         _getCurrentUserUseCase = getCurrentUserUseCase,
         _checkSessionUseCase = checkSessionUseCase,
+        _resetDashboardCache = resetDashboardCache,
         super(const LoginState()) {
     checkSession();
     // Escuchar notificaciones de expiración de sesión desde el cliente HTTP
     if (locator.isRegistered<SessionStatusService>()) {
       locator<SessionStatusService>().sessionExpiredStream.listen((_) {
+        _resetDashboardCache?.call();
         state = const LoginState(
           isAuthenticated: false,
           isSessionChecked: true,
@@ -44,6 +49,8 @@ class LoginViewModel extends StateNotifier<LoginState> {
 
     result.fold(
       onSuccess: (user) {
+        // Nuevo usuario: descartar Home en memoria del conductor anterior.
+        _resetDashboardCache?.call();
         state = state.copyWith(
           isLoading: false,
           user: user,
@@ -69,6 +76,7 @@ class LoginViewModel extends StateNotifier<LoginState> {
     final result = await _logoutUseCase();
     result.fold(
       onSuccess: (_) {
+        _resetDashboardCache?.call();
         state = const LoginState(isSessionChecked: true);
       },
       onFailure: (failure) {
@@ -126,5 +134,6 @@ final loginViewModelProvider = StateNotifierProvider<LoginViewModel, LoginState>
     logoutUseCase: locator<LogoutUseCase>(),
     getCurrentUserUseCase: locator<GetCurrentUserUseCase>(),
     checkSessionUseCase: locator<CheckSessionUseCase>(),
+    resetDashboardCache: () => ref.invalidate(homeDashboardViewModelProvider),
   );
 });
