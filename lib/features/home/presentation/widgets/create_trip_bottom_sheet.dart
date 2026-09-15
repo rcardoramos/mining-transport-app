@@ -333,7 +333,7 @@ class _CreateTripBottomSheetState extends ConsumerState<CreateTripBottomSheet> {
           ),
           DesignSpacing.spacerV8,
           Text(
-            'El catálogo no asocia paraderos a la ruta. Seleccione uno o más paraderos en el orden del recorrido.',
+            'El catálogo no asocia paraderos a la ruta. Seleccione uno o más paraderos en el orden mostrado (orden del backend).',
             style: DesignTypography.caption.copyWith(
               color: isDark
                   ? DesignColors.textSecondaryDark

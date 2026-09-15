@@ -165,10 +165,15 @@ class CreateTripState {
     return linkedStopsForRoute.isEmpty && catalogs!.stops.isNotEmpty;
   }
 
+  /// Paraderos para selección manual, en el orden del backend (`orden`).
+  /// Si el API no trae `orden` (>0), se conserva el orden de la respuesta.
   List<CatalogStop> get availableStops {
     final all = catalogs?.stops ?? const <CatalogStop>[];
-    return List<CatalogStop>.from(all)
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final copy = List<CatalogStop>.from(all);
+    if (copy.any((s) => s.order > 0)) {
+      copy.sort((a, b) => a.order.compareTo(b.order));
+    }
+    return copy;
   }
 
   bool get isFormValid {
