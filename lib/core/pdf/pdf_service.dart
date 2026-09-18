@@ -27,7 +27,7 @@ class PdfService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
+        margin: const pw.EdgeInsets.fromLTRB(16, 14, 16, 14),
         build: (pw.Context context) {
           return [
             pw.Header(
@@ -38,26 +38,26 @@ class PdfService {
                   pw.Text(
                     'COMPANIA MINERA MISKI MAYO',
                     style: pw.TextStyle(
-                      fontSize: 15,
+                      fontSize: 11,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 1),
                   pw.Text(
                     'MANIFIESTO DE PASAJEROS',
                     style: pw.TextStyle(
-                      fontSize: 13,
+                      fontSize: 10,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
-                  pw.SizedBox(height: 6),
-                  pw.Divider(thickness: 1.2, color: PdfColors.grey700),
+                  pw.SizedBox(height: 3),
+                  pw.Divider(thickness: 0.8, color: PdfColors.grey700, height: 1),
                 ],
               ),
             ),
-            pw.SizedBox(height: 10),
+            pw.SizedBox(height: 4),
 
-            // DATOS DEL CONDUCTOR
+            // Bloques pegados: sin huecos entre tablas
             _sectionHeader('DATOS DEL CONDUCTOR'),
             _borderedGrid(
               children: [
@@ -68,7 +68,7 @@ class PdfService {
                 ),
                 if (hasLicense)
                   _fieldCell(
-                    'LICENCIA DE CONDUCIR N°:',
+                    'LIC. DE CONDUCIR:',
                     driverLicense!.trim(),
                     flex: 2,
                   ),
@@ -79,12 +79,10 @@ class PdfService {
                     flex: 2,
                   ),
                 if (!hasLicense && !hasDni)
-                  _fieldCell('LICENCIA / DNI:', '—', flex: 2),
+                  _fieldCell('LIC. / DNI:', '—', flex: 2),
               ],
             ),
-            pw.SizedBox(height: 8),
 
-            // DATOS DEL VEHÍCULO
             _sectionHeader('DATOS DEL VEHÍCULO'),
             _borderedGrid(
               children: [
@@ -98,9 +96,7 @@ class PdfService {
                 _fieldCell('ESTADO:', status, flex: 2),
               ],
             ),
-            pw.SizedBox(height: 8),
 
-            // DATOS DEL VIAJE
             _sectionHeader('DATOS DEL VIAJE'),
             _borderedGrid(
               children: [
@@ -141,20 +137,20 @@ class PdfService {
                 ),
               ],
             ),
-            pw.SizedBox(height: 12),
 
-            // DATOS GENERALES (pasajeros)
+            pw.SizedBox(height: 4),
+
             _sectionHeader(
-              'DATOS GENERALES — PASAJEROS REGISTRADOS (${passengers.length})',
+              'DATOS GENERALES — PASAJEROS (${passengers.length})',
             ),
             pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey700, width: 0.7),
+              border: pw.TableBorder.all(color: PdfColors.grey700, width: 0.5),
               columnWidths: const {
-                0: pw.FixedColumnWidth(32),
+                0: pw.FixedColumnWidth(26),
                 1: pw.FlexColumnWidth(3.2),
-                2: pw.FixedColumnWidth(68),
-                3: pw.FlexColumnWidth(1.6),
-                4: pw.FixedColumnWidth(58),
+                2: pw.FixedColumnWidth(58),
+                3: pw.FlexColumnWidth(1.5),
+                4: pw.FixedColumnWidth(42),
               },
               children: [
                 pw.TableRow(
@@ -203,20 +199,20 @@ class PdfService {
   pw.Widget _sectionHeader(String title) {
     return pw.Container(
       width: double.infinity,
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: const pw.BoxDecoration(
         color: PdfColors.grey700,
         border: pw.Border(
-          left: pw.BorderSide(color: PdfColors.grey800, width: 0.7),
-          right: pw.BorderSide(color: PdfColors.grey800, width: 0.7),
-          top: pw.BorderSide(color: PdfColors.grey800, width: 0.7),
+          left: pw.BorderSide(color: PdfColors.grey800, width: 0.5),
+          right: pw.BorderSide(color: PdfColors.grey800, width: 0.5),
+          top: pw.BorderSide(color: PdfColors.grey800, width: 0.5),
         ),
       ),
       child: pw.Text(
         title,
         style: pw.TextStyle(
           color: PdfColors.white,
-          fontSize: 9,
+          fontSize: 7.5,
           fontWeight: pw.FontWeight.bold,
         ),
       ),
@@ -226,7 +222,7 @@ class PdfService {
   pw.Widget _borderedGrid({required List<pw.Widget> children}) {
     return pw.Container(
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey700, width: 0.7),
+        border: pw.Border.all(color: PdfColors.grey700, width: 0.5),
       ),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -243,10 +239,10 @@ class PdfService {
     return pw.Expanded(
       flex: flex,
       child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         decoration: const pw.BoxDecoration(
           border: pw.Border(
-            right: pw.BorderSide(color: PdfColors.grey400, width: 0.4),
+            right: pw.BorderSide(color: PdfColors.grey400, width: 0.35),
           ),
         ),
         child: pw.RichText(
@@ -255,13 +251,13 @@ class PdfService {
               pw.TextSpan(
                 text: '$label ',
                 style: pw.TextStyle(
-                  fontSize: 8,
+                  fontSize: 7,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
               pw.TextSpan(
                 text: value,
-                style: const pw.TextStyle(fontSize: 8),
+                style: const pw.TextStyle(fontSize: 7),
               ),
             ],
           ),
@@ -272,11 +268,11 @@ class PdfService {
 
   pw.Widget _buildCell(String text, {bool isHeader = false}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.all(5),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 2),
       child: pw.Text(
         text,
         style: pw.TextStyle(
-          fontSize: isHeader ? 8 : 8,
+          fontSize: 7,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
         ),
       ),
