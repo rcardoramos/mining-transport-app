@@ -339,7 +339,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     );
   }
 
-  Future<void> _handleCollaboratorBoarding(TripEntity trip, String dni) async {
+  Future<ContinuousScanFeedback> _handleCollaboratorBoarding(
+    TripEntity trip,
+    String dni, {
+    bool suppressSnackbar = false,
+  }) async {
     final normalizedDni = dni.trim();
 
     if (trip.status == TripStatus.completed || trip.status == TripStatus.cancelled) {
@@ -348,22 +352,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         content:
             'Este viaje ya está finalizado y no admite nuevas marcaciones.\n\nAbre o selecciona un viaje activo para registrar pasajeros.',
       );
-      return;
+      return const ContinuousScanFeedback(
+        success: false,
+        message: 'Viaje cerrado',
+        detail: 'No admite nuevas marcaciones',
+      );
     }
 
     final activeStop = _getActiveStop(trip);
     if (activeStop == null || !_isDriverInRange(activeStop)) {
-      if (mounted) {
+      if (mounted && !suppressSnackbar) {
         DesignSnackbar.showError(context, 'No se encuentra en el rango del paradero activo para realizar el abordaje.');
       }
-      return;
+      return const ContinuousScanFeedback(
+        success: false,
+        message: 'Fuera de rango',
+        detail: 'Acérquese al paradero activo',
+      );
     }
 
     // 0. Verificar precisión de GPS (RN-GEO-04-02)
     if (_currentPosition != null && _currentPosition!.accuracy > 30.0) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) => DesignDialog(
             title: 'Señal GPS Deficiente',
             content: 'La precisión actual del GPS es de ${_currentPosition!.accuracy.toStringAsFixed(1)} metros.\n\n'
@@ -374,7 +387,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
-      return;
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'GPS deficiente',
+        detail:
+            '${_currentPosition!.accuracy.toStringAsFixed(1)} m (máx. 30 m)',
+      );
     }
 
     // 1. Verificar duplicidad de pasajero
@@ -383,7 +401,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     );
     if (isDuplicate) {
       await _showDuplicateBoardingDialog(normalizedDni);
-      return;
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Ya a bordo',
+        detail: 'DNI $normalizedDni',
+      );
     }
 
     // 2. Verificar aforo excedido
@@ -393,8 +415,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     );
     if (occupancy.isFull) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) => DesignDialog(
             title: 'Aforo Excedido',
             content: 'Se ha alcanzado la capacidad máxima del bus (${trip.capacity}/${trip.capacity}).\n\nNo se permite el embarque de más pasajeros.',
@@ -403,7 +426,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
-      return;
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Aforo completo',
+        detail: '${trip.capacity}/${trip.capacity}',
+      );
     }
 
     setState(() => _isRegistering = true);
@@ -413,14 +440,20 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     
     setState(() => _isRegistering = false);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return const ContinuousScanFeedback(
+        success: false,
+        message: 'Operación cancelada',
+      );
+    }
 
     if (result.isFailure) {
       final failure = result.failureOrNull!;
       if (failure is CollaboratorNotFoundFailure) {
         if (mounted) {
-          showDialog(
+          await showDialog(
             context: context,
+            useRootNavigator: true,
             builder: (ctx) => DesignDialog(
               title: 'Colaborador No Encontrado',
               content: 'El DNI $normalizedDni no se encuentra registrado en el padrón del sistema.\nNo se permite su embarque.',
@@ -429,10 +462,20 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             ),
           );
         }
+        return ContinuousScanFeedback(
+          success: false,
+          message: 'No encontrado',
+          detail: 'DNI $normalizedDni',
+        );
       } else {
-        DesignSnackbar.showError(context, 'Error al verificar colaborador.');
+        if (!suppressSnackbar) {
+          DesignSnackbar.showError(context, 'Error al verificar colaborador.');
+        }
+        return const ContinuousScanFeedback(
+          success: false,
+          message: 'Error al verificar',
+        );
       }
-      return;
     }
 
     final validation = result.successOrNull!;
@@ -444,7 +487,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (resolvedDni != normalizedDni &&
         _passengersList.any((p) => p.dni.trim() == resolvedDni)) {
       await _showDuplicateBoardingDialog(resolvedDni);
-      return;
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Ya a bordo',
+        detail: validation.fullName,
+      );
     }
 
     final isScan = ['48102030', '11111111', '22222222', '33333333', '44444444']
@@ -488,7 +535,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
       if (mounted) {
         if (success) {
-          DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
+          if (!suppressSnackbar) {
+            DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado exitosamente.');
+          }
           _appendPassengerOptimistic(
             dni: resolvedDni,
             fullName: validation.fullName,
@@ -496,14 +545,28 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             category: validation.category,
             registrationMethod: prefix,
           );
+          return ContinuousScanFeedback(
+            success: true,
+            message: validation.fullName,
+            detail: 'Abordado · ${validation.category}',
+          );
         } else {
           await _handleRegisterFailure(resolvedDni);
+          return const ContinuousScanFeedback(
+            success: false,
+            message: 'No se pudo registrar',
+          );
         }
       }
+      return const ContinuousScanFeedback(
+        success: false,
+        message: 'Operación cancelada',
+      );
     } else if (validation.status == LaborValidationStatus.blockedSecurity) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) => DesignDialog(
             title: 'Acceso Denegado',
             content: 'El colaborador ${validation.fullName} (DNI: $dni) cuenta con un bloqueo activo por motivos de seguridad o disciplina.\n\nEl embarque está terminantemente prohibido.',
@@ -512,10 +575,16 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Bloqueado',
+        detail: validation.fullName,
+      );
     } else if (validation.status == LaborValidationStatus.blockedInactive) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) => DesignDialog(
             title: 'Acceso Denegado',
             content: 'El colaborador ${validation.fullName} (DNI: $dni) se encuentra en estado CESADO o INACTIVO.\n\nNo está permitido su embarque.',
@@ -524,10 +593,16 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Cesado / Inactivo',
+        detail: validation.fullName,
+      );
     } else if (validation.status == LaborValidationStatus.blockedSuspended) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) => DesignDialog(
             title: 'Acceso Denegado',
             content:
@@ -537,10 +612,16 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Suspendido',
+        detail: validation.fullName,
+      );
     } else if (validation.status == LaborValidationStatus.blockedEmoExpired) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) {
             final isDark = Theme.of(ctx).brightness == Brightness.dark;
             return AlertDialog(
@@ -606,10 +687,16 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           },
         );
       }
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'EMO vencido',
+        detail: validation.fullName,
+      );
     } else if (validation.status == LaborValidationStatus.blockedInductionExpired) {
       if (mounted) {
-        showDialog(
+        await showDialog(
           context: context,
+          useRootNavigator: true,
           builder: (ctx) {
             final isDark = Theme.of(ctx).brightness == Brightness.dark;
             return AlertDialog(
@@ -675,6 +762,11 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           },
         );
       }
+      return ContinuousScanFeedback(
+        success: false,
+        message: 'Inducción vencida',
+        detail: validation.fullName,
+      );
     } else {
       // Vacaciones, descanso médico o licencia
       String alertType = '';
@@ -695,6 +787,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       if (mounted) {
         final confirmBoard = await showDialog<bool>(
           context: context,
+          useRootNavigator: true,
           barrierDismissible: false,
           builder: (ctx) => DesignDialog(
             title: 'Alerta de Embarque',
@@ -731,7 +824,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
           if (mounted) {
             if (success) {
-              DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
+              if (!suppressSnackbar) {
+                DesignSnackbar.showSuccess(context, 'Pasajero ${validation.fullName} (${validation.category}) registrado con estado de excepción ($alertType).');
+              }
               _appendPassengerOptimistic(
                 dni: resolvedDni,
                 fullName: validation.fullName,
@@ -739,12 +834,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 category: validation.category,
                 registrationMethod: prefix,
               );
+              return ContinuousScanFeedback(
+                success: true,
+                message: validation.fullName,
+                detail: 'Excepción · $alertType',
+              );
             } else {
               await _handleRegisterFailure(resolvedDni);
+              return const ContinuousScanFeedback(
+                success: false,
+                message: 'No se pudo registrar',
+              );
             }
           }
+        } else {
+          return ContinuousScanFeedback(
+            success: false,
+            message: 'Embarque cancelado',
+            detail: validation.fullName,
+          );
         }
       }
+      return const ContinuousScanFeedback(
+        success: false,
+        message: 'Operación cancelada',
+      );
     }
   }
 
@@ -809,6 +923,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (!mounted) return;
     await showDialog<void>(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) => DesignDialog(
         title: title,
         content: content,
@@ -824,12 +939,31 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (!mounted) return;
     await showDialog<void>(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) => DesignDialog(
         title: 'Alerta de Duplicidad',
         content:
             'El colaborador con DNI $dni ya se encuentra registrado a bordo en este viaje.\n\nNo se permite el doble embarque.',
         confirmLabel: 'Entendido',
         onConfirm: () {},
+      ),
+    );
+  }
+
+  /// Abre la cámara en modo continuo: valida/registra y sigue lista para el siguiente.
+  Future<void> _openContinuousScanner(TripEntity trip) async {
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QrScannerPage(
+          continuous: true,
+          onContinuousScan: (code) => _handleCollaboratorBoarding(
+            trip,
+            code,
+            suppressSnackbar: true,
+          ),
+        ),
       ),
     );
   }
@@ -1218,7 +1352,6 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                     onTap: (_isRegistering || !inRange)
                         ? null
                         : () async {
-                          String? scannedDni;
                           if (kDebugMode && EnvConfig.instance.allowsDebugTools) {
                             // En modo desarrollo, permitir elegir entre cámara real y simulador
                             final choice = await showModalBottomSheet<String>(
@@ -1237,7 +1370,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                                       children: [
                                         ListTile(
                                           leading: Icon(Icons.camera_alt_rounded, color: isDark ? DesignColors.primaryDark : DesignColors.primaryLight),
-                                          title: Text('Usar Cámara Real', style: DesignTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                                          title: Text('Usar Cámara Real (continuo)', style: DesignTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
                                           onTap: () => Navigator.pop(ctx, 'CAMERA'),
                                         ),
                                         ListTile(
@@ -1254,30 +1387,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
                             if (choice == 'CAMERA') {
                               if (!context.mounted) return;
-                              scannedDni = await Navigator.push<String>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const QrScannerPage(),
-                                ),
-                              );
+                              await _openContinuousScanner(activeTrip);
                             } else if (choice == 'SIMULATOR') {
                               _showCameraSimulator(activeTrip);
-                              return;
-                            } else {
-                              return; // Cancelado
                             }
                           } else {
-                            // En producción, ir directo a la cámara real
-                            scannedDni = await Navigator.push<String>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const QrScannerPage(),
-                              ),
-                            );
-                          }
-
-                          if (scannedDni != null && mounted) {
-                            _handleCollaboratorBoarding(activeTrip, scannedDni);
+                            await _openContinuousScanner(activeTrip);
                           }
                         },
                   child: Row(
@@ -1307,7 +1422,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                             ),
                             DesignSpacing.spacerV4,
                             Text(
-                              'Usa la cámara para leer el código QR o barras del fotocheck corporativo.',
+                              'Cámara continua: escanea varios colaboradores sin volver a pulsar. Cierra con X al terminar.',
                               style: DesignTypography.caption.copyWith(
                                 color: isDark
                                     ? DesignColors.textSecondaryDark

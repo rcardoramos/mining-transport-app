@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mining_transport_app/shared/design_system/design_system.dart';
+
+/// Resultado de un abordaje disparado desde el escáner continuo.
+class ContinuousScanFeedback {
+  const ContinuousScanFeedback({
+    required this.success,
+    required this.message,
+    this.detail,
+  });
+
+  final bool success;
+  final String message;
+  final String? detail;
+}
 
 /// Pantalla de escaneo de códigos QR y códigos de barras (DNI/Fotocheck).
 ///
 /// Mitiga lecturas erróneas del DNI peruano (PDF417 / Code39) exigiendo
-/// consenso entre varios frames antes de devolver el DNI.
+/// consenso entre varios frames antes de aceptar el código.
+///
+/// Con [continuous] = true la cámara permanece abierta y llama a
+/// [onContinuousScan] en cada lectura válida.
 class QrScannerPage extends StatefulWidget {
-  const QrScannerPage({super.key});
+  const QrScannerPage({
+    super.key,
+    this.continuous = false,
+    this.onContinuousScan,
+  });
+
+  /// Si es true, no cierra la pantalla tras cada lectura.
+  final bool continuous;
+
+  /// Procesa el código y devuelve feedback para mostrar sobre la cámara.
+  final Future<ContinuousScanFeedback> Function(String code)? onContinuousScan;
 
   @override
   State<QrScannerPage> createState() => _QrScannerPageState();
@@ -19,8 +46,10 @@ class _QrScannerPageState extends State<QrScannerPage>
   /// provoca lecturas corruptas en barcodes del DNIe (ej. 1→8, 7→4).
   final MobileScannerController controller = MobileScannerController(
     facing: CameraFacing.back,
-    detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 120,
+    // unrestricted: más frames → consenso de votos más rápido.
+    // El cooldown propio evita re-aceptar el mismo código al instante.
+    detectionSpeed: DetectionSpeed.unrestricted,
+    detectionTimeoutMs: 50,
     cameraResolution: const Size(1920, 1080),
     formats: const [
       BarcodeFormat.pdf417,
@@ -39,13 +68,22 @@ class _QrScannerPageState extends State<QrScannerPage>
   int _leadingVotes = 0;
 
   bool _isHandling = false;
-  static const int _requiredVotes = 3;
+  bool _isProcessing = false;
+  ContinuousScanFeedback? _lastFeedback;
+  String? _lastAcceptedCode;
+  DateTime? _lastAcceptedAt;
+
+  /// 2 frames consistentes: más rápido que 3, aún evita lecturas sueltas.
+  static const int _requiredVotes = 2;
+  static const Duration _sameCodeCooldown = Duration(milliseconds: 2200);
+  static const Duration _successBanner = Duration(milliseconds: 900);
+  static const Duration _errorBanner = Duration(milliseconds: 1300);
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1600),
       vsync: this,
     )..repeat(reverse: true);
 
@@ -63,27 +101,18 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   /// Extrae un identificador usable según el formato del código leído.
-  ///
-  /// - DNI (PDF417 / 8 dígitos): sin cambios respecto al flujo actual.
-  /// - Fotocheck (Code39 / Code128): código de empleado numérico (p. ej. 6 dígitos).
-  ///
-  /// Devuelve `null` si el payload no es confiable (evita aceptar basura).
   String? _extractDni(String rawCode, BarcodeFormat format) {
     final clean = rawCode.trim();
     if (clean.isEmpty) return null;
 
     final digitsOnly = clean.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Caso 1: QR / Code39 / Code128 limpio de 8 dígitos (DNI lineal o CUI)
     if (format == BarcodeFormat.qrCode ||
         format == BarcodeFormat.code39 ||
         format == BarcodeFormat.code128) {
       if (RegExp(r'^\d{8}$').hasMatch(clean)) return clean;
-      // Code39 a veces viene con asteriscos u otros separadores.
       if (RegExp(r'^\d{8}$').hasMatch(digitsOnly)) return digitsOnly;
 
-      // Fotocheck corporativo: barras 1D con código de empleado (no DNI).
-      // Ejemplo real: "213309" (6 dígitos). No aplicar a PDF417.
       if (format == BarcodeFormat.code39 || format == BarcodeFormat.code128) {
         if (RegExp(r'^\d{4,10}$').hasMatch(clean)) return clean;
         if (clean.length <= 16 && RegExp(r'^\d{4,10}$').hasMatch(digitsOnly)) {
@@ -92,31 +121,24 @@ class _QrScannerPageState extends State<QrScannerPage>
       }
     }
 
-    // Caso 2: PDF417 RENIEC — empieza con tipo doc "01" + DNI (8 dígitos).
-    // El payload real mide cientos de caracteres; anclar al inicio evita
-    // capturar un "01########" falso dentro de un decode corrupto.
     final isPdf417 = format == BarcodeFormat.pdf417 || clean.length > 50;
     if (isPdf417) {
       final anchored = RegExp(r'^01(\d{8})').firstMatch(clean);
       if (anchored != null) return anchored.group(1)!;
 
-      // Algunos lectores insertan BOM/espacios al inicio.
       final looseStart = RegExp(r'^\s*01(\d{8})').firstMatch(clean);
       if (looseStart != null && clean.length > 80) {
         return looseStart.group(1)!;
       }
     }
 
-    // Caso 3: QR/fotocheck exacto de 8 dígitos (formato desconocido)
     if (clean.length == 8 && RegExp(r'^\d{8}$').hasMatch(clean)) {
       return clean;
     }
 
-    // Caso 4: MRZ (I<PER########...)
     final mrzMatch = RegExp(r'I<PER(\d{8})').firstMatch(clean);
     if (mrzMatch != null) return mrzMatch.group(1)!;
 
-    // Caso 5: Fallback solo en payloads cortos (no en PDF417 parcial/corrupto)
     if (clean.length <= 24) {
       final match = RegExp(
         r'\d{8}',
@@ -128,8 +150,6 @@ class _QrScannerPageState extends State<QrScannerPage>
   }
 
   int _formatPriority(BarcodeFormat format) {
-    // Preferir PDF417 (RF-PSG-01) sobre el Code39 lineal, que es más propenso
-    // a lecturas erróneas con reflejo / baja resolución.
     switch (format) {
       case BarcodeFormat.pdf417:
         return 3;
@@ -143,10 +163,20 @@ class _QrScannerPageState extends State<QrScannerPage>
     }
   }
 
+  void _resetVotes() {
+    _dniVotes.clear();
+    _leadingCandidate = null;
+    _leadingVotes = 0;
+  }
+
+  bool _isInSameCodeCooldown(String code) {
+    if (_lastAcceptedCode != code || _lastAcceptedAt == null) return false;
+    return DateTime.now().difference(_lastAcceptedAt!) < _sameCodeCooldown;
+  }
+
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_isHandling || !mounted) return;
 
-    // Elegir el mejor barcode del frame (PDF417 > QR > 1D).
     Barcode? best;
     String? bestDni;
     var bestPriority = -1;
@@ -167,6 +197,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     }
 
     if (best == null || bestDni == null) return;
+    if (_isInSameCodeCooldown(bestDni)) return;
 
     final votes = (_dniVotes[bestDni] ?? 0) + 1;
     _dniVotes[bestDni] = votes;
@@ -180,10 +211,59 @@ class _QrScannerPageState extends State<QrScannerPage>
     if (votes < _requiredVotes) return;
 
     _isHandling = true;
-    await controller.stop();
+    _lastAcceptedCode = bestDni;
+    _lastAcceptedAt = DateTime.now();
+    _resetVotes();
 
+    if (widget.continuous && widget.onContinuousScan != null) {
+      await _handleContinuousAccept(bestDni);
+      return;
+    }
+
+    await controller.stop();
     if (!mounted) return;
     Navigator.pop(context, bestDni);
+  }
+
+  Future<void> _handleContinuousAccept(String code) async {
+    HapticFeedback.lightImpact();
+    if (mounted) {
+      setState(() {
+        _isProcessing = true;
+        _lastFeedback = null;
+      });
+    }
+
+    ContinuousScanFeedback feedback;
+    try {
+      feedback = await widget.onContinuousScan!(code);
+    } catch (_) {
+      feedback = const ContinuousScanFeedback(
+        success: false,
+        message: 'Error al procesar el escaneo',
+      );
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isProcessing = false;
+      _lastFeedback = feedback;
+    });
+
+    if (feedback.success) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
+
+    await Future<void>.delayed(
+      feedback.success ? _successBanner : _errorBanner,
+    );
+
+    if (!mounted) return;
+    setState(() => _lastFeedback = null);
+    _isHandling = false;
   }
 
   @override
@@ -204,7 +284,6 @@ class _QrScannerPageState extends State<QrScannerPage>
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 final height = constraints.maxHeight;
-                // Ventana ancha: el PDF417 del DNIe es horizontal, no cuadrado.
                 final cutoutWidth = width * 0.88;
                 final cutoutHeight = cutoutWidth * 0.55;
                 final left = (width - cutoutWidth) / 2;
@@ -271,7 +350,9 @@ class _QrScannerPageState extends State<QrScannerPage>
                       top: top - 96,
                       child: Center(
                         child: Text(
-                          'Enfoca el PDF417 del DNI o el código de barras del fotocheck. Evita reflejos.',
+                          widget.continuous
+                              ? 'Escáner continuo: enfoca DNI o fotocheck. Cierra con X al terminar.'
+                              : 'Enfoca el PDF417 del DNI o el código de barras del fotocheck. Evita reflejos.',
                           textAlign: TextAlign.center,
                           style: DesignTypography.bodyMedium.copyWith(
                             color: Colors.white,
@@ -282,7 +363,9 @@ class _QrScannerPageState extends State<QrScannerPage>
                       ),
                     ),
 
-                    if (_leadingCandidate != null && !_isHandling)
+                    if (_leadingCandidate != null &&
+                        !_isHandling &&
+                        !_isProcessing)
                       Positioned(
                         left: 32,
                         right: 32,
@@ -304,6 +387,14 @@ class _QrScannerPageState extends State<QrScannerPage>
             ),
           ),
 
+          if (_isProcessing || _lastFeedback != null)
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(context).padding.bottom + 28,
+              child: _buildStatusBanner(),
+            ),
+
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             left: 20,
@@ -323,6 +414,25 @@ class _QrScannerPageState extends State<QrScannerPage>
                     ),
                   ),
                 ),
+                if (widget.continuous)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      'MODO CONTINUO',
+                      style: DesignTypography.caption.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
                 Row(
                   children: [
                     ValueListenableBuilder<MobileScannerState>(
@@ -360,6 +470,91 @@ class _QrScannerPageState extends State<QrScannerPage>
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBanner() {
+    if (_isProcessing) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Validando colaborador…',
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final feedback = _lastFeedback!;
+    final bg = feedback.success
+        ? const Color(0xFF1B5E20)
+        : const Color(0xFFB71C1C);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            feedback.success
+                ? Icons.check_circle_rounded
+                : Icons.error_outline_rounded,
+            color: Colors.white,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  feedback.message,
+                  style: DesignTypography.bodyMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (feedback.detail != null &&
+                    feedback.detail!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    feedback.detail!,
+                    style: DesignTypography.caption.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
