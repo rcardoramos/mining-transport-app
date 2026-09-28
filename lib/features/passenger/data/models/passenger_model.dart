@@ -63,7 +63,9 @@ extension PassengerModelMapper on PassengerModel {
     return PassengerEntity(
       dni: dni,
       fullName: fullName,
-      boardedAt: PeruDateFormatter.parseFlexible(boardedAt) ?? DateTime.now(),
+      // HoraSubida del API ya es reloj Perú (SWITCHOFFSET -05:00); no tratar la Z como UTC.
+      boardedAt:
+          PeruDateFormatter.parsePeruWallClock(boardedAt) ?? DateTime.now(),
       registrationMethod: registrationMethod,
       status: _parseCollaboratorStatus(status),
       seatNumber: seatNumber,

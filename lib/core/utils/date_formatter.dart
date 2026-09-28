@@ -37,6 +37,21 @@ class PeruDateFormatter {
     return '$day/$month/$year';
   }
 
+  /// Parsea una fecha/hora que el backend ya guardó en reloj Perú (UTC−5).
+  ///
+  /// Caso típico: `HoraSubida` viene de
+  /// `CAST(SWITCHOFFSET(SYSUTCDATETIME(), '-05:00') AS DATETIME2)` y la API
+  /// la serializa con `Z` aunque el valor ya es wall-clock Perú. Si se confía
+  /// en la `Z`, [formatTime] resta otras 5 h y se ve mal (11:12 → 06:12).
+  static DateTime? parsePeruWallClock(String? dateStr) {
+    if (dateStr == null || dateStr.trim().isEmpty) return null;
+    final stripped = dateStr
+        .trim()
+        .replaceAll(RegExp(r'[Zz]$'), '')
+        .replaceAll(RegExp(r'[+-]\d{2}:?\d{2}$'), '');
+    return parseFlexible(stripped);
+  }
+
   static DateTime? parseFlexible(String? dateStr) {
     if (dateStr == null || dateStr.trim().isEmpty) return null;
     final clean = dateStr.trim();
