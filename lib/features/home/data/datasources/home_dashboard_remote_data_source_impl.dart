@@ -12,6 +12,7 @@ import '../models/trip_model.dart';
 import '../models/dashboard_summary_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/passenger_model.dart';
 import 'package:mining_transport_app/features/passenger/data/models/collaborator_model.dart';
+import 'package:mining_transport_app/features/passenger/data/mappers/empresa_category_mapper.dart';
 
 /// Implementación real del [HomeDashboardRemoteDataSource] utilizando [DioClient]
 /// para la integración con el backend en .NET.
@@ -427,13 +428,32 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
     final clientUid = uidCliente ?? const Uuid().v4();
 
     // Mapear nombres y empresas reales.
-    // Validar suele devolver Empresa como código ("01") o vacío; Registrar espera el nombre.
+    // Validar puede devolver Empresa como código ("01", "11"); no asumir Miski Mayo.
     final finalName = nombreCompleto ?? (isVisita ? 'VISITANTE EXTERNO' : 'COLABORADOR REGULAR');
-    final finalCompany = _normalizeEmpresa(empresa, isVisita: isVisita);
+    final resolvedCategory = EmpresaCategoryMapper.normalizeCategory(
+      empresaOrCategory: category ?? empresa,
+      unidad: unidad,
+    );
+    final finalCompany = EmpresaCategoryMapper.normalizeEmpresaForRegister(
+      empresaOrCategory: category ?? empresa,
+      unidad: unidad,
+      isVisita: isVisita,
+    );
+    final tipoPasajero = EmpresaCategoryMapper.tipoPasajeroFor(
+      isVisita ? 'Visita' : resolvedCategory,
+    );
 
     // Mapear puesto y unidad por defecto si es colaborador y vienen vacíos
-    final finalPuesto = isVisita ? null : (puesto?.trim().isNotEmpty == true ? puesto : 'Operario de Planta');
-    final finalUnidad = isVisita ? null : (unidad?.trim().isNotEmpty == true ? unidad : 'Fosfatos');
+    final finalPuesto = isVisita
+        ? null
+        : (puesto?.trim().isNotEmpty == true ? puesto : 'Operario de Planta');
+    final defaultUnidad = resolvedCategory == 'Terceros' ||
+            resolvedCategory == 'Contratista'
+        ? 'TERCEROS'
+        : 'Fosfatos';
+    final finalUnidad = isVisita
+        ? null
+        : (unidad?.trim().isNotEmpty == true ? unidad : defaultUnidad);
 
     final resolvedParaderoId = await _resolveCatalogParaderoId(
       requestedId: paraderoId,
@@ -452,7 +472,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       // Si Validar llega a exponer el código real, se podrá reenviar aquí.
       'nombreCompleto': finalName,
       'empresa': finalCompany,
-      'tipoPasajero': isVisita ? 'VISITA' : 'MISKI_MAYO',
+      'tipoPasajero': tipoPasajero,
       'estadoLaboral': mappedStatus,
       'resultado': justification != null ? 'EXCEPCION' : 'ABORDO',
       'observacion': justification,
@@ -504,18 +524,6 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
       passengerCount: ocupados,
       status: 'A',
     );
-  }
-
-  /// Normaliza el campo Empresa de Validar al valor que espera Registrar.
-  static String _normalizeEmpresa(String? empresa, {required bool isVisita}) {
-    final raw = (empresa ?? '').trim();
-    if (raw.isEmpty) {
-      return isVisita ? 'Terceros' : 'MISKI MAYO';
-    }
-    // Códigos corporativos frecuentes en Validar
-    if (raw == '01' || raw == '1') return 'MISKI MAYO';
-    if (RegExp(r'^\d+$').hasMatch(raw)) return 'MISKI MAYO';
-    return raw;
   }
 
   Future<void> _ensureParaderoCatalog() async {

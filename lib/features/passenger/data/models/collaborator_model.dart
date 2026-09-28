@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mining_transport_app/features/passenger/data/mappers/empresa_category_mapper.dart';
 import 'package:mining_transport_app/features/passenger/domain/entities/collaborator_entity.dart';
 
 part 'collaborator_model.freezed.dart';
@@ -26,30 +27,43 @@ class CollaboratorModel with _$CollaboratorModel {
 
     // Contrato staging: AptoParaAbordar=false + EstadoLaboral=SUSPENSION.
     // Si el estado no se reconoce y no es apto, no tratarlo como OK.
-    final aptoRaw = json['AptoParaAbordar'] ?? json['aptoParaAbordar'];
+    final aptoRaw = json['AptoParaAbordar'] ??
+        json['aptoParaAbordar'] ??
+        json['PuedeAbordar'] ??
+        json['puedeAbordar'];
     final apto = aptoRaw is bool
         ? aptoRaw
-        : (aptoRaw?.toString().toLowerCase() == 'true'
+        : (aptoRaw?.toString().toLowerCase() == 'true' ||
+                aptoRaw?.toString() == '1'
             ? true
-            : (aptoRaw?.toString().toLowerCase() == 'false' ? false : null));
+            : (aptoRaw?.toString().toLowerCase() == 'false' ||
+                    aptoRaw?.toString() == '0'
+                ? false
+                : null));
     if (apto == false) {
       final normalized = status.trim().toUpperCase();
       if (normalized.isEmpty ||
           normalized == 'OK' ||
           normalized == 'ACTIVO' ||
-          normalized == 'ACTIVE') {
+          normalized == 'ACTIVE' ||
+          normalized.contains('TERCER')) {
         status = 'SUSPENSION';
       }
     }
-
-    final categoryVal = json['category'] ?? json['Empresa'] ?? json['categoria'] ?? 'Miski Mayo';
-    final category = _normalizeCategory(categoryVal.toString());
 
     final puestoVal = json['puesto'] ?? json['Puesto'];
     final puesto = puestoVal?.toString();
 
     final unidadVal = json['unidad'] ?? json['Unidad'];
     final unidad = unidadVal?.toString();
+
+    final categoryVal =
+        json['category'] ?? json['Empresa'] ?? json['categoria'] ?? '';
+    final category = EmpresaCategoryMapper.normalizeCategory(
+      empresaOrCategory: categoryVal.toString(),
+      unidad: unidad,
+      estadoLaboral: status,
+    );
 
     return CollaboratorModel(
       dni: dni,
@@ -75,32 +89,36 @@ extension CollaboratorModelMapper on CollaboratorModel {
   }
 }
 
-/// Normaliza códigos de empresa del backend (ej. "01") a categorías de UI/negocio.
-String _normalizeCategory(String raw) {
-  final clean = raw.trim();
-  if (clean.isEmpty) return 'Miski Mayo';
-  if (clean == '01' || clean == '1') return 'Miski Mayo';
-  if (RegExp(r'^\d+$').hasMatch(clean)) return 'Miski Mayo';
-  return clean;
-}
-
 CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {
   if (statusStr == null) return CollaboratorStatus.ok;
   final clean = statusStr.trim().toUpperCase();
-  
-  if (clean == 'OK' || clean == 'ACTIVO' || clean == 'ACTIVE') {
+
+  if (clean == 'OK' ||
+      clean == 'ACTIVO' ||
+      clean == 'ACTIVE' ||
+      clean == 'HABILITADO' ||
+      clean == 'ACTIVO_TERCERO' ||
+      clean.contains('ACTIVO_TERCER')) {
     return CollaboratorStatus.ok;
   }
-  if (clean == 'VACACIONES' || clean == 'VACATION' || clean == 'VACACIONES_ALERT') {
+  if (clean == 'VACACIONES' ||
+      clean == 'VACATION' ||
+      clean == 'VACACIONES_ALERT') {
     return CollaboratorStatus.vacation;
   }
-  if (clean == 'DESCANSO_MEDICO' || clean == 'DESCANSO' || clean == 'MEDICAL_LEAVE' || clean == 'MEDICALLEAVE') {
+  if (clean == 'DESCANSO_MEDICO' ||
+      clean == 'DESCANSO' ||
+      clean == 'MEDICAL_LEAVE' ||
+      clean == 'MEDICALLEAVE') {
     return CollaboratorStatus.medicalLeave;
   }
   if (clean == 'LICENCIA' || clean == 'LICENSE' || clean == 'LIC') {
     return CollaboratorStatus.license;
   }
-  if (clean == 'CESADO' || clean == 'INACTIVO' || clean == 'TERMINATED' || clean == 'CESADO_ALERT') {
+  if (clean == 'CESADO' ||
+      clean == 'INACTIVO' ||
+      clean == 'TERMINATED' ||
+      clean == 'CESADO_ALERT') {
     return CollaboratorStatus.terminated;
   }
   if (clean == 'SUSPENSION' ||
@@ -109,7 +127,7 @@ CollaboratorStatus _parseCollaboratorStatus(String? statusStr) {
       clean == 'SUSPENDIDO_ALERT') {
     return CollaboratorStatus.suspended;
   }
-  
+
   return CollaboratorStatus.values.firstWhere(
     (e) => e.name.toUpperCase() == clean,
     orElse: () => CollaboratorStatus.ok,
