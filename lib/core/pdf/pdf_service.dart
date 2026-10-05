@@ -118,12 +118,12 @@ class PdfService {
                 ),
                 _fieldCell(
                   'APERTURA:',
-                  PeruDateFormatter.formatTime12(trip.startedAt),
+                  PeruDateFormatter.formatTime(trip.startedAt),
                   flex: 2,
                 ),
                 _fieldCell(
                   'CIERRE:',
-                  PeruDateFormatter.formatTime12(trip.completedAt),
+                  PeruDateFormatter.formatTime(trip.completedAt),
                   flex: 2,
                 ),
               ],

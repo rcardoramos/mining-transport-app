@@ -68,11 +68,27 @@ class _AuthInterceptor extends Interceptor {
 
 class _LoggingInterceptor extends Interceptor {
   final AppLogger _logger;
+  static const _stopwatchKey = 'http_stopwatch';
 
   _LoggingInterceptor({required AppLogger logger}) : _logger = logger;
 
+  String _pathOf(RequestOptions options) {
+    final path = options.uri.path;
+    return path.isEmpty ? options.path : path;
+  }
+
+  int _elapsedMs(RequestOptions options) {
+    final sw = options.extra[_stopwatchKey];
+    if (sw is Stopwatch) {
+      sw.stop();
+      return sw.elapsedMilliseconds;
+    }
+    return -1;
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    options.extra[_stopwatchKey] = Stopwatch()..start();
     _logger.d('HTTP Request: ${options.method} ${options.uri}');
     if (options.data != null) {
       final body = options.data.toString();
@@ -85,6 +101,9 @@ class _LoggingInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
+    final ms = _elapsedMs(response.requestOptions);
+    final path = _pathOf(response.requestOptions);
+    _logger.i('[HTTP_TIMING] $path → ${response.statusCode} en ${ms}ms');
     _logger.d('HTTP Response: ${response.statusCode} ${response.requestOptions.uri}');
     final data = response.data?.toString() ?? '';
     // Bootstrap/Historial pueden ser muy grandes; no loguear el payload completo.
@@ -98,6 +117,11 @@ class _LoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
+    final ms = _elapsedMs(err.requestOptions);
+    final path = _pathOf(err.requestOptions);
+    _logger.w(
+      '[HTTP_TIMING] $path → ERROR ${err.response?.statusCode ?? err.type} en ${ms}ms',
+    );
     _logger.e('HTTP Error: ${err.response?.statusCode} ${err.requestOptions.uri}');
     _logger.e('HTTP Error Message: ${err.message}');
     if (err.response?.data != null) {

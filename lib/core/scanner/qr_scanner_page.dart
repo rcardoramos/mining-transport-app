@@ -235,6 +235,7 @@ class _QrScannerPageState extends State<QrScannerPage>
     }
 
     ContinuousScanFeedback feedback;
+    final processSw = Stopwatch()..start();
     try {
       feedback = await widget.onContinuousScan!(code);
     } catch (_) {
@@ -243,6 +244,11 @@ class _QrScannerPageState extends State<QrScannerPage>
         message: 'Error al procesar el escaneo',
       );
     }
+    processSw.stop();
+    debugPrint(
+      '[BOARDING_TIMING] scanner_callback code=$code '
+      'success=${feedback.success} process=${processSw.elapsedMilliseconds}ms',
+    );
 
     if (!mounted) return;
 

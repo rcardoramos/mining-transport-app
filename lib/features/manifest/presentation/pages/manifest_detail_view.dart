@@ -90,10 +90,6 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
     return PeruDateFormatter.formatTime(dateTime);
   }
 
-  String _formatTime12(DateTime? dateTime) {
-    return PeruDateFormatter.formatTime12(dateTime);
-  }
-
   String _formatDate(DateTime? dateTime) {
     return PeruDateFormatter.formatDate(dateTime);
   }
@@ -428,8 +424,8 @@ class _ManifestDetailViewState extends ConsumerState<ManifestDetailView> {
                                 _headerDriverLicense!.trim(),
                                 isDark,
                               ),
-                            _buildTableRow('Apertura:', _formatTime12(trip.startedAt), isDark),
-                            _buildTableRow('Cierre:', _formatTime12(trip.completedAt), isDark),
+                            _buildTableRow('Apertura:', _formatTime(trip.startedAt), isDark),
+                            _buildTableRow('Cierre:', _formatTime(trip.completedAt), isDark),
                           ],
                         ),
                       ],

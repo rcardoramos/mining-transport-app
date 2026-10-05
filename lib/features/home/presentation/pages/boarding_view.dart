@@ -345,12 +345,18 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     bool suppressSnackbar = false,
   }) async {
     final normalizedDni = dni.trim();
+    final totalSw = Stopwatch()..start();
+    final log = GetIt.I<AppLogger>();
+    log.i('[BOARDING_TIMING] start dni=$normalizedDni');
 
     if (trip.status == TripStatus.completed || trip.status == TripStatus.cancelled) {
       await _showBoardingBlockedDialog(
         title: 'Viaje cerrado',
         content:
             'Este viaje ya está finalizado y no admite nuevas marcaciones.\n\nAbre o selecciona un viaje activo para registrar pasajeros.',
+      );
+      log.i(
+        '[BOARDING_TIMING] abort=viaje_cerrado total=${totalSw.elapsedMilliseconds}ms',
       );
       return const ContinuousScanFeedback(
         success: false,
@@ -364,6 +370,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
       if (mounted && !suppressSnackbar) {
         DesignSnackbar.showError(context, 'No se encuentra en el rango del paradero activo para realizar el abordaje.');
       }
+      log.i(
+        '[BOARDING_TIMING] abort=fuera_rango total=${totalSw.elapsedMilliseconds}ms',
+      );
       return const ContinuousScanFeedback(
         success: false,
         message: 'Fuera de rango',
@@ -373,6 +382,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
     // 0. Verificar precisión de GPS (RN-GEO-04-02)
     if (_currentPosition != null && _currentPosition!.accuracy > 30.0) {
+      log.i(
+        '[BOARDING_TIMING] gps_accuracy=${_currentPosition!.accuracy.toStringAsFixed(1)}m (dialog)',
+      );
       if (mounted) {
         await showDialog(
           context: context,
@@ -387,6 +399,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
           ),
         );
       }
+      log.i(
+        '[BOARDING_TIMING] abort=gps_deficiente total=${totalSw.elapsedMilliseconds}ms',
+      );
       return ContinuousScanFeedback(
         success: false,
         message: 'GPS deficiente',
@@ -436,11 +451,19 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     setState(() => _isRegistering = true);
     final isOnline = ref.read(syncProvider).isOnline;
     final validateUseCase = GetIt.I<ValidateLaborRulesUseCase>();
+    final validateSw = Stopwatch()..start();
     final result = await validateUseCase.execute(normalizedDni, isOnline);
-    
+    validateSw.stop();
+    log.i(
+      '[BOARDING_TIMING] validar=${validateSw.elapsedMilliseconds}ms online=$isOnline',
+    );
+
     setState(() => _isRegistering = false);
 
     if (!mounted) {
+      log.i(
+        '[BOARDING_TIMING] abort=unmounted total=${totalSw.elapsedMilliseconds}ms',
+      );
       return const ContinuousScanFeedback(
         success: false,
         message: 'Operación cancelada',
@@ -462,6 +485,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             ),
           );
         }
+        log.i(
+          '[BOARDING_TIMING] abort=no_encontrado validar=${validateSw.elapsedMilliseconds}ms total=${totalSw.elapsedMilliseconds}ms',
+        );
         return ContinuousScanFeedback(
           success: false,
           message: 'No encontrado',
@@ -471,6 +497,9 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
         if (!suppressSnackbar) {
           DesignSnackbar.showError(context, 'Error al verificar colaborador.');
         }
+        log.i(
+          '[BOARDING_TIMING] abort=error_verificar validar=${validateSw.elapsedMilliseconds}ms total=${totalSw.elapsedMilliseconds}ms',
+        );
         return const ContinuousScanFeedback(
           success: false,
           message: 'Error al verificar',
@@ -512,6 +541,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
     if (validation.status == LaborValidationStatus.allowed) {
       // Registrar de inmediato
       setState(() => _isRegistering = true);
+      final registerSw = Stopwatch()..start();
       final success = await ref
           .read(homeDashboardViewModelProvider.notifier)
           .registerPassenger(
@@ -531,7 +561,12 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
             validation.puesto,
             validation.unidad,
           );
+      registerSw.stop();
       setState(() => _isRegistering = false);
+      log.i(
+        '[BOARDING_TIMING] registrar=${registerSw.elapsedMilliseconds}ms success=$success '
+        'validar=${validateSw.elapsedMilliseconds}ms total=${totalSw.elapsedMilliseconds}ms',
+      );
 
       if (mounted) {
         if (success) {
@@ -801,6 +836,7 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
 
         if (confirmBoard == true && mounted) {
           setState(() => _isRegistering = true);
+          final registerSw = Stopwatch()..start();
           final success = await ref
               .read(homeDashboardViewModelProvider.notifier)
               .registerPassenger(
@@ -820,7 +856,13 @@ class _BoardingViewState extends ConsumerState<BoardingView> {
                 validation.puesto,
                 validation.unidad,
               );
+          registerSw.stop();
           setState(() => _isRegistering = false);
+          log.i(
+            '[BOARDING_TIMING] registrar_excepcion=${registerSw.elapsedMilliseconds}ms '
+            'alert=$alertType success=$success validar=${validateSw.elapsedMilliseconds}ms '
+            'total=${totalSw.elapsedMilliseconds}ms',
+          );
 
           if (mounted) {
             if (success) {

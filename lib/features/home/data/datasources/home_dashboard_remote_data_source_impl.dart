@@ -5,6 +5,7 @@ import 'package:mining_transport_app/core/network/dio_client.dart';
 import 'package:mining_transport_app/core/storage/secure_storage.dart';
 import 'package:mining_transport_app/core/gps/gps_service.dart';
 import 'package:mining_transport_app/core/utils/date_formatter.dart';
+import 'package:mining_transport_app/core/utils/logger.dart';
 import 'package:mining_transport_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'home_dashboard_remote_data_source.dart';
 import '../models/driver_model.dart';
@@ -529,6 +530,7 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
   Future<void> _ensureParaderoCatalog() async {
     if (_paraderoCatalog != null) return;
 
+    final sw = Stopwatch()..start();
     try {
       final username = await _secureStorage.getUsername() ?? '';
       final token = await _secureStorage.getToken() ?? '';
@@ -560,8 +562,15 @@ class HomeDashboardRemoteDataSourceImpl implements HomeDashboardRemoteDataSource
           })
           .whereType<_CatalogParadero>()
           .toList();
+      GetIt.I<AppLogger>().i(
+        '[BOARDING_TIMING] catalogo_bootstrap=${sw.elapsedMilliseconds}ms '
+        'paraderos=${_paraderoCatalog?.length ?? 0}',
+      );
     } catch (_) {
       _paraderoCatalog = const [];
+      GetIt.I<AppLogger>().w(
+        '[BOARDING_TIMING] catalogo_bootstrap_error=${sw.elapsedMilliseconds}ms',
+      );
     }
   }
 
